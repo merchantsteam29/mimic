@@ -61,9 +61,13 @@ export class Scares {
   // ---------- tapes ----------
   play(it) {
     const g = this.g;
-    const entry = LORE[it.n % LORE.length];
+    const entry = g.story ? g.story.tapes[it.i] : LORE[it.n % LORE.length];
     it.heard = true;
-    const lines = entry.lines.map((text) => ({ text, dur: Math.max(2.4, text.length * 0.065) }));
+    g.updateObjective();
+    const lines = entry.lines.map((l) => {
+      const text = typeof l === 'string' ? l : l.text;
+      return { text, own: typeof l === 'object' && l.playerClip, dur: Math.max(2.4, text.length * 0.065) };
+    });
     const total = lines.reduce((a, l) => a + l.dur, 0);
     this.tape = { lines, i: -1, t: 0, next: 0.6 };
     this.el.loreWho.textContent = entry.who;
@@ -81,8 +85,10 @@ export class Scares {
     if (tp.t < tp.next) return;
     tp.i++;
     if (tp.i >= tp.lines.length) { this.tape = null; this.el.lore.hidden = true; return; }
-    this.el.loreLine.textContent = tp.lines[tp.i].text;
-    tp.next = tp.t + tp.lines[tp.i].dur;
+    const line = tp.lines[tp.i];
+    this.el.loreLine.textContent = line.text;
+    if (line.own) this.g.playOwnVoice(); // the tape has your voice on it
+    tp.next = tp.t + line.dur;
   }
 
   // ---------- the fake locker ----------

@@ -9,6 +9,7 @@ import { Session } from './mp.js';
 import { newCode, cleanCode, cleanName } from './net.js';
 import { CLASSES, CLASS_ORDER } from './classes.js';
 import { VERSION } from './version.js';
+import { CHAPTERS, storyProgress, finishChapter } from './story.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -145,7 +146,7 @@ function renderClassPick() {
   }
 }
 renderClassPick();
-$('btnClassGo').onclick = () => startRun();
+$('btnClassGo').onclick = () => startRun(storyIdx);
 
 // ---------- voice check (before your first game, alone or online) ----------
 let lineIndex = 0;
@@ -193,27 +194,49 @@ function finishVoiceCheck() {
   next?.();
 }
 
-$('btnPlay').onclick = () => voiceCheck(() => { renderClassPick(); show('classes'); });
+$('btnPlay').onclick = () => voiceCheck(() => { storyIdx = null; renderClassPick(); show('classes'); });
+$('btnStory').onclick = () => voiceCheck(() => openStory());
+
+// ---------- story: chapter select ----------
+let storyIdx = null; // the chapter being played (null = a normal run)
+function openStory() {
+  const done = storyProgress();
+  $('chapters').innerHTML = CHAPTERS.map((c, i) => {
+    const open = i <= done;
+    return `<button data-ch="${i}" ${open ? '' : 'disabled'}><b>Chapter ${i + 1}</b><span>${open ? esc(c.title) : '???'}</span>${i < done ? '<i>finished</i>' : ''}</button>`;
+  }).join('');
+  $('chapters').querySelectorAll('button').forEach((b) => {
+    b.onclick = () => { storyIdx = Number(b.dataset.ch); renderClassPick(); show('classes'); };
+  });
+  show('story');
+}
 $('btnFriends').onclick = () => voiceCheck(() => openMp());
 $('btnBegin').onclick = () => finishVoiceCheck();
 $('btnSkipMic').onclick = () => finishVoiceCheck();
 
 // ---------- solo runs ----------
-function startRun() {
+function startRun(si = null) {
   game?.dispose();
-  const themeId = params.get('theme') in THEMES ? params.get('theme') : Math.random() < 0.5 ? 'facility' : 'house';
-  const seed = params.has('seed') ? Number(params.get('seed')) : Math.floor(Math.random() * 2 ** 31);
+  storyIdx = si;
+  const story = si === null ? null : { ...CHAPTERS[si], index: si };
+  const themeId = story ? story.theme : params.get('theme') in THEMES ? params.get('theme') : Math.random() < 0.5 ? 'facility' : 'house';
+  const seed = story ? story.seed : params.has('seed') ? Number(params.get('seed')) : Math.floor(Math.random() * 2 ** 31);
   game = new Game({
-    renderer, sfx, voice, settings, hud, themeId, seed, classes: { h: params.get('class') in CLASSES ? params.get('class') : myClass },
+    renderer, sfx, voice, settings, hud, themeId, seed, story, classes: { h: params.get('class') in CLASSES ? params.get('class') : myClass },
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),
   });
-  showIntro(themeId);
+  showIntro(themeId, story);
 }
 
-function showIntro(themeId) {
-  $('introKicker').textContent = THEMES[themeId].kicker;
-  $('introName').textContent = game.level.name;
+const lineText = (l) => (typeof l === 'string' ? l : l.text);
+
+function showIntro(themeId, story = null, introLines = null) {
+  $('introKicker').textContent = story ? `Chapter ${story.index + 1}` : THEMES[themeId].kicker;
+  $('introName').textContent = story ? story.title : game.level.name;
+  const lines = introLines || (story ? story.intro : ['The power is out. Get it back on, and get out.']);
+  $('introText').innerHTML = lines.map((l) => `<p>${esc(lineText(l))}</p>`).join('');
+  $('introWhisper').hidden = !!story;
   show('intro');
 }
 
@@ -279,8 +302,22 @@ function endRun(r) {
     $('btnToLobby').hidden = !session?.isHost;
     $('btnMenu').textContent = 'Leave';
     if (session && !session.isHost) $('endSub').textContent += ' Waiting for the host…';
+  } else if (r.story) {
+    const ch = r.story, last = ch.index === CHAPTERS.length - 1;
+    if (r.won) finishChapter(ch.index);
+    $('endTitle').textContent = r.won ? (last ? 'The end.' : `Chapter ${ch.index + 1} complete`) : 'It got you.';
+    $('endSub').textContent = r.won ? ch.ending.map(lineText).join(' ') : 'Ellie is still in there somewhere.';
+    $('endPlayers').hidden = true;
+    $('btnAgain').hidden = false;
+    $('btnAgain').textContent = r.won ? (last ? 'Back to chapters' : 'Next chapter') : 'Try again';
+    againAction = r.won ? (last ? () => openStory() : () => startRun(ch.index + 1)) : () => startRun(ch.index);
+    $('btnToLobby').hidden = true;
+    $('btnMenu').textContent = 'Main menu';
+    if (r.won && ch.ending.some((l) => l.playerClip)) setTimeout(() => game?.playOwnVoice?.(), 4500);
   } else {
     stats.push(['Recordings of you', r.clips]);
+    $('btnAgain').textContent = 'Play again';
+    againAction = () => startRun(null);
     $('endSub').textContent = r.won
       ? (r.clips ? 'But it still has your voice.' : 'It never learned your voice.')
       : (r.clips ? 'It sounds just like you now.' : 'It will learn your voice next time.');
@@ -295,12 +332,13 @@ function endRun(r) {
     if (game !== ended) return; // already back in the lobby (timers can run late in background tabs)
     show('end');
     // One last word from it, in your voice.
-    const clip = !r.mp && voice.started ? voice.pick() : null;
+    const clip = !r.mp && !r.story && voice.started ? voice.pick() : null;
     if (clip) setTimeout(() => sfx.playVoice(clip.buffer, null, 'echo'), 900);
   }, 300);
 }
 
-$('btnAgain').onclick = () => startRun();
+let againAction = () => startRun(null);
+$('btnAgain').onclick = () => againAction();
 $('btnMenu').onclick = () => {
   if (session) leaveSession();
   game?.dispose();

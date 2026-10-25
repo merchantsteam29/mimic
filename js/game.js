@@ -24,13 +24,13 @@ const angleDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 const num = (v, d = 0) => (Number.isFinite(v) ? v : d);
 
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null }) {
-    Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp });
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null }) {
+    Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story });
     this.me = mp ? mp.id : 'h';
     this.classes = classes || { [this.me]: 'runner' }; // player id -> class
     this.isHost = !mp || mp.isHost;
     this.order = order || [this.me];
-    const level = this.level = generateLevel(seed, themeId);
+    const level = this.level = generateLevel(seed, themeId, story ? { ...story.gen, lore: story.tapes.length } : {});
     const th = level.theme;
 
     const scene = this.scene = new THREE.Scene();
@@ -110,6 +110,7 @@ export class Game {
       onPeekSeen: () => {}, // each player notices a peek themselves (see watchPeek)
     });
     if (mp) { this.mimic.lureStyle = 'distant'; this.mimic.stalkRange = [9, 16]; }
+    if (story) this.mimic.graceT = story.grace;
     this.ambientEmitter = sfx.emitter();
     this.director = new Director(this);
     this.obj = new Objectives(this);           // generators, tapes, keycard (adds their items)
@@ -869,7 +870,17 @@ export class Game {
     if (this.level.tasks.fuses && this.fusesIn < 4) return `The panel needs ${4 - this.fusesIn} more fuse${4 - this.fusesIn > 1 ? 's' : ''}`;
     if (this.obj.gen.some((p) => p < 1)) return 'The generators are still dead';
     if (this.obj.tapesLeft) return 'Its tapes are still recording';
+    if (this.obj.storyHeard() < this.obj.storyNeed()) return `${this.story.tapeLabel}: ${this.obj.storyHeard()}/${this.obj.storyNeed()} found`;
     return 'The power won\'t come on yet';
+  }
+
+  // Your own "I found something. Come here." from the voice check (or any recording of you).
+  playOwnVoice() {
+    const own = this.voice.clips.filter((c) => c.tag === 'seed');
+    const clip = own[1] || own[0] || this.voice.clips[this.voice.clips.length - 1];
+    if (!clip) return;
+    const d = this.sfx.playVoice(clip.buffer, null, 'echo');
+    this.voice.suppress(d + 0.3);
   }
 
   toast(text) {
@@ -1054,6 +1065,7 @@ export class Game {
 
   // Host: every 150 s it gets hungrier (bolder, faster, chattier).
   updateHunger(dt) {
+    if (this.story && !this.story.hunger) return;
     this.hungerT += dt;
     if (this.hungerT < 150 || this.mimic.hunger >= 4) return;
     this.hungerT = 0;
@@ -1174,7 +1186,7 @@ export class Game {
     if (won) this.sfx.stopAmbient();
     this.onEnd({
       won, time: this.time, fuses: this.fusesFound, lures: this.lures,
-      clips: this.voice.clips.length, place: this.level.name,
+      clips: this.voice.clips.length, place: this.story ? this.story.title : this.level.name, story: this.story,
     });
   }
 

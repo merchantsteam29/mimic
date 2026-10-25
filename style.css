@@ -177,3 +177,11 @@ button.small { padding: 7px 12px; font-size: 12px; }
 #qte .whisper { font-size: 20px; color: #ff5468; animation: pulse .3s infinite; }
 #qte .bar { height: 8px; background: rgba(255,255,255,.12); }
 #qte .bar i { display: block; height: 100%; width: 0; background: #c41a32; }
+
+/* ---------- story ---------- */
+.chapters { display: grid; gap: 8px; margin-top: 14px; }
+.chapters button { text-transform: none; letter-spacing: 0; text-align: left; display: flex; gap: 14px; align-items: baseline; }
+.chapters button b { font: 400 13px Inter, sans-serif; color: var(--dim); letter-spacing: .15em; text-transform: uppercase; min-width: 86px; }
+.chapters button span { font: 400 20px "Special Elite", monospace; }
+.chapters button i { margin-left: auto; font-style: normal; font-size: 12px; color: #7fbf8a; }
+#introText p { margin: 8px 0; }

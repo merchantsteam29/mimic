@@ -39,11 +39,17 @@ export class Objectives {
 
   allDone() {
     const g = this.g;
-    return (!this.tasks.fuses || g.fusesIn >= 4) && this.gen.every((p) => p >= 1) && this.tapesLeft === 0 && this.doorsOpen;
+    return (!this.tasks.fuses || g.fusesIn >= 4) && this.gen.every((p) => p >= 1) && this.tapesLeft === 0 && this.doorsOpen
+      && this.storyHeard() >= this.storyNeed();
   }
+
+  // Story chapters: every tape must be heard.
+  storyNeed() { return this.g.story ? this.g.story.tapes.length : 0; }
+  storyHeard() { return this.g.items.filter((it) => it?.type === 'lore' && it.heard).length; }
 
   lines() {
     const out = [];
+    if (this.storyNeed()) out.push(`${this.g.story.tapeLabel}  ${this.storyHeard()}/${this.storyNeed()}`);
     if (this.tasks.gens) out.push(`Generators  ${this.gen.filter((p) => p >= 1).length}/${this.gen.length}`);
     if (this.tasks.tapes) out.push(`Tapes destroyed  ${this.tasks.tapes - this.tapesLeft}/${this.tasks.tapes}`);
     if (this.tasks.keycard && !this.doorsOpen) out.push(this.keyFound ? `Unlock the locked room` : `Find the ${this.keyName} to the locked room`);

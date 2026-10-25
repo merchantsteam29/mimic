@@ -61,6 +61,10 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - Mimic: crawls on the **ceiling** (`ceiling`, drops when it chases) and has a **second form** (`enrage` -> `transform` -> `setForm(2)`: an
   extra pair of arms, a split mouth, red eyes, faster). Snapshots carry ceiling / form / wearId / hunger.
 - **Syntax check with `node tools/check.mjs`.** Plain `node --check` silently skips ES-module files.
+- `story.js`: solo story **Ellie** (5 `CHAPTERS`: fixed seed and theme, `gen` level options (`size`, forced `tasks`, `broken`),
+  `tapes` that must all be heard (shown as `lore` items, `objectives.storyNeed`), `intro` / `ending` text; a line `{ playerClip }` plays
+  your own voice-check clip via `game.playOwnVoice`). Progress is `localStorage mimic.story` (chapters finished), story progress only.
+  `generateLevel(seed, theme, opts)` takes the `gen` options. Online story: `SIGNAL`.
 - `classes.js` / `abilities.js`: classes (all free, no unlocks; G = ability). Brute: 2 flares (`flare`: host stuns
   the mimic for 4 s if it's within 8 m and in sight). Runner: sprints 6.2 m/s for 13 s, recovers fast, louder steps. Medic: 1 rescue
   (`rescue` on the teammate in front, or self; the host's `hostSave` turns their next catch into a stun plus `saved`). Tracker:

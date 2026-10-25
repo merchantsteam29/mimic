@@ -12,6 +12,11 @@ node serve.js        # then open http://localhost:8080 in Chrome
 
 The microphone only works on `localhost` or `https`, not on `file://`. Use headphones.
 
+## Story
+
+**Ellie** (solo, 5 chapters): your sister went into the Holloway house to film it and never came out. Find her tapes.
+Chapters unlock as you finish them (saved on your device).
+
 ## How it works
 
 - **Your voice is its weapon.** Each time you talk, the game cuts the speech into a clip. The mimic

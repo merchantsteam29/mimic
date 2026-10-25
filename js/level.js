@@ -44,23 +44,24 @@ const PROP_DEFS = {
   table: { w: 1.4, d: 0.9 }, generator: { w: 1.5, d: 0.95 }, bookshelf: { w: 1.6, d: 0.45 }, dresser: { w: 1.2, d: 0.55 }, wardrobe: { w: 1.25, d: 0.75 },
 };
 
-export function generateLevel(seed, themeId) {
+// opts (story chapters): { size, tasks: { fuses, gens, tapes, keycard }, lore (tape count), broken (share of dead lights) }
+export function generateLevel(seed, themeId, opts = {}) {
   const theme = THEMES[themeId];
   for (let attempt = 0; attempt < 60; attempt++) {
-    const data = tryGenerate((seed + attempt * 7919) >>> 0, theme);
+    const data = tryGenerate((seed + attempt * 7919) >>> 0, theme, opts);
     if (data) return new Level(data);
   }
   throw new Error('Could not generate a level');
 }
 
-function tryGenerate(seed, th) {
+function tryGenerate(seed, th, opts = {}) {
   const rand = mulberry32(seed);
   const ri = (a, b) => a + Math.floor(rand() * (b - a + 1));
   const pick = (arr) => arr[Math.floor(rand() * arr.length)];
   // Seeded Fisher-Yates. (Sorting with a random comparator is not deterministic across JS engine tiers,
   // and every player must build the exact same level from the seed.)
   const shuffle = (arr) => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
-  const N = th.size;
+  const N = opts.size || th.size;
   const grid = new Uint8Array(N * N); // all WALL
   const roomId = new Int16Array(N * N).fill(-1);
   const at = (x, z) => (x < 0 || z < 0 || x >= N || z >= N ? WALL : grid[z * N + x]);
@@ -76,7 +77,7 @@ function tryGenerate(seed, th) {
     rooms.push(room);
     for (let zz = z; zz < z + h; zz++) for (let xx = x; xx < x + w; xx++) { set(xx, zz, FLOOR); roomId[zz * N + xx] = room.id; }
   }
-  if (rooms.length < th.minRooms) return null;
+  if (rooms.length < (opts.size ? Math.min(th.minRooms, 7) : th.minRooms)) return null;
 
   const carve = (a, b) => {
     let x = a.cx, z = a.cz;
@@ -233,7 +234,8 @@ function tryGenerate(seed, th) {
 
   // ---------- objectives for this run (from the seed, so every player gets the same) ----------
   const tasks = { fuses: false, gens: 0, tapes: 0, keycard: false };
-  for (const t of shuffle(['fuses', 'gens', 'tapes']).slice(0, rand() < 0.5 ? 2 : 3)) {
+  if (opts.tasks) { tasks.fuses = !!opts.tasks.fuses; tasks.gens = opts.tasks.gens || 0; tasks.tapes = opts.tasks.tapes || 0; }
+  else for (const t of shuffle(['fuses', 'gens', 'tapes']).slice(0, rand() < 0.5 ? 2 : 3)) {
     if (t === 'fuses') tasks.fuses = true;
     if (t === 'gens') tasks.gens = 2;
     if (t === 'tapes') tasks.tapes = 3;
@@ -256,12 +258,13 @@ function tryGenerate(seed, th) {
     if (c) tapes.push(c);
   }
   tasks.tapes = tapes.length;
-  if ((tasks.fuses ? 1 : 0) + (tasks.gens ? 1 : 0) + (tasks.tapes ? 1 : 0) < 2) return null;
+  if (!opts.tasks && (tasks.fuses ? 1 : 0) + (tasks.gens ? 1 : 0) + (tasks.tapes ? 1 : 0) < 2) return null;
+  if (opts.tasks && (tasks.gens !== (opts.tasks.gens || 0) || tasks.tapes !== (opts.tasks.tapes || 0))) return null;
 
   // Keycard: half the time the exit room is locked (only if it has few doorways and locking it
   // doesn't cut off any other part of the map).
   let doors = [], keycard = null;
-  if (rand() < 0.5) {
+  if (opts.tasks ? opts.tasks.keycard : rand() < 0.5) {
     const ins = new Set();
     const ent = [];
     for (let z = exitRoom.z; z < exitRoom.z + exitRoom.h; z++) for (let x = exitRoom.x; x < exitRoom.x + exitRoom.w; x++) {
@@ -275,6 +278,7 @@ function tryGenerate(seed, th) {
     for (let i = 0; i < grid.length; i++) if (grid[i] === FLOOR && roomId[i] !== exitRoom.id && !ins.has(i) && reach[i] < 0) cut = true;
     const kc = !cut && ent.length && ent.length <= 3 ? freeCell(pick(middle)) : null;
     if (kc) { doors = ent; keycard = kc; tasks.keycard = true; }
+    else if (opts.tasks?.keycard) return null; // the chapter needs a locked room: try another layout
   }
 
   // ---------- scares, placed from the seed so every player gets the same ----------
@@ -311,15 +315,17 @@ function tryGenerate(seed, th) {
   }
   // Recordings left by people who came before.
   const lore = [];
-  for (let i = 0; i < 2; i++) {
-    const c = freeCell(pick(middle.concat([spawnRoom])));
+  const loreRooms = shuffle(middle.slice());
+  for (let i = 0; i < (opts.lore ?? 2); i++) {
+    const c = freeCell(loreRooms[i % loreRooms.length]);
     if (c) lore.push({ ...c, n: Math.floor(rand() * 1000) });
+    else if (opts.lore) return null; // story tapes must all be there
   }
 
   // Ceiling lights: one per room, plus some in corridors.
   const lights = rooms.map((r) => ({
     cx: r.cx + (r.w % 2 ? 0.5 : 0), cz: r.cz + (r.h % 2 ? 0.5 : 0), room: r.id,
-    broken: r !== spawnRoom && r !== exitRoom && rand() < th.broken,
+    broken: r !== spawnRoom && r !== exitRoom && rand() < (opts.broken ?? th.broken),
     flicker: rand() < th.flicker,
   }));
   const corridor = [];
