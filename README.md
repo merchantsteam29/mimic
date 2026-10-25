@@ -23,6 +23,9 @@ The microphone only works on `localhost` or `https`, not on `file://`. Use headp
   Restoring power sets off the alarm, and the mimic comes straight for you.
 - **Hiding:** lockers (facility) and wardrobes (house). It can't see you inside, but if it saw you
   get in, or hears you talk in there, it will drag you out.
+- **It plays with you:** you may hear your own voice whispered right behind you, footsteps sprinting
+  toward you that stop dead, or the lights dying around you. Sometimes it just stands at the end of a
+  hallway and stares. Listen for its breathing, and for the quiet when everything else stops.
 - **Random maps:** each run is either a research facility or an old house, with a new layout every time.
 
 Controls: `WASD` move, mouse look, `Shift` sprint, `C` crouch, `F` flashlight, `E` interact / hide,

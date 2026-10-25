@@ -6,6 +6,8 @@
 //   stalk        hides just out of sight near the player and plays a clip to lure them
 //   chase        saw the player
 //   hunt         knows which locker/wardrobe the player is hiding in and goes to drag them out
+//   peek         (set up by the director) stands still at the end of a corridor, staring
+//   flee         was looked at while peeking: darts out of sight
 import * as THREE from 'three';
 import { faceTexture } from './textures.js';
 
@@ -114,21 +116,23 @@ function buildModel() {
   face.position.set(0, -0.02, 0.172);
   head.add(face);
   // Eye shine: tiny points that catch the flashlight in the dark.
-  const eyeMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xfff4e0, emissiveIntensity: 0.9 });
-  for (const x of [-0.045, 0.045]) head.add(part(new THREE.SphereGeometry(0.005, 6, 4), eyeMat, x * 1.15, 0.03, 0.18));
+  const eyeMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xfff4e0, emissiveIntensity: 0.9, fog: false }); // shine through the dark
+  const eyes = [-0.045, 0.045].map((x) => part(new THREE.SphereGeometry(0.005, 6, 4), eyeMat, x * 1.15, 0.03, 0.18));
+  head.add(...eyes);
 
   root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-  return { root, body, legs, arms, torso, head, eyeMat };
+  return { root, body, legs, arms, torso, head, eyeMat, eyes };
 }
 
 export class Mimic {
   constructor(level, scene, sfx, hooks) {
     this.level = level;
     this.sfx = sfx;
-    this.hooks = hooks; // { speak(style, emitter) -> seconds, onCatch(), onSpotted() }
+    this.hooks = hooks; // { speak(style, emitter) -> seconds, onCatch(), onSpotted(), onPeekSeen() }
     this.model = buildModel();
     scene.add(this.model.root);
     this.emitter = sfx.emitter();
+    this.breath = sfx.breath(this.emitter); // ragged breathing you hear when it's close
 
     this.x = level.mimicPos.x; this.z = level.mimicPos.z;
     this.yaw = Math.random() * Math.PI * 2;
@@ -154,9 +158,11 @@ export class Mimic {
     this.headRollTarget = 0;
     this.lunge = 0;
     this.frozen = false;
+    this.animAcc = 1;
+    this.shyT = 0; // after fleeing it keeps its distance for a moment
   }
 
-  dispose() { this.emitter.dispose(); }
+  dispose() { this.breath.stop(); this.emitter.dispose(); }
 
   // ---------- senses ----------
   canSee(P, d) {
@@ -176,7 +182,7 @@ export class Mimic {
 
   // A noise at (x, z) audible within `radius` metres.
   hear(x, z, radius, kind) {
-    if (this.state === 'chase' || this.state === 'hunt' || this.frozen) return;
+    if (this.state === 'chase' || this.state === 'hunt' || this.state === 'peek' || this.state === 'flee' || this.frozen) return;
     if (Math.hypot(x - this.x, z - this.z) > radius) return;
     this.investigate(x, z, kind === 'voice' ? 3.1 : 2.5);
   }
@@ -255,6 +261,35 @@ export class Mimic {
     this.stalkCd = 24 + Math.random() * 22;
   }
 
+  // Appear at (spot) facing the player, and just stare.
+  peek(spot, P) {
+    this.x = spot.x; this.z = spot.z;
+    this.yaw = Math.atan2(P.x - spot.x, P.z - spot.z);
+    this.state = 'peek';
+    this.path = [];
+    this.peekT = 0;
+    this.seenT = 0;
+    this.speed = 0;
+    this.animAcc = 1;
+  }
+
+  // Dart to the nearest spot the player can't see.
+  flee(P) {
+    this.shyT = 10; // keeps its distance for a while, even if it can't find a hiding spot
+    const lv = this.level;
+    let best = null;
+    for (let i = 0; i < 80; i++) {
+      const p = lv.randomFloor();
+      if (!p || lv.los(p.x, p.z, P.x, P.z)) continue;
+      const d = Math.hypot(p.x - this.x, p.z - this.z);
+      if (d > 2 && d < 12 && (!best || d < best.d)) best = { ...p, d };
+    }
+    const path = best ? lv.findPath(this.x, this.z, best.x, best.z) : [];
+    if (!path.length) { this.wander(P); return; }
+    this.state = 'flee';
+    this.path = path;
+  }
+
   speak(style) {
     const d = this.hooks.speak(style, this.emitter);
     this.speaking = d;
@@ -301,13 +336,13 @@ export class Mimic {
   update(dt, P, t) {
     if (this.frozen) return; // posed by the jumpscare
     this.speaking = Math.max(0, this.speaking - dt);
-    this.speakCd -= dt; this.screamCd -= dt; this.stalkCd -= dt; this.enraged -= dt;
+    this.speakCd -= dt; this.screamCd -= dt; this.stalkCd -= dt; this.enraged -= dt; this.shyT -= dt;
     const dx = P.x - this.x, dz = P.z - this.z, d = Math.hypot(dx, dz);
-    const sees = this.canSee(P, d);
+    const sees = this.canSee(P, d) && !(this.shyT > 0 && d > 5);
     if (sees) {
       this.lastSeen = { x: P.x, z: P.z };
       this.lostT = 0;
-      if (this.state !== 'chase' && this.state !== 'hunt') this.startChase();
+      if (this.state !== 'chase' && this.state !== 'hunt' && this.state !== 'peek' && this.state !== 'flee') this.startChase();
     }
 
     switch (this.state) {
@@ -328,7 +363,7 @@ export class Mimic {
           this.repath = 0.3;
         }
         this.follow(dt, (this.enraged > 0 ? 4.7 : 3.9) * this.aggro);
-        if (sees && d < 1.0) this.hooks.onCatch();
+        if (sees && d < 1.35) this.hooks.onCatch(); // long arms
         if (sees && d > 4 && this.screamCd <= 0 && Math.random() < dt * 0.2) { this.speak('scream'); this.screamCd = 9; }
         break;
       }
@@ -339,6 +374,24 @@ export class Mimic {
         if (this.repath <= 0 && !this.path.length) { this.path = this.level.findPath(this.x, this.z, f.x, f.z); this.repath = 0.5; }
         this.follow(dt, 3.5 * this.aggro);
         if (Math.hypot(f.x - this.x, f.z - this.z) < 1.2) this.hooks.onCatch();
+        break;
+      }
+      case 'peek': {
+        this.speed = 0;
+        this.turnTo(Math.atan2(dx, dz), dt);
+        this.peekT += dt;
+        // Is the player looking right at it?
+        const looking = !P.hidden && d > 0 && (P.lookX * -dx + P.lookZ * -dz) / d > 0.95 && this.level.los(P.x, P.z, this.x, this.z);
+        if (looking) {
+          if (this.seenT === 0) this.hooks.onPeekSeen();
+          this.seenT += dt;
+        }
+        if (this.seenT > 0.9 || this.peekT > 7 || d < 6) this.flee(P);
+        break;
+      }
+      case 'flee': {
+        if (this.follow(dt, 6.5)) { this.shyT = 8; this.wander(P); }
+        if (d < 2.5 && !P.hidden) this.startChase();
         break;
       }
       case 'investigate': {
@@ -381,6 +434,15 @@ export class Mimic {
 
   animate(dt, t) {
     const m = this.model;
+    const peeking = this.state === 'peek';
+    m.eyeMat.emissiveIntensity = peeking ? 6 : 0.9;
+    m.eyes.forEach((e) => e.scale.setScalar(peeking ? 4.5 : 1));
+    // Outside a chase it moves like stop-motion: the pose only updates ~9 times a second.
+    this.animAcc += dt;
+    const fast = this.state === 'chase' || this.state === 'hunt' || this.state === 'flee';
+    if (!fast && this.animAcc < 0.11) { this.emitter.setPos(this.x, 2.2, this.z); return; }
+    dt = this.animAcc;
+    this.animAcc = 0;
     m.root.position.set(this.x, 0, this.z);
     m.root.rotation.y = this.yaw;
     const k = Math.min(1, this.speed / 2.5);

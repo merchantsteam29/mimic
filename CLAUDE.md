@@ -25,11 +25,17 @@ renders at a few FPS, and dt is capped at 0.05, so game time runs slow in headle
   `buildLevelScene` makes the meshes. Themes live in `THEMES`.
 - `mimic.js`: model and AI. States: `wander`, `investigate` (heard something), `stalk` (goes out of sight
   6–14 m from the player and plays a voice clip), `chase` (saw the player), `hunt` (goes to the player's
-  hiding spot). Senses: `canSee` (range, facing, flashlight) and `hear(x, z, radius)`.
+  hiding spot), `peek` (set up by the director: stares from 8-13 m with glowing eyes), and `flee` (after
+  being looked at; then `shyT` stops it chasing from more than 5 m away). Senses: `canSee` and `hear(x, z, radius)`.
+  Moves in stop-motion (pose updates about 9 times a second) except when chasing or fleeing. It breathes (`sfx.breath`).
+- `director.js`: scare pacing, one event every 28-60 s, never during a chase or after power-on: `behind` (your
+  clip whispered at your ear), `peek`, `blackout` (lights and flashlight die, plus a step in the dark), `rush` (fake footsteps
+  sprinting at you), `distant` (your scream far away) and `knock` (on your hiding spot).
 - `voice.js`: mic capture through an AudioWorklet (`recorder-worklet.js`), voice detection with an adaptive
   noise floor, utterances become `AudioBuffer` clips (max 60). `hear` (0..1) drives the mimic's hearing.
   `suppress()` stops recording while the mimic talks, so it never records itself.
-- `sfx.js`: all sound is synthesized. `emitter()` is a positional source (occlusion lowpass + HRTF panner).
+- `sfx.js`: all sound is synthesized. A 0.4 trim after the compressor sets the overall loudness. `setDread` (drone that
+  rises as it gets close) and `setAmbient` (ducks to near-silence when it's near) are driven from `game.updateFear`. `emitter()` is a positional source (occlusion lowpass + HRTF panner).
   `playVoice(buffer, emitter, style)` plays the mimic's voice: `lure`, `scream` or `echo` (end screen).
 - `textures.js`: canvas textures, including the mimic's face.
 

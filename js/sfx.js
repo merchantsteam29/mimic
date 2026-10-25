@@ -70,7 +70,7 @@ export class Sfx {
   }
 
   // A sound source in the world. Connect sounds to emitter.input.
-  emitter() {
+  emitter({ dry = false } = {}) {
     const ctx = this.ctx;
     const input = ctx.createGain();
     const lp = ctx.createBiquadFilter();
@@ -79,7 +79,7 @@ export class Sfx {
       panningModel: 'HRTF', distanceModel: 'inverse', refDistance: 1.6, rolloffFactor: 1.15, maxDistance: 60,
     });
     const send = ctx.createGain();
-    send.gain.value = 0.7;
+    send.gain.value = dry ? 0 : 0.7;
     input.connect(lp).connect(panner).connect(this.master);
     lp.connect(send).connect(this.send);
     let occluded = false;
@@ -93,7 +93,7 @@ export class Sfx {
         if (o === occluded) return;
         occluded = o;
         lp.frequency.setTargetAtTime(o ? 650 : 16000, this.now, 0.08);
-        send.gain.setTargetAtTime(o ? 1.1 : 0.7, this.now, 0.1);
+        if (!dry) send.gain.setTargetAtTime(o ? 1.1 : 0.7, this.now, 0.1);
       },
       dispose() { try { input.disconnect(); lp.disconnect(); panner.disconnect(); send.disconnect(); } catch { /* already gone */ } },
     };
@@ -249,7 +249,8 @@ export class Sfx {
   }
 
   // The mimic speaks with the player's voice. Returns how long it lasts (seconds).
-  // style: 'lure' (almost right), 'scream' (fast, distorted, with a demonic octave below), 'echo' (slow, for the end screen)
+  // style: 'lure' (almost right), 'scream' (fast, distorted, with a demonic octave below), 'echo' (slow, for the end screen),
+  //        'whisper' (thin and close, as if breathed into your ear)
   playVoice(buffer, emitter, style = 'lure') {
     const ctx = this.ctx, t0 = this.now + 0.03;
     const dest = emitter ? emitter.input : this.master;
@@ -264,6 +265,7 @@ export class Sfx {
 
     let rate, vol;
     if (style === 'scream') { rate = rand(1.12, 1.28); vol = 1.5; ws.curve = distortionCurve(30); }
+    else if (style === 'whisper') { rate = rand(0.96, 0.99); vol = 0.6; ws.curve = distortionCurve(1); hp.frequency.value = 380; lp.frequency.value = 4200; wet.gain.value = 0; }
     else if (style === 'echo') { rate = 0.78; vol = 1.2; ws.curve = distortionCurve(2); lp.frequency.value = 2600; wet.gain.value = 1; }
     else { rate = rand(0.955, 1.01); vol = 1.15; ws.curve = distortionCurve(3); }
     out.gain.value = vol;
@@ -280,7 +282,7 @@ export class Sfx {
 
     let at = t0;
     // The tell: sometimes it stutters on the first syllable, like a skipping recording.
-    if (style !== 'echo' && Math.random() < 0.35 && buffer.duration > 0.6) {
+    if (style !== 'echo' && style !== 'whisper' && Math.random() < 0.35 && buffer.duration > 0.6) {
       const seg = Math.min(buffer.duration * 0.3, rand(0.12, 0.22));
       const reps = Math.random() < 0.3 ? 2 : 1;
       for (let i = 0; i < reps; i++) { play(at, 0, seg, rate); at += seg / rate + 0.02; }
@@ -291,6 +293,67 @@ export class Sfx {
     setTimeout(() => { try { out.disconnect(); wet.disconnect(); } catch { /* ignore */ } }, (total + 4) * 1000);
     return total;
   }
+
+  // Ragged breathing loop on an emitter. Returns { stop() }.
+  breath(emitter) {
+    const ctx = this.ctx;
+    const src = ctx.createBufferSource();
+    src.buffer = this.white; src.loop = true;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 650; bp.Q.value = 1.4;
+    const g = ctx.createGain(); g.gain.value = 0;
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.23; // in, out, in, out...
+    const depth = ctx.createGain(); depth.gain.value = 0.32;
+    const rattle = ctx.createOscillator(); rattle.frequency.value = 7;
+    const rDepth = ctx.createGain(); rDepth.gain.value = 260;
+    lfo.connect(depth).connect(g.gain);
+    rattle.connect(rDepth).connect(bp.frequency);
+    src.connect(bp).connect(g).connect(emitter.input);
+    src.start(); lfo.start(); rattle.start();
+    return { stop() { try { src.stop(); lfo.stop(); rattle.stop(); g.disconnect(); } catch { /* ignore */ } } };
+  }
+
+  // Your own breathing when you're scared or out of breath. v: 0..1
+  playerBreath(v) {
+    const t = this.now;
+    this._noise(this.master, { t, dur: 0.55, freq: 1300, q: 0.9, peak: 0.03 + 0.09 * v, attack: 0.25 });
+    this._noise(this.master, { t: t + 0.65, dur: 0.6, freq: 750, q: 0.9, peak: 0.04 + 0.1 * v, attack: 0.08 });
+  }
+
+  // A low, fast thump during chases.
+  pulse() {
+    this._tone(this.master, { freq: 58, to: 34, dur: 0.22, peak: 0.45 });
+    this._noise(this.master, { dur: 0.12, type: 'lowpass', freq: 140, q: 0.6, peak: 0.25 });
+  }
+
+  // Lights dying.
+  powerDown() {
+    const t = this.now;
+    this._tone(this.master, { t, type: 'sawtooth', freq: 190, to: 22, dur: 1.4, peak: 0.07 });
+    this._noise(this.master, { t, dur: 0.08, freq: 3000, q: 1, peak: 0.25 });
+    this._noise(this.send, { t: t + 0.05, dur: 0.5, type: 'lowpass', freq: 300, q: 0.5, peak: 0.3 });
+  }
+
+  // Three slow knocks on whatever the emitter is at.
+  knock(emitter) {
+    const dest = emitter ? emitter.input : this.master, t = this.now;
+    for (let i = 0; i < 3; i++) {
+      this._noise(dest, { t: t + i * 0.42, dur: 0.14, type: 'lowpass', freq: 220, q: 0.7, peak: 1.1 });
+      this._tone(dest, { t: t + i * 0.42, freq: 95, to: 60, dur: 0.12, peak: 0.4 });
+    }
+  }
+
+  // Tension: 0 = nothing near, 1 = it's right there / chasing you.
+  setDread(v) {
+    const a = this.ambient;
+    if (!a) return;
+    const n = this.now;
+    a.dread.gain.setTargetAtTime(v * 0.07, n, 0.5);
+    a.dreadLp.frequency.setTargetAtTime(140 + v * 1400, n, 0.5);
+    a.high.gain.setTargetAtTime(v > 0.55 ? (v - 0.55) * 0.02 : 0, n, 0.6);
+  }
+
+  // Duck the background. Total silence when it's close is scarier than any noise.
+  setAmbient(v) { if (this.ambient) this.ambient.bus.gain.setTargetAtTime(v, this.now, 0.7); }
 
   // ---------- ambience ----------
   startAmbient(theme) {
@@ -331,13 +394,32 @@ export class Sfx {
         o.connect(g).connect(bus); o.start(); nodes.push(o);
       });
     }
-    this.ambient = { nodes, bus, theme };
+    // Dread drone: dissonant low cluster plus a thin, wavering high tone. Silent until setDread().
+    const dread = ctx.createGain(); dread.gain.value = 0;
+    const dreadLp = ctx.createBiquadFilter(); dreadLp.type = 'lowpass'; dreadLp.frequency.value = 140;
+    dreadLp.connect(dread).connect(this.master);
+    [55, 58.27, 77.78, 82.41].forEach((f) => {
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f;
+      const g = ctx.createGain(); g.gain.value = 0.25;
+      o.connect(g).connect(dreadLp); o.start(); nodes.push(o);
+    });
+    const tone = ctx.createOscillator(); tone.frequency.value = 1864;
+    const vib = ctx.createOscillator(); vib.frequency.value = 5.3;
+    const vibD = ctx.createGain(); vibD.gain.value = 14;
+    vib.connect(vibD).connect(tone.frequency);
+    const high = ctx.createGain(); high.gain.value = 0;
+    tone.connect(high).connect(this.master);
+    tone.start(); vib.start();
+    nodes.push(tone, vib, dread, high);
+    this.ambient = { nodes, bus, theme, dread, dreadLp, high };
   }
 
   stopAmbient() {
     if (!this.ambient) return;
-    const { nodes, bus } = this.ambient;
+    const { nodes, bus, dread, high } = this.ambient;
     bus.gain.setTargetAtTime(0, this.now, 0.3);
+    dread.gain.setTargetAtTime(0, this.now, 0.3);
+    high.gain.setTargetAtTime(0, this.now, 0.3);
     setTimeout(() => nodes.forEach((n) => { try { n.stop?.(); n.disconnect(); } catch { /* ignore */ } }), 1500);
     this.ambient = null;
   }

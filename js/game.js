@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { generateLevel, buildLevelScene, CELL, WALL_H } from './level.js';
 import { Mimic } from './mimic.js';
+import { Director } from './director.js';
 
 const POOL = 6;              // real point lights, moved to the nearest fixtures
 const EYE = 1.62, EYE_CROUCH = 1.0;
@@ -68,7 +69,8 @@ export class Game {
     this.power = false;
     this.doorT = -1;
     this.t = 0; this.time = 0;
-    this.fear = 0; this.hbT = 0;
+    this.fear = 0; this.hbT = 0; this.pulseT = 0; this.breathT = 0; this.glitchT = 0; this.zoomT = 0;
+    this.blackout = 0; this.blackoutTotal = 0;
     this.ambientT = 15 + Math.random() * 20;
     this.lures = 0;
 
@@ -76,8 +78,10 @@ export class Game {
       speak: (style, emitter) => this.mimicSpeaks(style, emitter),
       onCatch: () => this.caught(),
       onSpotted: () => this.sfx.sting(),
+      onPeekSeen: () => { this.sfx.sting(); this.zoomT = 1; },
     });
     this.ambientEmitter = sfx.emitter();
+    this.director = new Director(this);
     sfx.setReverb(...th.reverb);
     sfx.startAmbient(th.id);
 
@@ -144,6 +148,8 @@ export class Game {
     removeEventListener('mousemove', this.onMouse);
     this.mimic.dispose();
     this.ambientEmitter.dispose();
+    this.director.dispose();
+    this.renderer.domElement.style.transform = this.renderer.domElement.style.filter = '';
     this.sfx.stopAmbient();
     this.scene.traverse((o) => {
       o.geometry?.dispose();
@@ -171,6 +177,7 @@ export class Game {
       this.updateFear(dt);
       this.updateDoor(dt);
       this.updateAmbient(dt);
+      this.director.update(dt);
     } else if (this.state === 'caught') {
       this.t += dt;
       this.updateCaught(dt);
@@ -274,6 +281,11 @@ export class Game {
     const on = (p.flashOn && p.battery > 0 && !p.hidden) || this.state === 'caught';
     if (on && this.state === 'playing') p.battery = Math.max(0, p.battery - (dt * 100) / BATTERY_LIFE);
     let I = on ? 38 : 0;
+    if (this.blackout > 0 && this.state === 'playing') {
+      const since = this.blackoutTotal - this.blackout;
+      if (since < 1.8) I = 0;
+      else if (since < 2.6 && Math.random() < 0.5) I *= 0.2;
+    }
     if (on && p.battery < 15 && this.state === 'playing' && Math.random() < 0.06) I *= 0.15; // dying battery
     this.flash.intensity = I;
     const c = this.camera;
@@ -466,6 +478,42 @@ export class Game {
       this.hbT -= dt;
       if (this.hbT <= 0) { this.sfx.heartbeat(this.fear); this.hbT = 1.1 - this.fear * 0.65; }
     }
+
+    // Sound: a dread drone swells as it gets closer (even through walls), and the background
+    // goes silent when it's near and quiet. A pounding pulse while it chases you.
+    const chasing = m.state === 'chase' || m.state === 'hunt';
+    const near = clamp(1 - d / 20, 0, 1);
+    this.sfx.setDread(chasing ? 1 : near * near);
+    this.sfx.setAmbient(d < 8 && !chasing ? 0.1 : 1);
+    if (chasing) {
+      this.pulseT -= dt;
+      if (this.pulseT <= 0) { this.sfx.pulse(); this.pulseT = 0.43; }
+    }
+    // Your own breathing: out of breath, or scared.
+    const breath = Math.max(1 - p.stamina, this.fear * 1.2);
+    if (breath > 0.3) {
+      this.breathT -= dt;
+      if (this.breathT <= 0) { this.sfx.playerBreath(Math.min(1, breath)); this.breathT = 1.7 - Math.min(1, breath) * 0.6; }
+    }
+
+    // The picture tears when it's close and in view.
+    const cv = this.renderer.domElement;
+    if (vis && d < 7 && Math.random() < dt * 7 * (1 - d / 7)) {
+      cv.style.transform = `translate(${(Math.random() - 0.5) * 16}px, ${(Math.random() - 0.5) * 6}px)`;
+      cv.style.filter = 'contrast(1.7) saturate(0.3)';
+      this.glitchT = 0.05 + Math.random() * 0.06;
+    }
+    if (this.glitchT > 0) {
+      this.glitchT -= dt;
+      if (this.glitchT <= 0) cv.style.transform = cv.style.filter = '';
+    }
+
+    // Spotting it peeking: a quick dolly-zoom lurch toward it.
+    if (this.zoomT > 0) {
+      this.zoomT = Math.max(0, this.zoomT - dt * 0.9);
+      this.camera.fov = this.settings.fov - 18 * Math.sin(Math.PI * this.zoomT);
+      this.camera.updateProjectionMatrix();
+    }
   }
 
   updateAmbient(dt) {
@@ -491,6 +539,7 @@ export class Game {
         if (L.burst <= 0 && Math.hypot(L.x - m.x, L.z - m.z) < 5 && Math.random() < dt * 2.5) L.burst = 0.25 + Math.random() * 0.5;
         if (this.power) lvl *= 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(t * 4.5));
       }
+      if (this.blackout > 0 && Math.hypot(L.x - this.p.x, L.z - this.p.z) < 18) lvl = 0;
       L.level = lvl;
       L.mat.emissiveIntensity = lvl * 1.5;
     }
@@ -524,6 +573,8 @@ export class Game {
     this.hud.flash.classList.add('hit');
     this.sfx.stopAmbient();
     this.sfx.screech();
+    this.sfx.setDread(0);
+    this.renderer.domElement.style.transform = this.renderer.domElement.style.filter = '';
     setTimeout(() => this.mimicSpeaks('scream', null), 150);
     // Turn to face it.
     const p = this.p, m = this.mimic;
