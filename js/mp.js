@@ -10,7 +10,7 @@ import { Net } from './net.js';
 import { VoiceChat } from './vc.js';
 import { CLASSES } from './classes.js';
 
-const HOST_TYPES = new Set(['st', 'noise', 'take', 'insert', 'escaped', 'work', 'bang', 'smash', 'unlock', 'lever', 'flare', 'rescue', 'sniffRes']);
+const HOST_TYPES = new Set(['st', 'noise', 'take', 'insert', 'escaped', 'work', 'bang', 'smash', 'unlock', 'lever', 'flare', 'rescue', 'sniffRes', 'door', 'trapped', 'fakeDone']);
 const CLIP_RATE = 16000;
 
 function encodeClip(buffer) {
@@ -82,7 +82,8 @@ export class Session {
   }
 
   // The mimic's choice of voice: mostly the dead (if anyone is), rarely-played clips first.
-  pickKey(isDead) {
+  // prefer: a player whose voice it wants (the one it's wearing).
+  pickKey(isDead, prefer = null) {
     const keys = [...this.clips.keys()];
     if (!keys.length) return null;
     const anyDead = keys.some((k) => isDead(this.clips.get(k).owner));
@@ -90,6 +91,7 @@ export class Session {
       const c = this.clips.get(k);
       let v = 1 / (1 + c.plays * 1.5);
       if (anyDead) v *= isDead(c.owner) ? 6 : 0.5;
+      if (prefer && c.owner === prefer) v *= 20;
       if (k === this.lastKey && keys.length > 1) v = 0;
       return v;
     });

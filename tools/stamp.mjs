@@ -21,7 +21,10 @@ html = html.replace(/<script>window\.MIMIC_VERSION = '\d*';<\/script>/, `<script
 if (!html.includes(`window.MIMIC_VERSION = '${stamp}'`)) console.warn('warning: index.html has no MIMIC_VERSION script');
 
 // Import map: bare "three" plus every module mapped to its stamped URL (so `import './game.js'` gets the new one).
-const imports = { three: 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js' };
+const imports = {
+  three: 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js',
+  'three/addons/': 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/',
+};
 for (const m of modules) imports[`./js/${m}`] = `./js/${m}?v=${stamp}`;
 html = html.replace(/<script type="importmap">[\s\S]*?<\/script>/, `<script type="importmap">\n${JSON.stringify({ imports }, null, 2)}\n</script>`);
 

@@ -398,6 +398,75 @@ export class Sfx {
     for (let i = 0; i < 3; i++) this._noise(dest, { t: t + i * 0.16, dur: 0.12, freq: 1800 + Math.random() * 600, q: 2, peak: 0.35, attack: 0.03 });
   }
 
+  // Every voice it has, at once: slowed, overlapping, laughing. Returns seconds.
+  chorus(buffers, emitter) {
+    const ctx = this.ctx, t = this.now + 0.03;
+    const dest = emitter ? emitter.input : this.master;
+    const ws = ctx.createWaveShaper(); ws.curve = distortionCurve(6);
+    const out = ctx.createGain(); out.gain.value = 0.9;
+    const wet = ctx.createGain(); wet.gain.value = 0.8;
+    ws.connect(out).connect(dest);
+    out.connect(wet).connect(this.send);
+    let end = 0;
+    buffers.forEach((b, i) => {
+      const s = ctx.createBufferSource();
+      s.buffer = b;
+      s.playbackRate.value = [0.62, 0.78, 0.93, 0.7][i % 4];
+      const g = ctx.createGain(); g.gain.value = 0.55;
+      s.connect(g).connect(ws);
+      s.start(t + i * 0.18);
+      end = Math.max(end, i * 0.18 + b.duration / s.playbackRate.value);
+    });
+    setTimeout(() => { try { out.disconnect(); wet.disconnect(); } catch { /* ignore */ } }, (end + 4) * 1000);
+    return end;
+  }
+
+  // A door handle turning, slowly (or yanked, when it's chasing).
+  handle(emitter, fast = false) {
+    const dest = emitter ? emitter.input : this.master, t = this.now;
+    const n = fast ? 1 : 3;
+    for (let i = 0; i < n; i++) this._noise(dest, { t: t + i * 0.35, dur: 0.18, freq: 2600, q: 6, peak: 0.25, attack: 0.04 });
+    if (!fast) this.creak(emitter, 0.35);
+  }
+
+  door(emitter, open, fast = false) {
+    const dest = emitter ? emitter.input : this.master, t = this.now;
+    if (open) {
+      if (fast) this._noise(dest, { t, dur: 0.3, type: 'lowpass', freq: 400, q: 0.6, peak: 1.2 }); // slammed open
+      this.creak(emitter, fast ? 0.2 : 0.45);
+    } else {
+      this._noise(dest, { t, dur: 0.25, type: 'lowpass', freq: 300, q: 0.6, peak: 0.9 });
+      this._tone(dest, { t, freq: 90, to: 60, dur: 0.15, peak: 0.3 });
+    }
+  }
+
+  // An old tape: hiss, and a voice too damaged to make out (the words come as subtitles).
+  tapeVoice(seconds) {
+    const t = this.now;
+    this._noise(this.master, { t, dur: seconds, type: 'highpass', freq: 3000, q: 0.4, peak: 0.05, attack: 0.1 });
+    const { f, g } = this._noise(this.master, { t, dur: seconds, freq: 900, q: 6, peak: 0.12, attack: 0.05 });
+    for (let s = 0; s < seconds; s += 0.11) {
+      const syl = Math.random() < 0.75;
+      f.frequency.setValueAtTime(400 + Math.random() * 1400, t + s);
+      g.gain.setValueAtTime(syl ? 0.04 + Math.random() * 0.12 : 0.005, t + s);
+    }
+    g.gain.setValueAtTime(0.0001, t + seconds);
+  }
+
+  // Something with teeth.
+  bite() {
+    const t = this.now;
+    this._noise(this.master, { t, dur: 0.15, freq: 2200, q: 1, peak: 0.8 });
+    this._noise(this.master, { t: t + 0.05, dur: 0.4, type: 'lowpass', freq: 500, q: 0.7, peak: 0.6 });
+    this._tone(this.master, { t, type: 'sawtooth', freq: 900, to: 300, dur: 0.5, peak: 0.12 });
+  }
+
+  // Being dragged away along the floor.
+  drag(seconds = 2) {
+    const t = this.now;
+    for (let s = 0; s < seconds; s += 0.45) this._noise(this.master, { t: t + s, dur: 0.4, type: 'lowpass', freq: 350, q: 0.5, peak: 0.5, attack: 0.1 });
+  }
+
   // Tension: 0 = nothing near, 1 = it's right there / chasing you.
   setDread(v) {
     const a = this.ambient;

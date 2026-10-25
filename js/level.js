@@ -1,6 +1,7 @@
 // Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility or a house.
 // Also holds the collision, line-of-sight and path-finding the player and the mimic use.
 import * as THREE from 'three';
+import { Reflector } from 'three/addons/objects/Reflector.js';
 import { makeTextures } from './textures.js';
 
 export const CELL = 2;
@@ -276,6 +277,45 @@ function tryGenerate(seed, th) {
     if (kc) { doors = ent; keycard = kc; tasks.keycard = true; }
   }
 
+  // ---------- scares, placed from the seed so every player gets the same ----------
+  // Real doors on some rooms' doorways: you can close them behind you; it opens them, slowly.
+  const taken = new Set(doors.map((d) => key(d.cx, d.cz)));
+  const idoors = [];
+  for (const room of rooms) {
+    if (rand() > (th.id === 'house' ? 0.65 : 0.4) || (room === exitRoom && doors.length)) continue;
+    const ent = [], seen = new Set();
+    for (let z = room.z; z < room.z + room.h; z++) for (let x = room.x; x < room.x + room.w; x++) {
+      for (const [dx, dz] of DIRS) {
+        const ox = x + dx, oz = z + dz, k = key(ox, oz);
+        if (at(ox, oz) === FLOOR && roomId[k] !== room.id && !seen.has(k)) { seen.add(k); ent.push({ cx: ox, cz: oz, dx: -dx, dz: -dz }); }
+      }
+    }
+    if (!ent.length || ent.length > 2 || ent.some((e) => taken.has(key(e.cx, e.cz)))) continue;
+    for (const e of ent) { taken.add(key(e.cx, e.cz)); idoors.push({ ...e, open: rand() < 0.4 }); }
+  }
+  // One hiding spot is it (never in the first room).
+  const hidesAll = props.filter((p) => p.hide && p.room !== spawnRoom.id);
+  const fakeHide = hidesAll.length >= 3 ? props.indexOf(pick(hidesAll)) : -1;
+  // A decoy pickup that looks just like the real thing.
+  const dc = freeCell(pick(middle));
+  const decoy = dc ? { ...dc, kind: tasks.fuses && rand() < 0.5 ? 'fuse' : 'battery' } : null;
+  // Mirrors on room walls.
+  const mirrors = [];
+  for (const room of shuffle(rooms.slice())) {
+    if (mirrors.length >= (th.id === 'house' ? 3 : 2)) break;
+    if (room === spawnRoom) continue;
+    const c = wallCells(room).find((w) => grid[key(w.x, w.z)] === FLOOR && !reserved.has(key(w.x, w.z)));
+    if (!c) continue;
+    reserved.add(key(c.x, c.z));
+    mirrors.push({ cx: c.x, cz: c.z, dx: c.walls[0][0], dz: c.walls[0][1] });
+  }
+  // Recordings left by people who came before.
+  const lore = [];
+  for (let i = 0; i < 2; i++) {
+    const c = freeCell(pick(middle.concat([spawnRoom])));
+    if (c) lore.push({ ...c, n: Math.floor(rand() * 1000) });
+  }
+
   // Ceiling lights: one per room, plus some in corridors.
   const lights = rooms.map((r) => ({
     cx: r.cx + (r.w % 2 ? 0.5 : 0), cz: r.cz + (r.h % 2 ? 0.5 : 0), room: r.id,
@@ -298,7 +338,7 @@ function tryGenerate(seed, th) {
     seed, theme: th, name: pick(th.names), N, grid, roomId, rooms, props, fuses, batteries, lights,
     spawn: { cx: spawnRoom.cx, cz: spawnRoom.cz }, mimicSpawn: { cx: mimicRoom.cx, cz: mimicRoom.cz },
     exit, fuseBox: box, spawnRoom: spawnRoom.id, exitRoom: exitRoom.id,
-    tasks, gens, tapes, doors, keycard,
+    tasks, gens, tapes, doors, keycard, idoors, fakeHide, decoy, mirrors, lore,
   };
 }
 
@@ -329,6 +369,21 @@ export class Level {
       const hx = d.dx ? 0.1 : CELL / 2, hz = d.dx ? CELL / 2 : 0.1;
       d.box = { minx: d.x - hx, maxx: d.x + hx, minz: d.z - hz, maxz: d.z + hz };
     }
+    if (this.fakeHide >= 0) this.props[this.fakeHide].fake = true;
+    // Real doors: same spot as the keycard doors (the corridor side of a room's doorway).
+    this.idoorAt = new Map();
+    this.idoors.forEach((d, i) => {
+      d.i = i;
+      const off = CELL / 2 - 0.08;
+      d.x = center(d.cx) + d.dx * off; d.z = center(d.cz) + d.dz * off;
+      const hx = d.dx ? 0.08 : CELL / 2, hz = d.dx ? CELL / 2 : 0.08;
+      d.box = { minx: d.x - hx, maxx: d.x + hx, minz: d.z - hz, maxz: d.z + hz };
+      this.idoorAt.set(d.cz * this.N + d.cx, d);
+    });
+    for (const m of this.mirrors) {
+      m.x = center(m.cx) + m.dx * (CELL / 2 - 0.03); m.z = center(m.cz) + m.dz * (CELL / 2 - 0.03);
+      m.nx = -m.dx; m.nz = -m.dz; // facing into the room
+    }
     this.spawnPos = { x: center(this.spawn.cx), z: center(this.spawn.cz) };
     this.mimicPos = { x: center(this.mimicSpawn.cx), z: center(this.mimicSpawn.cz) };
   }
@@ -338,13 +393,15 @@ export class Level {
   blocksMove(cx, cz) { const v = this.get(cx, cz); return v === WALL || (v === EXIT && !this.exitOpen); }
   passable(cx, cz) { const v = this.get(cx, cz); return (v === FLOOR && !this.lockedDoor(cx, cz)) || (v === EXIT && this.exitOpen); }
   lockedDoor(cx, cz) { return this.doorsLocked && this.doorCells.has(cz * this.N + cx); }
+  // A real door that's shut (blocks walking and sight; the mimic can open it).
+  closedDoor(cx, cz) { const d = this.idoorAt.get(cz * this.N + cx); return d && !d.open ? d : null; }
 
   // Walls block sight; furniture doesn't.
   los(x1, z1, x2, z2) {
     const dx = x2 - x1, dz = z2 - z1, n = Math.ceil(Math.hypot(dx, dz) / 0.25);
     for (let i = 1; i < n; i++) {
       const cx = this.cellOf(x1 + (dx * i) / n), cz = this.cellOf(z1 + (dz * i) / n);
-      if (this.blocksMove(cx, cz) || this.lockedDoor(cx, cz)) return false;
+      if (this.blocksMove(cx, cz) || this.lockedDoor(cx, cz) || this.closedDoor(cx, cz)) return false;
     }
     return true;
   }
@@ -370,7 +427,7 @@ export class Level {
       for (let cz = z0; cz <= z1; cz++) for (let cx = x0; cx <= x1; cx++) {
         if (this.blocksMove(cx, cz)) push(cx * CELL, (cx + 1) * CELL, cz * CELL, (cz + 1) * CELL);
       }
-      const boxes = this.doorsLocked ? this.props.concat(this.doors) : this.props;
+      const boxes = this.props.concat(this.doorsLocked ? this.doors : [], this.idoors.filter((d) => !d.open));
       for (const pr of boxes) {
         const b = pr.box;
         if (p.x + r > b.minx && p.x - r < b.maxx && p.z + r > b.minz && p.z - r < b.maxz) push(b.minx, b.maxx, b.minz, b.maxz);
@@ -385,7 +442,8 @@ export class Level {
     for (let i = 1; i <= n; i++) {
       const x = x1 + (dx * i) / n, z = z1 + (dz * i) / n;
       for (const [ox, oz] of [[-r, -r], [r, -r], [-r, r], [r, r]]) {
-        if (!this.passable(this.cellOf(x + ox), this.cellOf(z + oz))) return false;
+        const cx = this.cellOf(x + ox), cz = this.cellOf(z + oz);
+        if (!this.passable(cx, cz) || this.closedDoor(cx, cz)) return false;
       }
     }
     return true;
@@ -692,6 +750,72 @@ export function buildLevelScene(level) {
     return { mesh: g, pad: pad.material };
   });
 
+  // The decoy: it looks exactly like the real thing.
+  let decoy = null;
+  if (level.decoy) {
+    const x = center(level.decoy.x) + (rand() - 0.5) * 0.6, z = center(level.decoy.z) + (rand() - 0.5) * 0.6;
+    let mesh;
+    if (level.decoy.kind === 'fuse') { mesh = makeFuse(M.metal); mesh.position.set(x, 0.06, z); }
+    else {
+      mesh = new THREE.Group();
+      mesh.add(cyl(0.05, 0.05, 0.18, cellGreen, 0, 0.09, 0), cyl(0.02, 0.02, 0.02, M.metal, 0, 0.19, 0));
+      mesh.position.set(x, 0, z);
+    }
+    group.add(mesh);
+    decoy = { x, z, mesh, kind: level.decoy.kind };
+  }
+
+  // Real doors: double doors hinged at both sides, swinging into the room.
+  const idoorMat = th.id === 'house' ? M.darkWood : M.locker;
+  const idoors = level.idoors.map((d) => {
+    const g = new THREE.Group();
+    g.position.set(d.x, 0, d.z);
+    const ax = d.dx ? 0 : 1, az = d.dx ? 1 : 0; // along the doorway
+    const leaves = [-1, 1].map((side) => {
+      const pivot = new THREE.Group();
+      pivot.position.set(side * ax * (CELL / 2 - 0.02), 0, side * az * (CELL / 2 - 0.02));
+      const leaf = box(0.06, 2.4, CELL / 2 - 0.04, idoorMat, 0, 1.2, (CELL / 2 - 0.04) / 2);
+      const knob = cyl(0.03, 0.03, 0.08, M.metal, 0.06, 1.05, CELL / 2 - 0.15, 8);
+      knob.rotation.z = Math.PI / 2;
+      pivot.add(leaf, knob);
+      g.add(pivot);
+      // The leaf points along local +z: closed = toward the middle of the doorway, open = into the room.
+      const closed = Math.atan2(-side * ax, -side * az), open = Math.atan2(d.dx, d.dz);
+      pivot.rotation.y = d.open ? open : closed;
+      return { pivot, closed, open };
+    });
+    // Fill the wall above the doors.
+    g.add(box(d.dx ? 0.15 : CELL, 0.6, d.dx ? CELL : 0.15, M.locker, 0, 2.7, 0));
+    group.add(g);
+    return { door: d, leaves };
+  });
+
+  // Mirrors: real reflections (only drawn when you're close; see game.js).
+  const mirrors = level.mirrors.map((m) => {
+    const g = new THREE.Group();
+    const glass = new Reflector(new THREE.PlaneGeometry(0.8, 1.25), { textureWidth: 384, textureHeight: 600, color: 0x9a9890, clipBias: 0.003 });
+    g.add(glass);
+    const frameMat = th.id === 'house' ? M.darkWood : M.metal;
+    g.add(box(0.92, 0.06, 0.05, frameMat, 0, 0.66, -0.02), box(0.92, 0.06, 0.05, frameMat, 0, -0.66, -0.02),
+      box(0.06, 1.3, 0.05, frameMat, 0.46, 0, -0.02), box(0.06, 1.3, 0.05, frameMat, -0.46, 0, -0.02));
+    g.position.set(m.x, 1.55, m.z);
+    g.rotation.y = Math.atan2(m.nx, m.nz);
+    group.add(g);
+    return { ...m, mesh: g, glass };
+  });
+
+  // Cassettes left by people who came before.
+  const lore = level.lore.map((l) => {
+    const g = new THREE.Group();
+    g.add(box(0.11, 0.02, 0.07, M.black, 0, 0.01, 0));
+    g.add(box(0.08, 0.021, 0.035, new THREE.MeshStandardMaterial({ color: 0xc8b88a, emissive: 0x2a2010, roughness: 0.8 }), 0, 0.011, 0));
+    const x = center(l.x) + (rand() - 0.5) * 0.6, z = center(l.z) + (rand() - 0.5) * 0.6;
+    g.position.set(x, 0, z);
+    g.rotation.y = rand() * Math.PI * 2;
+    group.add(g);
+    return { x, z, mesh: g, n: l.n };
+  });
+
   // Fuse box on the wall: four slots that light up green as fuses go in.
   const fb = level.fuseBox;
   const fbOff = CELL / 2 - 0.14;
@@ -731,5 +855,5 @@ export function buildLevelScene(level) {
   outside.rotation.y = dYaw;
   group.add(outside);
 
-  return { group, fixtures, fuses, batteries, tapes, keycard, doors, fuseBox: { mesh: fuseBox, slots, x: fbx, z: fbz }, door, sign, textures: tex };
+  return { group, fixtures, fuses, batteries, tapes, keycard, doors, decoy, idoors, mirrors, lore, fuseBox: { mesh: fuseBox, slots, x: fbx, z: fbz }, door, sign, textures: tex };
 }

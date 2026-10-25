@@ -10,14 +10,19 @@
 //   flee         was looked at while peeking (or stunned): darts out of sight
 //   stunned      hit by a flare / a medic's rescue: blinded for a few seconds, then flees
 //   sniff        at the door of a hiding spot, listening (the hidden player plays the heartbeat game)
+//   transform    the power came back: it convulses into its second form, then hunts
+// Also: it may crawl on the ceiling (dropping down when it chases), wear a dead player's body
+// (online), and open doors (slowly, unless it's chasing).
 import * as THREE from 'three';
 import { faceTexture } from './textures.js';
 
 const TURN = 7;          // rad/s
-const STATES = ['wander', 'investigate', 'stalk', 'chase', 'hunt', 'peek', 'flee', 'stunned', 'sniff'];
+const STATES = ['wander', 'investigate', 'stalk', 'chase', 'hunt', 'peek', 'flee', 'stunned', 'sniff', 'transform'];
+const CEIL = 3;          // ceiling height (level.js WALL_H)
+const DROP = 0.45;       // seconds to drop from the ceiling
 const RADIUS = 0.35;
 
-function buildModel() {
+export function buildModel() {
   const root = new THREE.Group();
   const skin = new THREE.MeshStandardMaterial({ color: 0x0a0806, roughness: 0.85 }); // leathery, almost black
   const pale = new THREE.MeshStandardMaterial({ color: 0x2c251f, roughness: 0.8 });
@@ -100,6 +105,22 @@ function buildModel() {
     arms.push({ shoulder, elbow });
   }
 
+  // Second form: another pair of arms, folded against its chest until the power comes back.
+  const extra = [];
+  for (const side of [-1, 1]) {
+    const sh = new THREE.Group();
+    sh.position.set(side * 0.19, 0.42, 0.06);
+    sh.rotation.set(-0.4, 0, side * 0.6);
+    const el = new THREE.Group();
+    el.position.y = -0.55;
+    el.rotation.x = -1.2;
+    el.add(limb(0.025, 0.02, 0.6, skin));
+    sh.add(limb(0.035, 0.025, 0.55, skin), el);
+    sh.visible = false;
+    torso.add(sh);
+    extra.push(sh);
+  }
+
   // Neck and head.
   const neck = new THREE.Group();
   neck.position.y = 0.8;
@@ -122,9 +143,15 @@ function buildModel() {
   const eyeMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xfff4e0, emissiveIntensity: 0.9, fog: false }); // shine through the dark
   const eyes = [-0.045, 0.045].map((x) => part(new THREE.SphereGeometry(0.005, 6, 4), eyeMat, x * 1.15, 0.03, 0.18));
   head.add(...eyes);
+  // Second form: the mouth splits and glows.
+  const mouth = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.016), new THREE.MeshBasicMaterial({ color: 0x7a0008, fog: false }));
+  mouth.position.set(0, -0.115, 0.18);
+  mouth.visible = false;
+  head.add(mouth);
 
+  root.rotation.order = 'YXZ'; // so it can flip upside down onto the ceiling
   root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-  return { root, body, legs, arms, torso, head, eyeMat, eyes };
+  return { root, body, legs, arms, torso, head, eyeMat, eyes, extra, mouth };
 }
 
 export class Mimic {
@@ -168,7 +195,29 @@ export class Mimic {
     this.targetId = null; // which player it's after
     this.lureStyle = 'lure';
     this.stalkRange = [6, 14];
+    this.ceiling = false;  // crawling on the ceiling
+    this.dropT = 0;
+    this.form = 1;
+    this.wearId = null;    // online: wearing a dead player's body
+    this.hunger = 0;       // 0..4, it gets bolder over time
+    this.opening = null;   // a door it's opening
+    this.chorusCd = 8;
   }
+
+  // The second form: bigger, two more arms, a glowing split mouth, red eyes.
+  setForm(n) {
+    if (this.form === n) return;
+    this.form = n;
+    const m = this.model;
+    m.root.scale.setScalar(n === 2 ? 1.15 : 1);
+    m.extra.forEach((e) => { e.visible = n === 2; });
+    m.mouth.visible = n === 2;
+    m.eyeMat.emissive.setHex(n === 2 ? 0xff2010 : 0xfff4e0);
+    m.arms.forEach((a) => { a.shoulder.scale.y = n === 2 ? 1.25 : 1; });
+  }
+
+  wear(id) { this.wearId = id; this.ceiling = false; }
+  unwear() { this.wearId = null; }
 
   dispose() { this.breath.stop(); this.emitter.dispose(); }
 
@@ -208,6 +257,8 @@ export class Mimic {
   foundHidden(prop, id) { if (this.state !== 'hunt') this.huntHide(prop, id); }
 
   huntHide(prop, id) {
+    if (this.ceiling) { this.ceiling = false; this.dropT = DROP; }
+    this.unwear();
     this.state = 'hunt';
     this.targetId = id;
     this.hideTarget = prop;
@@ -216,15 +267,23 @@ export class Mimic {
   }
 
   enrage(P) {
-    this.enraged = 14;
+    this.enraged = 16;
     this.aggro += 0.1;
     this.lastSeen = { x: P.x, z: P.z };
     this.targetId = P.id;
-    this.startChase(true);
+    this.unwear();
+    this.ceiling = false;
+    this.state = 'transform';
+    this.transT = 2.4;
+    this.path = [];
+    this.setForm(2);
+    this.speak('scream');
   }
 
   // ---------- state changes ----------
   startChase(silent = false) {
+    if (this.wearId) { this.unwear(); silent = false; this.screamCd = 0; } // the disguise comes off
+    if (this.ceiling) { this.ceiling = false; this.dropT = DROP; this.sfx.footstep(this.emitter, { heavy: true, vol: 1.6 }); }
     if (this.state !== 'chase' && !silent) this.hooks.onSpotted(this.targetId);
     this.state = 'chase';
     this.lostT = 0;
@@ -241,6 +300,7 @@ export class Mimic {
 
   wander(P) {
     this.state = 'wander';
+    this.ceiling = !this.wearId && this.form === 1 && Math.random() < 0.3;
     const lv = this.level;
     // Usually drift toward the player's part of the map, sometimes anywhere.
     const near = lv.rooms.filter((r) => Math.hypot(lv.roomCenter(r.id).x - P.x, lv.roomCenter(r.id).z - P.z) < 22);
@@ -260,7 +320,8 @@ export class Mimic {
       if (!p) continue;
       const d = Math.hypot(p.x - P.x, p.z - P.z);
       const [lo, hi] = this.stalkRange;
-      if (d < lo || d > hi || lv.los(p.x, p.z, P.x, P.z)) continue;
+      // Wearing someone, it wants to be seen: it walks right up like they would.
+      if (d < lo || d > hi || (!this.wearId && lv.los(p.x, p.z, P.x, P.z))) continue;
       const score = Math.abs(d - (lo + hi) / 2);
       if (!best || score < best.score) best = { ...p, score };
     }
@@ -268,10 +329,11 @@ export class Mimic {
     const path = lv.findPath(this.x, this.z, best.x, best.z);
     if (!path.length) { this.stalkCd = 6; return; }
     this.state = 'stalk';
+    this.ceiling = !this.wearId && this.form === 1 && Math.random() < 0.35;
     this.path = path;
     this.lures = 0;
     this.wait = 0;
-    this.stalkCd = 24 + Math.random() * 22;
+    this.stalkCd = (24 + Math.random() * 22) * (1 - this.hunger * 0.1);
   }
 
   // Appear at (spot) facing the player, and just stare.
@@ -279,6 +341,8 @@ export class Mimic {
     this.x = spot.x; this.z = spot.z;
     this.yaw = Math.atan2(P.x - spot.x, P.z - spot.z);
     this.state = 'peek';
+    this.ceiling = false;
+    this.unwear();
     this.targetId = P.id;
     this.path = [];
     this.peekT = 0;
@@ -306,6 +370,9 @@ export class Mimic {
 
   // A flare or a rescue: blinded for a while, then it runs.
   stun(seconds) {
+    if (this.state === 'transform') return;
+    if (this.ceiling) { this.ceiling = false; this.dropT = DROP; }
+    this.unwear();
     this.state = 'stunned';
     this.stunT = seconds;
     this.path = [];
@@ -324,7 +391,7 @@ export class Mimic {
   speak(style) {
     const d = this.hooks.speak(style, this.emitter);
     this.speaking = d;
-    this.speakCd = 9 + Math.random() * 8;
+    this.speakCd = (9 + Math.random() * 8) * (1 - this.hunger * 0.12); // hungrier, chattier
   }
 
   // ---------- movement ----------
@@ -334,6 +401,21 @@ export class Mimic {
     while (this.path.length > 1 && lv.clearWalk(this.x, this.z, this.path[1].x, this.path[1].z, RADIUS)) this.path.shift();
     const wp = this.path[0];
     if (!wp) { this.speed = 0; return true; }
+    // A shut door in the way: stop, turn the handle (slowly, unless chasing), and push it open.
+    if (this.opening) {
+      this.speed = 0;
+      this.opening.t -= dt;
+      if (this.opening.t <= 0) { this.hooks.openDoor?.(this.opening.door); this.opening = null; }
+      return false;
+    }
+    const door = lv.idoors.find((d) => !d.open && Math.hypot(d.x - this.x, d.z - this.z) < 1.5
+      && this.path.slice(0, 3).some((w) => Math.hypot(w.x - d.x, w.z - d.z) < 1.8));
+    if (door) {
+      this.opening = { door, t: this.state === 'chase' ? 0.45 : 1.7 };
+      this.hooks.creakDoor?.(door, this.state === 'chase');
+      this.speed = 0;
+      return false;
+    }
     const dx = wp.x - this.x, dz = wp.z - this.z, dist = Math.hypot(dx, dz);
     if (dist < 0.2) { this.path.shift(); return !this.path.length; }
     const step = Math.min(dist, speed * dt);
@@ -391,7 +473,7 @@ export class Mimic {
       this.lostT = 0;
       this.noticeT += dt;
       const calm = !['chase', 'hunt', 'peek', 'flee', 'stunned', 'sniff'].includes(this.state);
-      if (calm && (this.noticeT > 0.6 || d < 4)) this.startChase();
+      if (calm && (this.wearId ? this.noticeT > 2.5 || d < 2.2 : this.noticeT > 0.6 || d < 4)) this.startChase();
       else if (calm) this.turnTo(Math.atan2(dx, dz), dt); // it stops and turns toward you...
     }
 
@@ -412,9 +494,12 @@ export class Mimic {
           this.path = this.level.findPath(this.x, this.z, tgt.x, tgt.z);
           this.repath = 0.3;
         }
-        this.follow(dt, (this.enraged > 0 ? 3.8 : 3.0) * this.aggro);
+        this.follow(dt, (this.enraged > 0 ? 3.8 : this.form === 2 ? 3.4 : 3.0) * this.aggro);
         if (sees && d < 1.35) this.hooks.onCatch(P.id); // long arms
         if (sees && d > 4 && this.screamCd <= 0 && Math.random() < dt * 0.2) { this.speak('scream'); this.screamCd = 9; }
+        // All the voices it has, laughing at once.
+        this.chorusCd -= dt;
+        if (this.chorusCd <= 0 && Math.random() < dt * 0.15) { this.speak('chorus'); this.chorusCd = 16 + Math.random() * 10; this.screamCd = 6; }
         break;
       }
       case 'hunt': {
@@ -429,6 +514,12 @@ export class Mimic {
           this.path = [];
           this.hooks.onSniff(P.id);
         }
+        break;
+      }
+      case 'transform': {
+        this.speed = 0;
+        this.transT -= dt;
+        if (this.transT <= 0) this.startChase(true);
         break;
       }
       case 'stunned': {
@@ -511,11 +602,14 @@ export class Mimic {
     // Outside a chase it moves like stop-motion: the pose only updates ~9 times a second.
     this.animAcc += dt;
     const fast = ['chase', 'hunt', 'flee', 'stunned'].includes(this.state);
-    if (!fast && this.animAcc < 0.11) { this.emitter.setPos(this.x, 2.2, this.z); return; }
+    m.root.visible = !this.wearId;
+    if (this.dropT > 0) this.dropT = Math.max(0, this.dropT - dt);
+    if (!fast && this.dropT <= 0 && this.animAcc < 0.11) { this.emitter.setPos(this.x, this.ceiling ? 2.7 : 2.2, this.z); return; }
     dt = this.animAcc;
     this.animAcc = 0;
-    m.root.position.set(this.x, 0, this.z);
-    m.root.rotation.y = this.yaw;
+    const up = this.ceiling ? 1 : this.dropT / DROP; // 1 = upside down on the ceiling
+    m.root.position.set(this.x, CEIL * up, this.z);
+    m.root.rotation.set(0, this.yaw, Math.PI * up);
     const k = Math.min(1, this.speed / 2.5);
     const s = Math.sin(this.phase);
     m.legs[0].hip.rotation.x = s * 0.6 * k;
@@ -537,6 +631,18 @@ export class Mimic {
     } else if (this.state === 'sniff') { // bent toward the door, listening
       m.torso.rotation.x = 0.75;
       m.arms.forEach((a) => { a.shoulder.rotation.x = -0.6; a.elbow.rotation.x = -0.4; });
+    } else if (this.state === 'transform') { // convulsing
+      m.torso.rotation.x = 0.4 + Math.sin(t * 31) * 0.25;
+      m.arms.forEach((a, i) => { a.shoulder.rotation.x = -1 + Math.sin(t * 23 + i * 2) * 1.2; a.elbow.rotation.x = -1 + Math.cos(t * 19 + i) * 0.8; });
+      m.head.rotation.x = Math.sin(t * 27) * 0.5;
+    }
+    if (this.form === 2) m.extra.forEach((e, i) => { e.rotation.x = -0.4 + Math.sin(this.phase * 1.3 + i * 2) * 0.5; });
+    // On the ceiling: flat against it like a spider, limbs spread.
+    m.body.position.y = this.ceiling ? -0.85 : m.body.position.y;
+    if (this.ceiling) {
+      m.torso.rotation.x = 1.45;
+      m.legs.forEach((l, i) => { l.hip.rotation.x = -1.4 + (i ? -s : s) * 0.4 * k; l.knee.rotation.x = 0.7; });
+      m.arms.forEach((a, i) => { a.shoulder.rotation.x = -1.5 + (i ? s : -s) * 0.4 * k; a.elbow.rotation.x = -0.3; });
     }
 
     // Head: jerky twitches; tilts while it talks; scans when standing still.
@@ -549,16 +655,24 @@ export class Mimic {
     this.headRoll += (roll - this.headRoll) * Math.min(1, dt * (this.speaking > 0 ? 3 : 22));
     m.head.rotation.z = this.headRoll;
     m.head.rotation.y = this.speed < 0.1 && this.state !== 'stalk' ? Math.sin(t * 0.9) * 0.7 : 0;
+    if (this.ceiling) m.head.rotation.x = -1.2; // looking down at you
+    else if (this.state !== 'transform') m.head.rotation.x = 0;
 
-    this.emitter.setPos(this.x, 2.2 + m.root.position.y, this.z);
+    this.emitter.setPos(this.x, this.ceiling ? 2.7 : 2.2, this.z);
   }
 
   // ---------- puppet (multiplayer, non-host): follows the host's snapshots ----------
-  // s: [x, z, yaw, stateIndex, speaking]
+  // s: [x, z, yaw, stateIndex, speaking, ceiling, form, wearId (0 = none), hunger]
   applySnap(s) {
     [this.tx, this.tz, this.tyaw] = s;
     this.state = STATES[s[3]] || 'wander';
     this.speaking = s[4] ? 1 : 0;
+    const ceiling = !!s[5];
+    if (this.ceiling && !ceiling) this.dropT = DROP;
+    this.ceiling = ceiling;
+    this.setForm(s[6] === 2 ? 2 : 1);
+    this.wearId = s[7] ? String(s[7]) : null;
+    this.hunger = Number(s[8]) || 0;
     if (this.tx0 === undefined) { this.x = this.tx; this.z = this.tz; this.yaw = this.tyaw; this.tx0 = 1; }
   }
 
@@ -580,15 +694,28 @@ export class Mimic {
     this.animate(dt, t);
   }
 
-  snap() { return [+this.x.toFixed(2), +this.z.toFixed(2), +this.yaw.toFixed(2), STATES.indexOf(this.state), this.speaking > 0 ? 1 : 0]; }
+  snap() {
+    return [+this.x.toFixed(2), +this.z.toFixed(2), +this.yaw.toFixed(2), STATES.indexOf(this.state), this.speaking > 0 ? 1 : 0,
+      this.ceiling ? 1 : 0, this.form, this.wearId || 0, this.hunger];
+  }
 
-  // Jumpscare pose: crouched right in front of the camera.
-  pose(x, z, yaw, t) {
+  // Jumpscare pose: crouched right in front of the camera, or hanging upside down from above.
+  pose(x, z, yaw, t, above = false) {
     this.frozen = true;
     this.x = x; this.z = z; this.yaw = yaw; this.speed = 0;
+    this.wearId = null;
     const m = this.model;
-    m.root.position.set(x, -0.75, z);
-    m.root.rotation.y = yaw;
+    m.root.visible = true;
+    m.root.position.set(x, above ? 4.2 : -0.75, z);
+    m.root.rotation.set(0, yaw, above ? Math.PI : 0);
+    m.body.position.y = 0;
+    if (above) { // hanging straight down from the ceiling, face level with yours
+      m.root.position.y = 4.3;
+      m.torso.rotation.x = 0.1;
+      m.head.rotation.set(0, 0, Math.sin(t * 40) * 0.1);
+      m.arms.forEach((a, i) => { a.shoulder.rotation.x = -0.4; a.shoulder.rotation.z = (i ? 1 : -1) * 0.9; });
+      return;
+    }
     m.torso.rotation.x = 0.55;
     m.head.rotation.z = Math.sin(t * 40) * 0.08 + 0.35;
     m.head.rotation.y = 0;

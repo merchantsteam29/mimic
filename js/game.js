@@ -11,6 +11,8 @@ import { RemotePlayer } from './remote.js';
 import { Objectives } from './objectives.js';
 import { Abilities } from './abilities.js';
 import { Heartbeat } from './heartbeat.js';
+import { Scares } from './scares.js';
+import { mulberry32 } from './level.js';
 
 const POOL = 6;              // real point lights, moved to the nearest fixtures
 const EYE = 1.62, EYE_CROUCH = 1.0;
@@ -103,6 +105,8 @@ export class Game {
       onCatch: (id) => this.hostCatch(id),
       onSpotted: (id) => this.sendTo(id, { t: 'sting' }),
       onSniff: (id) => { this.sniffing = id; this.sendTo(id, { t: 'sniff' }); },
+      openDoor: (d) => this.broadcast({ t: 'doorSet', i: d.i, open: true, by: 'm' }),
+      creakDoor: (d, fast) => this.broadcast({ t: 'creak', i: d.i, fast: fast ? 1 : 0 }),
       onPeekSeen: () => {}, // each player notices a peek themselves (see watchPeek)
     });
     if (mp) { this.mimic.lureStyle = 'distant'; this.mimic.stalkRange = [9, 16]; }
@@ -111,6 +115,17 @@ export class Game {
     this.obj = new Objectives(this);           // generators, tapes, keycard (adds their items)
     this.ab = new Abilities(this, this.classes[this.me] || 'runner');
     this.hb = new Heartbeat(this);
+    level.idoors.forEach((d, i) => this.items.push({ type: 'idoor', i, x: d.x, y: 1.2, z: d.z, range: 2.3, active: true }));
+    const dc = this.world.decoy;
+    if (dc) this.items.push({ type: dc.kind, fake: true, x: dc.x, y: 0.1, z: dc.z, mesh: dc.mesh, range: 2.1, active: true });
+    this.scares = new Scares(this);
+    this.doorEm = sfx.emitter();
+    // Hunger: every couple of minutes it gets bolder, and lights die for good (in the same order for everyone).
+    this.hungerT = 0;
+    this.hungerSeen = 0;
+    const hr = mulberry32(level.seed ^ 0xbeef);
+    this.hungerOrder = this.world.fixtures.map((_, i) => i).sort((a, b) => a - b);
+    for (let i = this.hungerOrder.length - 1; i > 0; i--) { const j = Math.floor(hr() * (i + 1)); [this.hungerOrder[i], this.hungerOrder[j]] = [this.hungerOrder[j], this.hungerOrder[i]]; }
     this.nextItem = this.items.length;         // host: index for things dropped by the dead
     if (!level.tasks.fuses) { // no fuses this run: the panel's fuse slots stay dark
       for (const it of this.items) if (it.type === 'fuse') { it.active = false; it.mesh.removeFromParent(); }
@@ -127,7 +142,7 @@ export class Game {
       if (this.state === 'spectate' && !e.repeat && (e.code === 'Space' || e.code === 'KeyE')) { this.specIdx++; return; }
       if (this.state !== 'playing') return;
       if (e.code === 'Space') e.preventDefault();
-      if (!e.repeat && (this.hb.onKey(e.code) || this.obj.onKey(e.code))) return;
+      if (!e.repeat && (this.scares.onKey(e.code) || this.hb.onKey(e.code) || this.obj.onKey(e.code))) return;
       this.keys.add(e.code);
       if (e.repeat) return;
       if (e.code === 'KeyF') this.toggleFlash();
@@ -208,6 +223,8 @@ export class Game {
     this.director.dispose();
     this.obj.dispose();
     this.ab.dispose();
+    this.scares.dispose();
+    this.doorEm.dispose();
     this.hb.stop();
     for (const r of this.remotes.values()) r.dispose();
     this.renderer.domElement.style.transform = this.renderer.domElement.style.filter = '';
@@ -237,6 +254,13 @@ export class Game {
     const r = this.remotes.get(from);
     if (this.obj.hostHandle(m, from) || this.ab.hostHandle(m, from)) return;
     switch (m.t) {
+      case 'door': { // open / close a real door
+        const d = this.level.idoors[m.i | 0];
+        if (d && this.alive(from)) this.broadcast({ t: 'doorSet', i: d.i, open: !d.open, by: from });
+        break;
+      }
+      case 'trapped': if (this.alive(from)) this.hostCatch(from); break; // the fake locker had them
+      case 'fakeDone': this.broadcast({ t: 'fakeGone', p: m.p | 0 }); break;
       case 'sniffRes': // the hidden player's heartbeat game is over
         if (this.mimic.state === 'sniff' && this.mimic.targetId === from) {
           this.sniffing = null;
@@ -264,6 +288,12 @@ export class Game {
       case 'take': {
         const it = this.items[m.i];
         if (!it || !it.active || !['fuse', 'battery', 'keycard'].includes(it.type) || !this.alive(from)) return;
+        if (it.fake) { // the decoy: it was it
+          it.active = false;
+          this.mimic.hear(it.x, it.z, 15, 'step');
+          this.broadcast({ t: 'fakeItem', i: m.i, by: from });
+          return;
+        }
         it.active = false;
         if (it.type === 'fuse') { this.held.set(from, (this.held.get(from) || 0) + 1); this.mimic.aggro += 0.03; }
         this.broadcast({ t: 'took', i: m.i, by: from });
@@ -296,6 +326,49 @@ export class Game {
   onNet(m) {
     if (this.obj.onNet(m) || this.ab.onNet(m)) return;
     switch (m.t) {
+      case 'doorSet': {
+        const d = this.level.idoors[m.i | 0];
+        if (!d) return;
+        d.open = !!m.open;
+        const c = this.camera.position;
+        this.doorEm.setPos(d.x, 1.2, d.z);
+        this.doorEm.setOcclusion(!this.level.los(c.x, c.z, d.x - d.dx * 0.3, d.z - d.dz * 0.3));
+        this.sfx.door(this.doorEm, d.open, m.by === 'm' && this.mimic.state === 'chase');
+        break;
+      }
+      case 'creak': { // its hand on the door handle
+        const d = this.level.idoors[m.i | 0];
+        if (!d) return;
+        this.doorEm.setPos(d.x, 1.2, d.z);
+        this.sfx.handle(this.doorEm, !!m.fast);
+        break;
+      }
+      case 'fakeGone': { const pr = this.level.props[m.p]; if (pr) this.scares.fakeGone(pr); break; }
+      case 'fakeItem': {
+        const it = this.items[m.i];
+        if (!it) return;
+        it.active = false;
+        // It scuttles off into the dark.
+        if (it.mesh) {
+          const a = Math.random() * Math.PI * 2, mesh = it.mesh, t0 = performance.now();
+          const run = () => {
+            const k = (performance.now() - t0) / 600;
+            mesh.position.x += Math.sin(a) * 0.12; mesh.position.z += Math.cos(a) * 0.12;
+            if (k < 1) requestAnimationFrame(run); else mesh.removeFromParent();
+          };
+          run();
+        }
+        if (m.by === this.me) {
+          this.sfx.bite();
+          this.hud.flash.classList.remove('hit');
+          void this.hud.flash.offsetWidth;
+          this.hud.flash.classList.add('hit');
+          this.toast('It bit you.');
+          this.p.stamina = 0; this.p.tired = true;
+          this.p.battery = Math.max(0, this.p.battery - 25);
+        }
+        break;
+      }
       case 'sniff': this.hb.start(); break;
       case 'sniffEnd': if (this.hb.on) { this.hb.stop(); this.toast('It went away… for now.'); } break;
       case 'snap': {
@@ -308,8 +381,14 @@ export class Game {
         break;
       }
       case 'say': {
-        const c = m.key && this.mp?.clips.get(m.key);
-        const d = c ? this.sfx.playVoice(c.buffer, this.mimic.emitter, m.style) : this.sfx.whisper(this.mimic.emitter);
+        let d;
+        if (Array.isArray(m.keys)) { // the chorus: several voices at once
+          const bufs = m.keys.map((k) => this.mp?.clips.get(k)?.buffer).filter(Boolean);
+          d = bufs.length ? this.sfx.chorus(bufs, this.mimic.emitter) : this.sfx.whisper(this.mimic.emitter);
+        } else {
+          const c = m.key && this.mp?.clips.get(m.key);
+          d = c ? this.sfx.playVoice(c.buffer, this.mimic.emitter, m.style) : this.sfx.whisper(this.mimic.emitter);
+        }
         if (!this.isHost) this.mimic.speaking = d;
         this.voice.suppress(d + 0.3);
         this.lures++;
@@ -443,9 +522,14 @@ export class Game {
       this.watchPeek();
       this.obj.update(dt);
       this.hb.update(dt);
+      if (this.isHost && !this.power) this.updateHunger(dt);
     } else if (this.state === 'caught') this.updateCaught(dt);
     this.updateDoor(dt);
     this.ab.update(dt);
+    this.scares.update(dt);
+    this.updateDoors(dt);
+    this.applyHunger();
+    if (this.isHost && this.mp) this.updateWear();
     // The mimic left a hiding spot without a verdict (a flare, say): end that player's heartbeat game.
     if (this.isHost && this.sniffing && this.mimic.state !== 'sniff') { this.sendTo(this.sniffing, { t: 'sniffEnd' }); this.sniffing = null; }
 
@@ -453,9 +537,17 @@ export class Game {
     else if (this.mp || this.state === 'playing') this.mimic.update(dt, this.targets(), this.t);
 
     const watching = this.state === 'spectate' ? this.specTarget() : null;
+    const worn = this.mimic.wearId && this.remotes.get(this.mimic.wearId);
     for (const [id, r] of this.remotes) {
-      if (!this.alive(id)) r.status = 'gone';
+      if (r === worn) { // it walks around as them
+        r.status = 'alive'; r.hidden = -1; r.seen = true; r.flash = true; r.crouch = false; r.pitch = 0;
+        r.tx = this.mimic.x; r.tz = this.mimic.z; r.tyaw = this.mimic.yaw + Math.PI;
+      } else if (!this.alive(id)) r.status = 'gone';
       r.update(dt, this.level.theme.surface, r === watching);
+      // Up close, something's wrong with how it holds its head.
+      if (r === worn && Math.hypot(r.x - this.camera.position.x, r.z - this.camera.position.z) < 3.5) {
+        r.head.rotation.z = 0.6 + Math.sin(this.t * 25) * 0.15;
+      } else r.head.rotation.z = 0;
     }
     if (this.mp) { this.netTick(dt); this.routeVoices(); }
   }
@@ -659,11 +751,13 @@ export class Game {
       if (d > it.range) continue;
       const dot = (dx * fwd.x + dy * fwd.y + dz * fwd.z) / d;
       const need = it.type === 'fuse' || it.type === 'battery' ? 0.86 : 0.72;
-      if (dot < need || dot < bestDot || !this.level.los(c.x, c.z, it.x, it.z)) continue;
+      // (A shut door blocks sight of itself, so doors skip the line-of-sight check.)
+      if (dot < need || dot < bestDot || (it.type !== 'idoor' && !this.level.los(c.x, c.z, it.x, it.z))) continue;
       best = it; bestDot = dot;
     }
     this.focus = best;
-    const custom = best && this.obj.prompt(best);
+    let custom = best && (this.obj.prompt(best) ?? this.scares.prompt(best));
+    if (best?.type === 'idoor') custom = this.level.idoors[best.i].open ? 'Close door' : 'Open door';
     if (custom !== undefined) { this.setPrompt(custom); return; }
     const text = {
       fuse: 'Pick up fuse',
@@ -682,7 +776,8 @@ export class Game {
 
   interact() {
     const f = this.focus;
-    if (!f || this.obj.interact(f)) return;
+    if (!f || this.obj.interact(f) || this.scares.interact(f)) return;
+    if (f.type === 'idoor') { this.send({ t: 'door', i: f.i }); return; }
     switch (f.type) {
       case 'unhide': this.exitHide(); break;
       case 'fuse':
@@ -715,6 +810,7 @@ export class Game {
     p.eye = 1.5;
     this.hud.locker.hidden = false;
     this.sfx.creak(null, 0.25);
+    if (this.scares.trap(prop)) return; // it was it
     if (this.isHost) this.mimic.notifyHide(prop, this.playerInfo());
   }
 
@@ -787,9 +883,20 @@ export class Game {
   // ---------- voice, fear, lights ----------
   // The mimic (host) talks: everyone hears the same clip from it.
   mimicSpeaks(style, emitter) {
+    const dead = (owner) => this.status.get(owner) === 'dead';
+    if (style === 'chorus') {
+      if (!this.mp) {
+        const bufs = this.voice.clips.slice().sort(() => Math.random() - 0.5).slice(0, 3).map((c) => c.buffer);
+        return bufs.length ? this.sfx.chorus(bufs, emitter) : this.sfx.whisper(emitter);
+      }
+      const keys = [...new Set([0, 1, 2].map(() => this.mp.pickKey(dead)).filter(Boolean))];
+      this.broadcast({ t: 'say', keys, style });
+      return 3;
+    }
     if (!this.mp) return this.localSpeak(style, emitter);
-    const key = this.mp.pickKey((owner) => this.status.get(owner) === 'dead');
-    this.broadcast({ t: 'say', key, style });
+    const wearing = this.mimic.wearId;
+    const key = this.mp.pickKey(dead, wearing);
+    this.broadcast({ t: 'say', key, style: wearing && style !== 'scream' ? 'lure' : style });
     const c = key && this.mp.clips.get(key);
     return c ? c.buffer.duration / (style === 'scream' ? 0.6 : 0.98) : 1.2;
   }
@@ -935,6 +1042,46 @@ export class Game {
     });
   }
 
+  // Real doors swing toward where they should be.
+  updateDoors(dt) {
+    for (const wd of this.world.idoors) {
+      for (const l of wd.leaves) {
+        const target = wd.door.open ? l.open : l.closed;
+        l.pivot.rotation.y += angleDiff(target, l.pivot.rotation.y) * Math.min(1, dt * (wd.door.open ? 4 : 9));
+      }
+    }
+  }
+
+  // Host: every 150 s it gets hungrier (bolder, faster, chattier).
+  updateHunger(dt) {
+    this.hungerT += dt;
+    if (this.hungerT < 150 || this.mimic.hunger >= 4) return;
+    this.hungerT = 0;
+    this.mimic.hunger++;
+    this.mimic.aggro += 0.06;
+  }
+
+  // Everyone: each hunger stage kills two more lights, for good (same lights for everyone).
+  applyHunger() {
+    const h = this.mimic.hunger;
+    if (h <= this.hungerSeen) return;
+    for (let i = this.hungerSeen * 2; i < h * 2 && i < this.hungerOrder.length; i++) this.world.fixtures[this.hungerOrder[i]].broken = true;
+    this.hungerSeen = h;
+    this.sfx.rumble(2.5);
+    this.sfx.clank(this.ambientEmitter, 0.6);
+  }
+
+  // Host, online: when it goes stalking, it sometimes wears someone it took.
+  updateWear() {
+    const m = this.mimic;
+    if (m.state === 'stalk' && this.prevMimicState !== 'stalk' && !m.wearId) {
+      const dead = this.order.filter((id) => this.status.get(id) === 'dead' && this.remotes.has(id));
+      if (dead.length && Math.random() < 0.55) m.wear(dead[Math.floor(Math.random() * dead.length)]);
+    }
+    if (m.wearId && ['chase', 'hunt', 'sniff', 'stunned', 'transform', 'peek'].includes(m.state)) m.unwear();
+    this.prevMimicState = m.state;
+  }
+
   // ---------- death, escape, spectating ----------
   caught() {
     if (this.state !== 'playing') return;
@@ -958,23 +1105,41 @@ export class Game {
     const p = this.p, m = this.mimic;
     this.catchYaw = Math.atan2(-(m.x - p.x), -(m.z - p.z));
     p.speed = 0;
+    // How it gets you: from above (off the ceiling), from behind, dragged away, or straight on.
+    const dx = m.x - p.x, dz = m.z - p.z, d = Math.hypot(dx, dz) || 1;
+    const behind = (-Math.sin(p.yaw) * dx - Math.cos(p.yaw) * dz) / d < -0.3;
+    this.scare = m.ceiling || m.dropT > 0 ? 'above' : behind ? 'behind' : Math.random() < 0.3 ? 'drag' : 'front';
+    if (this.scare === 'behind') this.sfx.sniff(m.emitter);
   }
 
   updateCaught(dt) {
     this.ct += dt;
-    const p = this.p;
+    const p = this.p, sc = this.scare;
     const fx = -Math.sin(this.catchYaw), fz = -Math.cos(this.catchYaw);
-    // It lunges in, then stays bent over right in your face.
-    const dist = 1.25 + Math.max(0, 1 - this.ct * 5) * 0.6;
-    this.mimic.pose(p.x + fx * dist, p.z + fz * dist, Math.atan2(-fx, -fz), this.t);
+    // It lunges in, then stays bent over right in your face (or hangs down from above).
+    const dist = sc === 'above' ? 1.05 : 1.25 + Math.max(0, 1 - this.ct * 5) * 0.6;
+    this.mimic.pose(p.x + fx * dist, p.z + fz * dist, Math.atan2(-fx, -fz), this.t, sc === 'above');
+    if (sc === 'drag') {
+      // Pulled off your feet and dragged backwards into the dark.
+      if (this.ct > 0.55 && !this.dragging) {
+        this.dragging = true;
+        this.renderer.domElement.style.filter = 'brightness(0.05)';
+        this.sfx.drag(1.5);
+        setTimeout(() => this.localSpeak('echo', null), 400);
+      }
+      if (this.dragging) { p.eye = Math.max(0.25, p.eye - dt * 3); p.x -= fx * dt * 1.2; p.z -= fz * dt * 1.2; }
+    }
     const root = this.mimic.model.root;
     root.updateMatrixWorld(true);
     const head = this.mimic.model.head.getWorldPosition(new THREE.Vector3());
     const dx = head.x - p.x, dy = head.y - p.eye, dz = head.z - p.z;
-    const k = Math.min(1, dt * 14);
+    if (sc === 'behind' && this.ct < 0.4) return; // you hear it breathe behind you first
+    const k = Math.min(1, dt * (sc === 'behind' ? 22 : 14));
     p.yaw += angleDiff(Math.atan2(-dx, -dz), p.yaw) * k;
     p.pitch += (Math.atan2(dy, Math.hypot(dx, dz)) - p.pitch) * k;
-    if (this.ct > 1.9 && this.state === 'caught') {
+    if (this.ct > (sc === 'drag' ? 2.4 : 1.9) && this.state === 'caught') {
+      this.renderer.domElement.style.filter = '';
+      this.dragging = false;
       if (!this.mp) { this.end(false); return; }
       this.mimic.frozen = false;
       this.startSpectate();

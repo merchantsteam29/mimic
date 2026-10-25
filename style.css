@@ -168,3 +168,12 @@ button.small { padding: 7px 12px; font-size: 12px; }
 #heartBeats i { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: #e9e4da; box-shadow: 0 0 10px #e9e4da; }
 #heartBeats i.missed { background: #c41a32; box-shadow: none; opacity: .5; }
 #heart .lives { color: #c41a32; letter-spacing: .3em; font-size: 18px; margin: 0; }
+
+/* ---------- scares ---------- */
+#lore { position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%); width: min(640px, 90vw); text-align: center; background: rgba(0,0,0,.55); padding: 10px 16px; }
+#lore .kicker { margin: 0 0 4px; }
+#loreLine { margin: 0; font-size: 18px; color: #e9e4da; }
+#qte { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); text-align: center; width: 280px; }
+#qte .whisper { font-size: 20px; color: #ff5468; animation: pulse .3s infinite; }
+#qte .bar { height: 8px; background: rgba(255,255,255,.12); }
+#qte .bar i { display: block; height: 100%; width: 0; background: #c41a32; }

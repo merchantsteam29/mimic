@@ -49,6 +49,18 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   erases an equal share of the remaining clips), plus a keycard (key in the house) for the locked exit room about half the time.
   When everything is done, the panel's lever (`lever`) restores power. The host owns the progress (`work`, `bang`, `smash`,
   `unlock`, `lever` -> `gen`, `smashed`, `unlocked`, `power`).
+- `scares.js`: personal scares (each player alone): it **talks back** after you speak, the **body** (lying, then standing in a
+  corner facing the wall, then gone), **mirror** ghosts (Reflector mirrors, only drawn within 9 m; sometimes the host puts the real
+  mimic there), the **fake locker** (`props[fakeHide].fake`: it breathes, mash E to escape, or `trapped` -> caught; `fakeDone` ->
+  `fakeGone` for everyone), decoys twitching, and **victims' tapes** (`lore.js`, subtitles over `sfx.tapeVoice`).
+- Shared scares (`game.js`): **real doors** (`level.idoors`: E toggles via `door` -> `doorSet`; the mimic stops, turns the handle
+  (`creak`) and opens them, fast when chasing); the **decoy** pickup (`take` -> `fakeItem`: it bites and runs); **hunger** (every
+  150 s: bolder, chattier, and 2 lights die for good, in a seeded order); online it **wears a dead player** (`mimic.wearId`: their
+  avatar walks in its place and talks with their clips; chasing rips it off); the **chorus** (`say` with `keys`); **varied jumpscares**
+  (`game.scare`: above / behind / drag / front).
+- Mimic: crawls on the **ceiling** (`ceiling`, drops when it chases) and has a **second form** (`enrage` -> `transform` -> `setForm(2)`: an
+  extra pair of arms, a split mouth, red eyes, faster). Snapshots carry ceiling / form / wearId / hunger.
+- **Syntax check with `node tools/check.mjs`.** Plain `node --check` silently skips ES-module files.
 - `classes.js` / `abilities.js`: classes (all free, no unlocks; G = ability). Brute: 2 flares (`flare`: host stuns
   the mimic for 4 s if it's within 8 m and in sight). Runner: sprints 6.2 m/s for 13 s, recovers fast, louder steps. Medic: 1 rescue
   (`rescue` on the teammate in front, or self; the host's `hostSave` turns their next catch into a stun plus `saved`). Tracker:

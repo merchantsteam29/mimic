@@ -36,6 +36,10 @@ The microphone only works on `localhost` or `https`, not on `file://`. Use headp
   proximity-based: you only hear friends near you, muffled through walls. When the mimic takes someone, their voice
   just stops. Nobody is told. The mimic prefers the voices of the people it took, so the friend calling you from the next
   room might not be your friend anymore. Dead players watch through the eyes of the living and can only talk to each other.
+- **It plays tricks:** it answers when you talk, with your own words. It crawls on the ceiling. One locker is it. Some
+  pickups are it. A body on the floor isn't where you left it. Mirrors show it standing behind you (usually it isn't).
+  It opens doors, slowly. It gets hungrier over time, and lights die for good. When the power comes back, it changes.
+  Online, it can walk around as a friend it took. Old tapes from people who came before tell you what happened to them.
 - **Random maps:** each run is either a research facility or an old house, with a new layout every time.
 
 Controls: `WASD` move, mouse look, `Shift` sprint, `C` crouch, `F` flashlight, `E` interact / hide (hold to
