@@ -246,7 +246,7 @@ export class Scares {
       const bx = c.x - (dx / d) * 1.4, bz = c.z - (dz / d) * 1.4;
       const mm = g.mimic;
       // Sometimes it's really there.
-      if (g.isHost && Math.random() < 0.25 && mm.graceT <= 0 && !['chase', 'hunt', 'sniff', 'transform'].includes(mm.state)) {
+      if (g.isHost && !g.hunt.on && Math.random() < 0.25 && mm.graceT <= 0 && !['chase', 'hunt', 'sniff', 'transform'].includes(mm.state)) {
         mm.x = bx; mm.z = bz; mm.yaw = Math.atan2(c.x - bx, c.z - bz);
         mm.state = 'stalk'; mm.path = []; mm.wait = 3; mm.ceiling = false; mm.unwear();
         continue;

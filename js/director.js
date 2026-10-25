@@ -34,7 +34,7 @@ export class Director {
     const md = Math.hypot(m.x - p.x, m.z - p.z);
     const options = p.hidden
       ? [['knock', 1]]
-      : [['behind', md > 10 ? 3 : 0], ['peek', g.isHost ? 4 : 0], ['blackout', 2], ['rush', 2], ['distant', md > 12 ? 1 : 0]];
+      : [['behind', md > 10 ? 3 : 0], ['peek', g.isHost && !g.hunt.on ? 4 : 0], ['blackout', 2], ['rush', 2], ['distant', md > 12 ? 1 : 0]];
     const pool = options.filter(([n, w]) => w > 0 && (n !== this.last || options.length === 1));
     let r = Math.random() * pool.reduce((a, [, w]) => a + w, 0);
     const [name] = pool.find(([, w]) => (r -= w) <= 0) || pool[0];

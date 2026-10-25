@@ -146,6 +146,11 @@ function gamePad(dt, g, { now, down, up, ax }) {
     if (down(i)) press(code);
     else if (up(i)) { release(code); if (i === 0) release('Space'), release('KeyE'); }
   }
+  // Playing the mimic: the D-pad picks whose voice to use.
+  if (g.hunt?.me) {
+    [[12, 'Digit1'], [15, 'Digit2'], [13, 'Digit3'], [14, 'Digit4']].forEach(([i, c]) => { if (down(i)) tap(c); });
+    return;
+  }
   if (voting) {
     [[12, 'Digit1'], [15, 'Digit2'], [13, 'Digit3'], [14, 'Digit4'], [1, 'Digit0']].forEach(([i, c]) => { if (down(i)) tap(c); });
     return;
@@ -217,8 +222,8 @@ function initTouch() {
     const g = controls.getGame();
     if (!g || !controls.inGame) return;
     e.preventDefault();
-    // Voting: tap a name (the vote list is under this layer).
-    const li = g.traitor?.voting && document.elementsFromPoint(e.clientX, e.clientY).find((el) => el.matches('#voteList li'));
+    // Voting, or (as the mimic) picking whose voice to use: tap a name (the lists are under this layer).
+    const li = (g.traitor?.voting || g.hunt?.me) && document.elementsFromPoint(e.clientX, e.clientY).find((el) => el.matches('#voteList li, #hunter li'));
     if (li) {
       const all = [...li.parentElement.children], i = all.indexOf(li);
       tap(i === all.length - 1 ? 'Digit0' : `Digit${i + 1}`);
@@ -292,6 +297,16 @@ function updateTouch(g) {
   if (root.hidden) return;
   const spec = g.state === 'spectate', tr = g.traitor;
   const show = (k, on) => { const b = root.querySelector(`[data-k="${k}"]`); if (b) b.hidden = !on; };
+  const name = (k, t) => { const b = root.querySelector(`[data-k="${k}"]`); if (b && b.textContent !== t) b.textContent = t; };
+  const hunter = !!g.hunt?.me;
+  name('KeyE', hunter ? 'Bite' : 'Use');
+  name('KeyQ', hunter ? 'Kill light' : 'Jam');
+  name('KeyR', hunter ? 'Voice' : 'Sabotage');
+  if (hunter) {
+    for (const k of ['Space', 'KeyF', 'KeyC', 'KeyG', 'KeyV', 'Tab']) show(k, false);
+    for (const k of ['KeyE', 'KeyQ', 'KeyR', 'ShiftLeft']) show(k, true);
+    return;
+  }
   show('Space', spec || !!g.hb?.on || !!g.obj?.skill);
   root.querySelector('[data-k="Space"]').textContent = spec ? 'Next' : g.hb?.on ? 'Beat' : 'Tap';
   for (const k of ['KeyE', 'KeyF', 'KeyC', 'ShiftLeft', 'Tab']) show(k, !spec);

@@ -307,3 +307,16 @@ body.input-touch #prompt { top: calc(50% + 26px); font-size: 14px; }
 .seg button.on { border-color: var(--red); background: rgba(196,26,50,.16); }
 .row .seg { grid-column: 2 / span 2; }
 @media (max-width: 480px) { .row .seg { grid-column: 1; } }
+
+/* ---------- Hunt mode: the hunter's HUD ---------- */
+.mode-pick .mode-hunt { grid-column: 1 / -1; }
+#hunter { position: absolute; left: 24px; top: 24px; max-width: 360px; font: 15px "Special Elite", monospace; color: #ffd8d0; text-shadow: 0 0 6px #000; }
+#hunter ol { list-style: none; padding: 0; margin: 4px 0 0; }
+#hunter li { margin: 4px 0; }
+#hunter li.gone { opacity: .4; text-decoration: line-through; }
+#hunter li span { color: var(--dim); font-size: 12px; }
+#hunter kbd { font: 800 11px Inter, sans-serif; border: 1px solid #ffb0a0; border-radius: 4px; padding: 0 5px; margin-right: 8px; }
+#hunter .fine { margin-top: 10px; color: #e0b0a8; }
+body.input-touch #hunter li { pointer-events: auto; padding: 4px 0; }
+body.hunter-me #hud #objective, body.hunter-me #hud #ability, body.hunter-me #hud #mic, body.hunter-me #hud #stamina, body.hunter-me #hud #battery, body.hunter-me #hud #crosshair { display: none; }
+body.hunter-me #hud:not(.reveal) #hunter { opacity: 1; }

@@ -95,7 +95,7 @@ export class Abilities {
     if (m.t === 'flare') {
       const P = g.infoOf(from), mm = g.mimic;
       const d = Math.hypot(mm.x - P.x, mm.z - P.z);
-      if (d < 8 && g.level.los(P.x, P.z, mm.x, mm.z) && mm.state !== 'stunned') mm.stun(4);
+      if (d < 8 && g.level.los(P.x, P.z, mm.x, mm.z) && mm.state !== 'stunned') { mm.stun(4); g.hunt.stun(4); }
       g.broadcast({ t: 'flared', id: from, x: +P.x.toFixed(2), z: +P.z.toFixed(2) });
     } else {
       const to = g.alive(m.to) ? m.to : from;
@@ -110,6 +110,7 @@ export class Abilities {
     if (!this.rescues.has(id)) return false;
     this.rescues.delete(id);
     this.g.mimic.stun(3);
+    this.g.hunt.stun(3);
     this.g.broadcast({ t: 'saved', id });
     return true;
   }

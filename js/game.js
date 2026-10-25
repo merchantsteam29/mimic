@@ -16,6 +16,7 @@ import { Traitor } from './traitor.js';
 import { Events } from './events.js';
 import { Hand } from './hand.js';
 import { Skinwalker } from './skinwalker.js';
+import { Hunter } from './hunter.js';
 import { mulberry32 } from './level.js';
 import { keyLabel, rumble } from './controls.js';
 
@@ -30,7 +31,7 @@ const angleDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 const num = (v, d = 0) => (Number.isFinite(v) ? v : d);
 
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false }) {
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null }) {
     Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs });
     this.distort = 0;    // camcorder distortion, 0..1
     this.peekHud = 0;    // seconds the HUD stays visible after something changes
@@ -115,13 +116,15 @@ export class Game {
       onCatch: (id) => this.hostCatch(id),
       onSpotted: (id) => this.sendTo(id, { t: 'sting' }),
       onSniff: (id) => { this.sniffing = id; this.sendTo(id, { t: 'sniff' }); },
-      isLit: (x, z) => this.world.fixtures.some((L) => L.level > 0.5 && (!L.broken || this.power) && Math.hypot(L.x - x, L.z - z) < 3.2),
+      isLit: (x, z) => this.world.fixtures.some((L) => L.level > 0.5 && (!L.broken || this.power) && !L.dead && Math.hypot(L.x - x, L.z - z) < 3.2),
       openDoor: (d) => this.broadcast({ t: 'doorSet', i: d.i, open: true, by: 'm' }),
       creakDoor: (d, fast) => this.broadcast({ t: 'creak', i: d.i, fast: fast ? 1 : 0 }),
       onPeekSeen: () => {}, // each player notices a peek themselves (see watchPeek)
     });
     if (mp) { this.mimic.lureStyle = 'distant'; this.mimic.stalkRange = [9, 16]; }
     this.sw = new Skinwalker(this, skinwalker); // online only: something wearing a living friend
+    this.hunt = new Hunter(this, hunter);       // Hunt mode: a player is the mimic
+    if (this.hunt.on) this.status.set(hunter, 'hunter');
     if (story) this.mimic.graceT = story.grace;
     this.ambientEmitter = sfx.emitter();
     this.director = new Director(this);
@@ -159,6 +162,7 @@ export class Game {
       if (e.code === 'Tab') { e.preventDefault(); this.tabDown = true; return; } // hold Tab to see the HUD
       if (this.state !== 'playing') return;
       if (e.code === 'Space') e.preventDefault();
+      if (this.hunt.me) { if (!e.repeat && this.hunt.onKey(e.code)) return; this.keys.add(e.code); return; }
       if (!e.repeat && (this.traitor.onKey(e.code) || this.scares.onKey(e.code) || this.hb.onKey(e.code) || this.obj.onKey(e.code))) return;
       this.keys.add(e.code);
       if (e.repeat) return;
@@ -174,7 +178,11 @@ export class Game {
       this.look(e.movementX * s, e.movementY * s);
     };
     this.stick = null; // analog movement from a controller or the touch stick (controls.js), x/y in -1..1
-    this.onClick = () => { if (this.state === 'spectate' && document.pointerLockElement) this.specIdx++; };
+    this.onClick = () => {
+      if (!document.pointerLockElement) return;
+      if (this.state === 'spectate') this.specIdx++;
+      else if (this.hunt.me && this.state === 'playing' && !this.menuOpen) this.hunt.act();
+    };
     addEventListener('keydown', this.onKeyDown);
     addEventListener('keyup', this.onKeyUp);
     addEventListener('blur', this.onBlur);
@@ -201,6 +209,7 @@ export class Game {
     this.hud.root.hidden = false;
     this.hud.cam.hidden = false;
     this.peekHud = 6;
+    this.hunt.begin();
     this.updateObjective();
     this.toast(this.level.name);
   }
@@ -246,6 +255,7 @@ export class Game {
     removeEventListener('mousedown', this.onClick);
     this.mimic.dispose();
     this.sw.dispose();
+    this.hunt.dispose();
     this.ambientEmitter.dispose();
     this.director.dispose();
     this.events.dispose();
@@ -283,11 +293,11 @@ export class Game {
   // Host: a player's intent.
   hostHandle(m, from) {
     const r = this.remotes.get(from);
-    if (this.obj.hostHandle(m, from) || this.ab.hostHandle(m, from) || this.traitor.hostHandle(m, from)) return;
+    if (this.hunt.hostHandle(m, from) || this.obj.hostHandle(m, from) || this.ab.hostHandle(m, from) || this.traitor.hostHandle(m, from)) return;
     switch (m.t) {
       case 'door': { // open / close a real door
         const d = this.level.idoors[m.i | 0];
-        if (!d || !this.alive(from)) break;
+        if (!d || (!this.alive(from) && from !== this.hunt.id)) break;
         if (d.jamUntil > this.t) { this.sendTo(from, { t: 'jammed' }); break; } // the traitor jammed it
         this.broadcast({ t: 'doorSet', i: d.i, open: !d.open, by: from });
         break;
@@ -316,6 +326,7 @@ export class Game {
         const d = Math.hypot(this.mimic.x - x, this.mimic.z - z);
         if (m.k === 'voice' && prop && d < Math.min(rad, 8)) this.mimic.foundHidden(prop, from);
         else this.mimic.hear(x, z, rad, m.k === 'voice' ? 'voice' : 'step');
+        this.hunt.heard(x, z, rad);
         break;
       }
       case 'take': {
@@ -348,6 +359,7 @@ export class Game {
       }
       case 'quit': { // a player's connection dropped
         if (!this.status.has(m.id) || this.status.get(m.id) === 'left') return;
+        if (m.id === this.hunt.id) this.hunt.on = false; // the hunter left: the mimic thinks for itself again
         this.dropFuses(m.id);
         this.broadcast({ t: 'left', id: m.id });
         break;
@@ -357,7 +369,7 @@ export class Game {
 
   // Everyone: what happened.
   onNet(m) {
-    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m)) return;
+    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m)) return;
     switch (m.t) {
       case 'doorSet': {
         const d = this.level.idoors[m.i | 0];
@@ -510,7 +522,7 @@ export class Game {
     if ([...this.status.values()].some((s) => s === 'alive')) return;
     this.ended = true;
     if (!this.mp) return; // alone, the jumpscare / escape ends the run itself
-    this.broadcast({ t: 'end', st: Object.fromEntries(this.status), time: this.time, mode: this.traitor.on ? 'story' : 'normal', ...this.traitor.result() });
+    this.broadcast({ t: 'end', st: Object.fromEntries(this.status), time: this.time, mode: this.hunt.id ? 'hunt' : this.traitor.on ? 'story' : 'normal', hunter: this.hunt.id, ...this.traitor.result() });
   }
 
   // Host: the mimic (or, by 'sw', the skinwalker) reached a player.
@@ -552,7 +564,10 @@ export class Game {
   simulate(dt) {
     if (this.state === 'ended' || this.state === 'paused') return;
     this.t += dt;
-    if (this.state === 'playing') {
+    if (this.state === 'playing' && this.hunt.me) {
+      this.time += dt;
+      this.hunt.update(dt);
+    } else if (this.state === 'playing') {
       this.time += dt;
       this.updatePlayer(dt);
       this.updateFocus();
@@ -567,17 +582,18 @@ export class Game {
       if (this.isHost && !this.power) this.updateHunger(dt);
     } else if (this.state === 'caught') this.updateCaught(dt);
     this.updateDoor(dt);
-    this.ab.update(dt);
-    this.scares.update(dt);
+    if (!this.hunt.me) { this.ab.update(dt); this.scares.update(dt); }
     this.traitor.update(dt);
     this.updateDoors(dt);
     this.applyHunger();
-    if (this.isHost && this.mp) this.updateWear();
+    if (this.isHost && this.mp && !this.hunt.on) this.updateWear();
     // The mimic left a hiding spot without a verdict (a flare, say): end that player's heartbeat game.
     if (this.isHost && this.sniffing && this.mimic.state !== 'sniff') { this.sendTo(this.sniffing, { t: 'sniffEnd' }); this.sniffing = null; }
 
     if (!this.isHost) this.mimic.puppet(dt, this.t);
+    else if (this.hunt.on) this.hunt.driveMimic(dt);
     else if (this.mp || this.state === 'playing') this.mimic.update(dt, this.targets(), this.t);
+    if (this.hunt.me) this.mimic.model.root.visible = false; // you're inside it
     this.sw.update(dt);
 
     const watching = this.state === 'spectate' ? this.specTarget() : null;
@@ -738,6 +754,7 @@ export class Game {
     if (this.isHost) {
       if (kind === 'voice' && p.hidden && Math.hypot(this.mimic.x - p.x, this.mimic.z - p.z) < Math.min(radius, 8)) this.mimic.foundHidden(p.hidden, this.me);
       else this.mimic.hear(p.x, p.z, radius, kind);
+      this.hunt.heard(p.x, p.z, radius);
     } else this.send({ t: 'noise', x: +p.x.toFixed(2), z: +p.z.toFixed(2), r: +radius.toFixed(1), k: kind });
   }
 
@@ -767,7 +784,7 @@ export class Game {
 
   updateFlash(dt) {
     const p = this.p;
-    let on = (p.flashOn && p.battery > 0 && !p.hidden) || this.state === 'caught';
+    let on = !this.hunt.me && ((p.flashOn && p.battery > 0 && !p.hidden) || this.state === 'caught');
     if (this.state === 'spectate') on = !!this.specTarget()?.flash;
     if (on && this.state === 'playing') p.battery = Math.max(0, p.battery - (dt * 100) / BATTERY_LIFE);
     let I = on ? (this.state === 'caught' ? 20 : 42) : 0; // a little dimmer in its face, so it isn't washed out
@@ -781,7 +798,7 @@ export class Game {
     const c = this.camera;
     const fwd = c.getWorldDirection(new THREE.Vector3());
     this.flashDir.lerp(fwd, 1 - Math.exp(-dt * 16)).normalize();
-    this.hand.update(dt, { yaw: p.yaw, pitch: p.pitch, bob: p.bob, speed: p.speed, fear: this.fear, on: on && I > 0, visible: this.state === 'playing' && !p.hidden });
+    this.hand.update(dt, { yaw: p.yaw, pitch: p.pitch, bob: p.bob, speed: p.speed, fear: this.fear, on: on && I > 0, visible: this.state === 'playing' && !p.hidden && !this.hunt.me });
     this.flash.position.copy(this.state === 'playing' && !p.hidden ? this.hand.lensWorld(new THREE.Vector3()) : c.localToWorld(new THREE.Vector3(0.12, -0.12, 0.05)));
     this.flash.target.position.copy(this.flash.position).addScaledVector(this.flashDir, 5);
     this.hud.batteryBar.style.width = `${p.battery}%`;
@@ -1106,7 +1123,7 @@ export class Game {
     const t = this.t, th = this.level.theme, m = this.mimic, c = this.camera.position;
     for (const L of this.world.fixtures) {
       let lvl = 1;
-      if (L.broken && !this.power) lvl = 0;
+      if ((L.broken && !this.power) || L.dead) lvl = 0;
       else {
         if (L.burst > 0) { L.burst -= dt; lvl = Math.sin(t * 67 + L.seed) > 0.1 ? 1 : 0.1; }
         else if (L.flicker && Math.random() < dt * 0.3) L.burst = 0.15 + Math.random() * 0.9;
@@ -1122,7 +1139,7 @@ export class Game {
     this.poolT -= dt;
     if (this.poolT <= 0) {
       this.poolT = 0.25;
-      this.assigned = this.world.fixtures.filter((L) => !L.broken || this.power)
+      this.assigned = this.world.fixtures.filter((L) => (!L.broken || this.power) && !L.dead)
         .map((L) => ({ L, d: Math.hypot(L.x - c.x, L.z - c.z) })).sort((a, b) => a.d - b.d)
         .slice(0, this.pool.length).map((e) => e.L);
     }
@@ -1293,8 +1310,12 @@ export class Game {
     this.hud.spec.hidden = true;
     this.sfx.stopAmbient();
     const st = m.st || {};
+    // Hunt: the mimic wins if fewer than half of them got out.
+    const others = this.order.filter((id) => id !== m.hunter), out = others.filter((id) => st[id] === 'out').length;
+    const hunterWins = !!m.hunter && out * 2 < others.length;
     this.onEnd({
-      mp: true, won: m.traitor === this.me ? !!m.traitorWins : st[this.me] === 'out', time: num(m.time, this.time), fuses: this.fusesFound, lures: this.lures,
+      mp: true, won: m.hunter === this.me ? hunterWins : m.traitor === this.me ? !!m.traitorWins : st[this.me] === 'out',
+      hunter: m.hunter || null, hunterName: m.hunter ? this.nameOf(m.hunter) : null, hunterWins, time: num(m.time, this.time), fuses: this.fusesFound, lures: this.lures,
       mode: m.mode, traitor: m.traitor || null, traitorName: m.traitor ? this.nameOf(m.traitor) : null, traitorWins: !!m.traitorWins,
       clips: this.mp.clips.size, place: this.level.name,
       results: this.order.map((id) => ({ id, name: this.nameOf(id), status: st[id] || 'left' })),

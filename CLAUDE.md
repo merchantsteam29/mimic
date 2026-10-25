@@ -118,6 +118,14 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   friend's voice comes from elsewhere. Getting within 3.2 m, or lighting it up for 2.6 s, triggers `swReveal` -> `chase` (pale, long
   limbs, upside-down head, split mouth). A catch is `hostCatch(id, 'sw')` -> `caught` with `sw` (the jumpscare uses `sw.poseAt`). It
   leaves if the real friend could see it, and stops after power-on. Host state goes in `snap.sw`.
+- `hunter.js`: online **Hunt** mode (lobby Mode; `start` carries `hunter`, picked at random). That player is the mimic in first
+  person: status `hunter` (never `alive`, so survivors can't hear their voice), a red see-in-the-dark view (a hemisphere light only
+  in their browser + a CSS filter), red rings through walls where survivors made noise (`heard`, from `game.noise` / host `noise`),
+  a 20 s head start. Intents (in `HOST_TYPES`): `mst` (position, 15 Hz; the host drives the mimic puppet with `driveMimic` instead
+  of the AI), `bite` (nearest survivor in reach, or rip open a hiding spot: whoever's inside is caught), `msay` (a clip of player N,
+  played from the mimic), `mlight` (kills the nearest light for good: `L.dead`). Flares / rescues stun the hunter (`mStun`). The
+  director's peek and the mirror trick don't move the real mimic in Hunt. If the hunter leaves, the AI takes over. `end` carries
+  `hunter`; the mimic wins if fewer than half got out.
 - `heartbeat.js`: the hiding-spot minigame. When the mimic hunts you to a locker, it stops at the door (`sniff` state), and
   the hidden player gets `sniff`: press Space on 10–13 beats. Miss 3, or make a sound on the mic, and `sniffRes` false means
   caught. Success means it flees. If the mimic leaves without a verdict (a teammate's flare), the host sends `sniffEnd`.

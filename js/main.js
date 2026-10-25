@@ -402,13 +402,18 @@ function endRun(r) {
     const out = r.results.filter((p) => p.status === 'out').length;
     $('endSub').textContent = out === r.results.length ? 'Everyone got out. Are you sure it was everyone?'
       : out ? 'Not everyone made it out.' : 'Nobody made it out. It has all of your voices now.';
-    const label = { out: 'Got out', dead: 'Taken', left: 'Left', alive: 'Taken' };
+    const label = { out: 'Got out', dead: 'Taken', left: 'Left', alive: 'Taken', hunter: 'The mimic' };
     $('endPlayers').innerHTML = r.results.map((p) =>
       `<li class="${p.status}"><span class="dot"></span>${esc(p.name)}${p.id === session?.id ? ' (you)' : ''}<span class="ptag">${label[p.status] || 'Taken'}</span></li>`).join('');
     $('endPlayers').hidden = false;
     $('btnAgain').hidden = true;
     $('btnToLobby').hidden = !session?.isHost;
     $('btnMenu').textContent = 'Leave';
+    if (r.mode === 'hunt' && r.hunter) {
+      const others = r.results.filter((p) => p.id !== r.hunter), took = others.filter((p) => p.status !== 'out' && p.status !== 'left').length;
+      $('endTitle').textContent = r.hunterWins ? 'The mimic wins.' : 'You got away from it.';
+      $('endSub').textContent = `${r.hunter === session?.id ? 'You were' : `${r.hunterName} was`} the mimic. It took ${took} of ${others.length}.`;
+    }
     if (r.mode === 'story') { // the reveal
       $('endSub').textContent += r.traitor
         ? ` ${r.traitor === session?.id ? 'You were' : `${r.traitorName} was`} working for it. The traitor ${r.traitorWins ? 'wins' : 'loses'}.`
@@ -585,6 +590,7 @@ function startMpRun(m) {
   game = new Game({
     renderer, vhs, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order, classes: m.classes || {},
     mode: m.mode === 'story' ? 'story' : 'normal', traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw,
+    hunter: m.mode === 'hunt' && m.order?.includes(m.hunter) ? m.hunter : null,
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),
   });
@@ -593,6 +599,12 @@ function startMpRun(m) {
     showIntro(themeId, null, SIGNAL.intro);
     $('introKicker').textContent = 'Story';
     $('introName').textContent = SIGNAL.title;
+  } else if (game.hunt.me) {
+    showIntro(themeId, null, ['You are it.', 'They have 20 seconds. Then find them, and use their voices to bring them to you.']);
+    $('introKicker').textContent = 'Hunt';
+  } else if (game.hunt.on) {
+    showIntro(themeId, null, ['One of you is not coming with you. It is already in here, somewhere, and it will use your voices.', 'Get the power back on, and get out.']);
+    $('introKicker').textContent = 'Hunt';
   } else showIntro(themeId);
 }
 
