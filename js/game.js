@@ -217,11 +217,11 @@ export class Game {
     const sprint = (k.has('ShiftLeft') || k.has('ShiftRight')) && (f || s) && f >= 0 && !p.crouch && !p.tired;
 
     if (sprint) {
-      p.stamina -= dt / 4.5;
+      p.stamina -= dt / 8;
       if (p.stamina <= 0) { p.stamina = 0; p.tired = true; }
     } else {
-      p.stamina = Math.min(1, p.stamina + dt / (p.tired ? 7 : 5));
-      if (p.tired && p.stamina > 0.35) p.tired = false;
+      p.stamina = Math.min(1, p.stamina + dt / (p.tired ? 5 : 3.5));
+      if (p.tired && p.stamina > 0.25) p.tired = false;
     }
 
     const speed = p.crouch ? 1.4 : sprint ? 5.0 : 2.7;
@@ -255,7 +255,7 @@ export class Game {
     const p = this.p;
     const run = p.speed > 4;
     this.sfx.footstep(null, { vol: p.crouch ? 0.3 : run ? 1.1 : 0.65, surface: this.level.theme.surface });
-    this.mimic.hear(p.x, p.z, p.crouch ? 1.2 : run ? 11 : 4.5, 'step');
+    this.mimic.hear(p.x, p.z, p.crouch ? 1 : run ? 9 : 3, 'step');
   }
 
   updateCamera() {
@@ -337,7 +337,7 @@ export class Game {
         f.active = false;
         f.mesh.removeFromParent();
         this.fusesFound++; this.fusesHeld++;
-        this.mimic.aggro += 0.05; // it gets bolder as you get closer to leaving
+        this.mimic.aggro += 0.03; // it gets bolder as you get closer to leaving
         this.sfx.pickup();
         this.toast(`Fuse ${this.fusesFound}/4`);
         this.updateObjective();
@@ -453,7 +453,7 @@ export class Game {
     hud.micLine.style.left = `${v.thresholdPos * 100}%`;
     let heard = false;
     if (v.hear > 0.05) {
-      const radius = 5 + 28 * v.hear;
+      const radius = 4 + 18 * v.hear;
       const d = Math.hypot(this.mimic.x - p.x, this.mimic.z - p.z);
       heard = d <= radius;
       if (p.hidden && d < Math.min(radius, 8)) this.mimic.foundHidden(p.hidden);

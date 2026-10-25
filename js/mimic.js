@@ -160,6 +160,8 @@ export class Mimic {
     this.frozen = false;
     this.animAcc = 1;
     this.shyT = 0; // after fleeing it keeps its distance for a moment
+    this.graceT = 40; // it doesn't hunt you for the first stretch of a run
+    this.noticeT = 0; // how long it has been looking at you
   }
 
   dispose() { this.breath.stop(); this.emitter.dispose(); }
@@ -167,14 +169,15 @@ export class Mimic {
   // ---------- senses ----------
   canSee(P, d) {
     if (P.hidden) return false;
-    let range = P.flashOn ? 22 : 11;
+    if (this.graceT > 0) return false;
+    let range = P.flashOn ? 16 : 9;
     if (P.crouch) range *= 0.75;
     if (this.enraged > 0) range = 40;
     if (d > range) return false;
     if (!this.level.los(this.x, this.z, P.x, P.z)) return false;
     if (d < 2.5 || this.enraged > 0) return true;
     const dx = P.x - this.x, dz = P.z - this.z;
-    if ((Math.sin(this.yaw) * dx + Math.cos(this.yaw) * dz) / d > 0.3) return true; // in front of it
+    if ((Math.sin(this.yaw) * dx + Math.cos(this.yaw) * dz) / d > 0.5) return true; // in front of it
     // Shining a flashlight in its face gets its attention.
     if (P.flashOn && -(P.lookX * dx + P.lookZ * dz) / d > 0.85) return true;
     return false;
@@ -184,7 +187,7 @@ export class Mimic {
   hear(x, z, radius, kind) {
     if (this.state === 'chase' || this.state === 'hunt' || this.state === 'peek' || this.state === 'flee' || this.frozen) return;
     if (Math.hypot(x - this.x, z - this.z) > radius) return;
-    this.investigate(x, z, kind === 'voice' ? 3.1 : 2.5);
+    this.investigate(x, z, kind === 'voice' ? 2.2 : 1.9);
   }
 
   // The player hid. If it watched them do it, it knows exactly where they are.
@@ -232,7 +235,7 @@ export class Mimic {
     const lv = this.level;
     // Usually drift toward the player's part of the map, sometimes anywhere.
     const near = lv.rooms.filter((r) => Math.hypot(lv.roomCenter(r.id).x - P.x, lv.roomCenter(r.id).z - P.z) < 22);
-    const pool = Math.random() < 0.65 && near.length ? near : lv.rooms;
+    const pool = Math.random() < 0.45 && near.length ? near : lv.rooms;
     const room = pool[Math.floor(Math.random() * pool.length)];
     const c = lv.roomCenter(room.id);
     this.path = lv.findPath(this.x, this.z, c.x + (Math.random() - 0.5) * 2, c.z + (Math.random() - 0.5) * 2);
@@ -336,13 +339,17 @@ export class Mimic {
   update(dt, P, t) {
     if (this.frozen) return; // posed by the jumpscare
     this.speaking = Math.max(0, this.speaking - dt);
-    this.speakCd -= dt; this.screamCd -= dt; this.stalkCd -= dt; this.enraged -= dt; this.shyT -= dt;
+    this.speakCd -= dt; this.screamCd -= dt; this.stalkCd -= dt; this.enraged -= dt; this.shyT -= dt; this.graceT -= dt;
     const dx = P.x - this.x, dz = P.z - this.z, d = Math.hypot(dx, dz);
     const sees = this.canSee(P, d) && !(this.shyT > 0 && d > 5);
+    if (!sees) this.noticeT = 0;
     if (sees) {
       this.lastSeen = { x: P.x, z: P.z };
       this.lostT = 0;
-      if (this.state !== 'chase' && this.state !== 'hunt' && this.state !== 'peek' && this.state !== 'flee') this.startChase();
+      this.noticeT += dt;
+      const calm = this.state !== 'chase' && this.state !== 'hunt' && this.state !== 'peek' && this.state !== 'flee';
+      if (calm && (this.noticeT > 0.6 || d < 4)) this.startChase();
+      else if (calm) this.turnTo(Math.atan2(dx, dz), dt); // it stops and turns toward you...
     }
 
     switch (this.state) {
@@ -351,7 +358,7 @@ export class Mimic {
           this.lostT += dt;
           if (this.enraged > 0) this.lastSeen = { x: P.x, z: P.z }; // it just knows
           if (P.hidden && this.lostT < 0.6) { this.notifyHide(P.hidden, P); break; }
-          if (this.lostT > (this.enraged > 0 ? 9 : 4.5)) {
+          if (this.lostT > (this.enraged > 0 ? 7 : 3)) {
             if (this.lastSeen) this.investigate(this.lastSeen.x, this.lastSeen.z, 3.2); else this.wander(P);
             break;
           }
@@ -362,7 +369,7 @@ export class Mimic {
           this.path = this.level.findPath(this.x, this.z, tgt.x, tgt.z);
           this.repath = 0.3;
         }
-        this.follow(dt, (this.enraged > 0 ? 4.7 : 3.9) * this.aggro);
+        this.follow(dt, (this.enraged > 0 ? 3.8 : 3.0) * this.aggro);
         if (sees && d < 1.35) this.hooks.onCatch(); // long arms
         if (sees && d > 4 && this.screamCd <= 0 && Math.random() < dt * 0.2) { this.speak('scream'); this.screamCd = 9; }
         break;
@@ -372,7 +379,7 @@ export class Mimic {
         const f = this.hideTarget.front;
         this.repath -= dt;
         if (this.repath <= 0 && !this.path.length) { this.path = this.level.findPath(this.x, this.z, f.x, f.z); this.repath = 0.5; }
-        this.follow(dt, 3.5 * this.aggro);
+        this.follow(dt, 2.8 * this.aggro);
         if (Math.hypot(f.x - this.x, f.z - this.z) < 1.2) this.hooks.onCatch();
         break;
       }
