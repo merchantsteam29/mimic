@@ -2,23 +2,23 @@
 // synthetic key events (so every key handler in the game just works), the left stick / touch stick sets
 // `game.stick` (analog movement) and the right stick / a drag on the right of the screen calls `game.look`.
 // In menus a controller moves focus between buttons (D-pad / left stick), A clicks, B goes back.
+// Rebound keys (binds.js) are translated here too, into the codes the game listens for.
 //
 // The input mode follows whatever was used last: 'mouse' (keyboard + mouse), 'pad' or 'touch'.
 // Body classes `input-mouse|pad|touch` and `ingame` let the CSS and the hints follow it.
+import { binds, saveBinds, keyMap, keyName, padName, HINT_ACTION, GAME_CODE } from './binds.js';
 
 const DEAD = 0.18;
 const $ = (id) => document.getElementById(id);
 
-// What to call each key in the current mode (prompts, HUD hints, How to play).
+// What to call each key in the current mode (prompts, HUD hints, How to play). Mouse and pad names
+// follow the bindings; these are the fixed ones.
 const LABELS = {
-  mouse: { Beat: 'Space', Next: 'Space', Vote: 'Press a number to vote' },
-  pad: {
-    E: 'A', F: 'X', G: 'Y', C: 'B', Shift: 'LT', Space: 'RT', Q: 'LB', R: 'RB', V: '▲', Tab: 'View', Esc: 'Start',
-    Beat: 'A', Next: 'A', 1: '▲', 2: '▶', 3: '▼', 4: '◀', 0: 'B', Vote: 'Vote with the D-pad',
-  },
+  mouse: { Vote: 'Press a number to vote', Esc: 'Esc' },
+  pad: { Esc: 'Start', 1: '▲', 2: '▶', 3: '▼', 4: '◀', 0: 'B', Vote: 'Vote with the D-pad' },
   touch: {
     E: 'Use', F: 'Light', G: 'Ability', C: 'Crouch', Shift: 'Run', Space: 'Tap', Q: 'Jam', R: 'Sabotage', V: 'Accuse',
-    Tab: 'Jobs', Esc: 'II', Beat: 'Beat', Next: 'Next', Vote: 'Tap a name to vote',
+    Tab: 'Jobs', T: 'Say', Esc: 'II', Beat: 'Beat', Next: 'Next', Vote: 'Tap a name to vote',
   },
 };
 
@@ -27,10 +27,21 @@ export const controls = {
   getGame: () => null,  // set by main.js
   onPause: () => {},    // set by main.js: Start / the touch pause button
   inGame: false,        // a run is on screen with no menu over it
+  capture: null,        // settings: waiting for a key or button to bind ({ kind: 'key'|'pad', done(code|index) })
 };
 
 export function keyLabel(k) {
-  return LABELS[controls.mode][k] ?? k;
+  const m = controls.mode, fixed = LABELS[m][k];
+  if (fixed !== undefined) return fixed;
+  if (m === 'mouse') {
+    if (k === 'Next') return keyName(binds.key.skill);
+    return HINT_ACTION[k] ? keyName(binds.key[HINT_ACTION[k]]) : k;
+  }
+  if (m === 'pad') {
+    if (k === 'Beat' || k === 'Next') return padName(binds.pad.use); // "use" is the heartbeat too, on a controller
+    return HINT_ACTION[k] ? padName(binds.pad[HINT_ACTION[k]]) : k;
+  }
+  return k;
 }
 
 function setMode(mode) {
@@ -70,8 +81,29 @@ function releaseAll() {
   stickEl.base.hidden = true;
 }
 
+// ---------- the keyboard: binding capture and rebound keys ----------
+let kmap = keyMap();
+export function bindsChanged() { kmap = keyMap(); saveBinds(); refreshLabels(); }
+const defaults = new Set(Object.values(GAME_CODE));
+function translate(e) {
+  if (!e.isTrusted) return;
+  if (controls.capture?.kind === 'key' && e.type === 'keydown') {
+    e.preventDefault(); e.stopImmediatePropagation();
+    const c = controls.capture; controls.capture = null;
+    c.done(e.code === 'Escape' ? null : e.code);
+    return;
+  }
+  if (!controls.inGame || e.target?.matches?.('input, textarea')) return;
+  const to = kmap.get(e.code);
+  if (to === e.code) return;
+  if (to || defaults.has(e.code)) { e.preventDefault(); e.stopImmediatePropagation(); } // a key moved elsewhere does nothing
+  if (to) dispatchEvent(new KeyboardEvent(e.type, { code: to, repeat: e.repeat, cancelable: true }));
+}
+
 // Real keyboard / mouse use switches back to mouse mode.
 addEventListener('keydown', (e) => { if (e.isTrusted) setMode('mouse'); }, true);
+addEventListener('keydown', translate, true);
+addEventListener('keyup', translate, true);
 addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse' && (e.movementX || e.movementY)) setMode('mouse'); }, true);
 addEventListener('pointerdown', (e) => setMode(e.pointerType === 'touch' ? 'touch' : e.pointerType === 'mouse' ? 'mouse' : controls.mode), true);
 
@@ -113,13 +145,17 @@ function pollPad(dt, g) {
   if (!pad) return;
   const btn = (i) => { const b = pad.buttons[i]; return !!b && (b.pressed || b.value > 0.5); };
   const now = pad.buttons.map((_, i) => btn(i));
-  const down = (i) => now[i] && !prev[i];
-  const up = (i) => !now[i] && prev[i];
+  const down = (i) => i !== null && i !== undefined && now[i] && !prev[i];
+  const up = (i) => i !== null && i !== undefined && !now[i] && prev[i];
   const ax = (i) => { const v = pad.axes[i] || 0; return Math.abs(v) < DEAD ? 0 : (v - Math.sign(v) * DEAD) / (1 - DEAD); };
   if (now.some(Boolean) || pad.axes.some((v) => Math.abs(v) > 0.5)) { setMode('pad'); lastPad = pad; }
   if (controls.mode !== 'pad') { prev.length = 0; prev.push(...now); return; }
 
-  if (controls.inGame) {
+  if (controls.capture?.kind === 'pad') { // settings: the next button pressed gets the binding
+    const i = now.findIndex((v, j) => v && !prev[j]);
+    if (i === 9) { controls.capture.done(null); controls.capture = null; } // Start cancels
+    else if (i >= 0) { const c = controls.capture; controls.capture = null; c.done(i); }
+  } else if (controls.inGame) {
     gamePad(dt, g, { now, down, up, ax });
   } else {
     for (const c of [...held]) release(c);
@@ -130,6 +166,7 @@ function pollPad(dt, g) {
 }
 
 function gamePad(dt, g, { now, down, up, ax }) {
+  const pb = binds.pad;
   // Move (left stick) and look (right stick, with a curve for fine aiming).
   let x = ax(0), y = ax(1);
   const mag = Math.min(1, Math.hypot(x, y));
@@ -138,13 +175,23 @@ function gamePad(dt, g, { now, down, up, ax }) {
   if (lx || ly) g.look(Math.sign(lx) * lx * lx * 3.4 * s * dt, Math.sign(ly) * ly * ly * 2.4 * s * dt);
 
   if (down(9)) { controls.onPause(); return; }
+  // Quick chat open: up / down to pick, "use" to say it, B or the chat button to close.
+  if (g.chat?.open) {
+    if (down(12)) g.chat.move(-1);
+    if (down(13)) g.chat.move(1);
+    if (down(pb.use)) g.chat.sendSelected();
+    if (down(1) || down(pb.chat)) g.chat.close();
+    return;
+  }
+  if (down(pb.chat)) { tap('KeyT'); return; }
   const voting = g.traitor?.voting;
-  // Hiding with it at the door: A is the heartbeat too (pressing "use" would walk you out).
-  const aCode = g.hb?.on ? 'Space' : 'KeyE';
-  const map = [[0, aCode], [2, 'KeyF'], [3, 'KeyG'], [4, 'KeyQ'], [5, 'KeyR'], [7, 'Space'], [8, 'Tab'], [6, 'ShiftLeft']];
+  const spectating = g.state === 'spectate';
+  // Hiding with it at the door: "use" is the heartbeat too (pressing "use" would walk you out).
+  const useCode = g.hb?.on ? 'Space' : 'KeyE';
+  const map = [[pb.use, useCode], [pb.light, 'KeyF'], [pb.ability, 'KeyG'], [pb.jam, 'KeyQ'], [pb.sabotage, 'KeyR'], [pb.skill, 'Space'], [pb.jobs, 'Tab'], [pb.sprint, 'ShiftLeft']];
   for (const [i, code] of map) {
     if (down(i)) press(code);
-    else if (up(i)) { release(code); if (i === 0) release('Space'), release('KeyE'); }
+    else if (up(i)) { release(code); if (i === pb.use) release('Space'), release('KeyE'); }
   }
   // Playing the mimic: the D-pad picks whose voice to use.
   if (g.hunt?.me) {
@@ -155,9 +202,9 @@ function gamePad(dt, g, { now, down, up, ax }) {
     [[12, 'Digit1'], [15, 'Digit2'], [13, 'Digit3'], [14, 'Digit4'], [1, 'Digit0']].forEach(([i, c]) => { if (down(i)) tap(c); });
     return;
   }
-  if (down(12)) tap('KeyV');
-  // B toggles crouch; clicking the left stick sprints until you stop.
-  if (down(1)) { if (held.has('KeyC')) release('KeyC'); else press('KeyC'); }
+  if (down(pb.accuse)) tap('KeyV');
+  // Crouch toggles (when dead, it's just a press: the haunting whisper); clicking the left stick sprints until you stop.
+  if (down(pb.crouch)) { if (spectating) tap('KeyC'); else if (held.has('KeyC')) release('KeyC'); else press('KeyC'); }
   if (down(10)) { release('KeyC'); press('ShiftRight'); }
   if (!mag) release('ShiftRight');
 }
@@ -212,6 +259,39 @@ const stick = { id: null, ox: 0, oy: 0 };
 const look = { id: null, x: 0, y: 0 };
 const STICK_R = 56;
 let stickEl = { base: { hidden: true } };
+let editing = null; // layout editor: { onDone }
+let drag = null;
+
+const touchKey = (b) => b.dataset.k || b.dataset.act;
+
+// Buttons the player dragged somewhere else sit where they left them.
+function applyTouchLayout() {
+  for (const b of document.querySelectorAll('#touch .t-btn')) {
+    const p = binds.touch[touchKey(b)];
+    if (!p) { b.style.position = b.style.left = b.style.top = b.style.right = b.style.bottom = ''; continue; }
+    const w = b.offsetWidth || 64, h = b.offsetHeight || 64;
+    Object.assign(b.style, { position: 'fixed', right: 'auto', bottom: 'auto', left: `${p.x * innerWidth - w / 2}px`, top: `${p.y * innerHeight - h / 2}px` });
+  }
+}
+addEventListener('resize', () => applyTouchLayout());
+
+// Settings: drag the touch buttons around.
+export function editTouchLayout(onDone) {
+  editing = { onDone };
+  document.body.classList.add('touch-edit');
+  const root = $('touch');
+  root.hidden = false;
+  for (const b of root.querySelectorAll('.t-btn')) b.hidden = false;
+  applyTouchLayout();
+}
+function endEdit() {
+  const done = editing?.onDone;
+  editing = null;
+  document.body.classList.remove('touch-edit');
+  $('touch').hidden = true;
+  saveBinds();
+  done?.();
+}
 
 function initTouch() {
   const root = $('touch');
@@ -219,14 +299,26 @@ function initTouch() {
   stickEl = { base: $('stickBase'), knob: $('stickKnob') };
 
   root.addEventListener('pointerdown', (e) => {
+    if (editing) {
+      e.preventDefault();
+      const act = e.target.closest('[data-edit]')?.dataset.edit;
+      if (act === 'done') { endEdit(); return; }
+      if (act === 'reset') { binds.touch = {}; applyTouchLayout(); return; }
+      const b = e.target.closest('.t-btn');
+      if (!b) return;
+      const r = b.getBoundingClientRect();
+      drag = { b, id: e.pointerId, dx: e.clientX - (r.left + r.width / 2), dy: e.clientY - (r.top + r.height / 2) };
+      root.setPointerCapture?.(e.pointerId);
+      return;
+    }
     const g = controls.getGame();
     if (!g || !controls.inGame) return;
     e.preventDefault();
-    // Voting, or (as the mimic) picking whose voice to use: tap a name (the lists are under this layer).
-    const li = (g.traitor?.voting || g.hunt?.me) && document.elementsFromPoint(e.clientX, e.clientY).find((el) => el.matches('#voteList li, #hunter li'));
+    // Voting, picking whose voice to use (as the mimic), or a quick-chat line: tap it (the lists are under this layer).
+    const li = (g.traitor?.voting || g.hunt?.me || g.chat?.open) && document.elementsFromPoint(e.clientX, e.clientY).find((el) => el.matches('#voteList li, #hunter li, #chat li'));
     if (li) {
       const all = [...li.parentElement.children], i = all.indexOf(li);
-      tap(i === all.length - 1 ? 'Digit0' : `Digit${i + 1}`);
+      tap(li.matches('#voteList li') && i === all.length - 1 ? 'Digit0' : `Digit${i + 1}`);
       return;
     }
     const b = e.target.closest('[data-k], [data-act]');
@@ -234,8 +326,9 @@ function initTouch() {
       root.setPointerCapture?.(e.pointerId);
       b.dataset.pid = e.pointerId;
       if (b.dataset.act === 'pause') { controls.onPause(); return; }
-      const code = b.dataset.k;
-      if (b.hasAttribute('data-toggle')) {
+      const code = b.dataset.k, toggle = b.hasAttribute('data-toggle') && g.state === 'playing';
+      b.dataset.mom = toggle ? '' : '1'; // a plain press lets go with your finger
+      if (toggle) {
         if (held.has(code)) release(code);
         else { if (code === 'KeyC') release('ShiftLeft'); if (code === 'ShiftLeft') release('KeyC'); press(code); }
       } else press(code);
@@ -252,6 +345,13 @@ function initTouch() {
   });
 
   root.addEventListener('pointermove', (e) => {
+    if (drag && e.pointerId === drag.id) {
+      const x = Math.min(0.97, Math.max(0.03, (e.clientX - drag.dx) / innerWidth));
+      const y = Math.min(0.97, Math.max(0.03, (e.clientY - drag.dy) / innerHeight));
+      binds.touch[touchKey(drag.b)] = { x: +x.toFixed(3), y: +y.toFixed(3) };
+      applyTouchLayout();
+      return;
+    }
     const g = controls.getGame();
     if (!g) return;
     if (e.pointerId === stick.id) {
@@ -269,6 +369,7 @@ function initTouch() {
   });
 
   const end = (e) => {
+    if (drag && e.pointerId === drag.id) { drag = null; return; }
     if (e.pointerId === stick.id) {
       stick.id = null;
       stickEl.base.hidden = true;
@@ -280,28 +381,34 @@ function initTouch() {
     for (const b of root.querySelectorAll('[data-pid]')) {
       if (Number(b.dataset.pid) !== e.pointerId) continue;
       delete b.dataset.pid;
-      if (b.dataset.k && !b.hasAttribute('data-toggle')) release(b.dataset.k);
+      if (b.dataset.k && b.dataset.mom) release(b.dataset.k);
     }
   };
   root.addEventListener('pointerup', end);
   root.addEventListener('pointercancel', end);
   root.addEventListener('contextmenu', (e) => e.preventDefault());
-
+  applyTouchLayout();
 }
 
 // Which touch buttons make sense right now.
 function updateTouch(g) {
   const root = $('touch');
-  if (!root) return;
+  if (!root || editing) return;
+  const wasHidden = root.hidden;
   root.hidden = !(controls.mode === 'touch' && controls.inGame);
   if (root.hidden) return;
+  if (wasHidden) applyTouchLayout();
   const spec = g.state === 'spectate', tr = g.traitor;
   const show = (k, on) => { const b = root.querySelector(`[data-k="${k}"]`); if (b) b.hidden = !on; };
   const name = (k, t) => { const b = root.querySelector(`[data-k="${k}"]`); if (b && b.textContent !== t) b.textContent = t; };
-  const hunter = !!g.hunt?.me;
+  const hunter = !!g.hunt?.me, haunt = spec && !!g.haunt?.can();
   name('KeyE', hunter ? 'Bite' : 'Use');
   name('KeyQ', hunter ? 'Kill light' : 'Jam');
   name('KeyR', hunter ? 'Voice' : 'Sabotage');
+  name('KeyF', haunt ? 'Flicker' : 'Light');
+  name('KeyG', haunt ? 'Knock' : 'Ability');
+  name('KeyC', haunt ? 'Whisper' : 'Crouch');
+  show('KeyT', !!g.chat?.can());
   if (hunter) {
     for (const k of ['Space', 'KeyF', 'KeyC', 'KeyG', 'KeyV', 'Tab']) show(k, false);
     for (const k of ['KeyE', 'KeyQ', 'KeyR', 'ShiftLeft']) show(k, true);
@@ -309,12 +416,13 @@ function updateTouch(g) {
   }
   show('Space', spec || !!g.hb?.on || !!g.obj?.skill);
   root.querySelector('[data-k="Space"]').textContent = spec ? 'Next' : g.hb?.on ? 'Beat' : 'Tap';
-  for (const k of ['KeyE', 'KeyF', 'KeyC', 'ShiftLeft', 'Tab']) show(k, !spec);
-  show('KeyG', !spec && g.ab?.id !== 'runner');
+  for (const k of ['KeyE', 'ShiftLeft', 'Tab']) show(k, !spec);
+  for (const k of ['KeyF', 'KeyC']) show(k, !spec || haunt);
+  show('KeyG', haunt || (!spec && g.ab?.id !== 'runner'));
   show('KeyQ', !spec && !!(tr?.on && tr.me));
   show('KeyR', !spec && !!(tr?.on && tr.me));
   show('KeyV', !spec && !!(tr?.on && !tr.voteUsed && g.focus?.type === 'fusebox'));
-  for (const b of root.querySelectorAll('[data-toggle]')) b.classList.toggle('on', held.has(b.dataset.k));
+  for (const b of root.querySelectorAll('[data-toggle]')) b.classList.toggle('on', !spec && held.has(b.dataset.k));
 }
 
 export function initControls() {

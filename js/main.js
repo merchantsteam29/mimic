@@ -12,7 +12,8 @@ import { newCode, cleanCode, cleanName } from './net.js';
 import { CLASSES, CLASS_ORDER } from './classes.js';
 import { VERSION } from './version.js';
 import { CHAPTERS, SIGNAL, storyProgress, finishChapter } from './story.js';
-import { controls, initControls } from './controls.js';
+import { controls, initControls, bindsChanged, editTouchLayout } from './controls.js';
+import { ACTIONS, binds, resetBinds, keyName, padName } from './binds.js';
 import { initTitle } from './title.js';
 
 const $ = (id) => document.getElementById(id);
@@ -135,7 +136,40 @@ if ('serviceWorker' in navigator && !params.has('autostart')) navigator.serviceW
 $('btnHow').onclick = () => show('how');
 $('btnSettings').onclick = () => { screenBeforeSettings = 'title'; openSettings(); };
 $('btnPauseSettings').onclick = () => { screenBeforeSettings = 'pause'; openSettings(); };
-document.querySelectorAll('.back').forEach((b) => { b.onclick = () => show(b.closest('#settings') ? screenBeforeSettings : 'title'); });
+document.querySelectorAll('.back').forEach((b) => {
+  b.onclick = () => (b.dataset.to === 'settings' ? openSettings() : show(b.closest('#settings') ? screenBeforeSettings : 'title'));
+});
+
+// ---------- controls: rebinding ----------
+function renderBinds() {
+  $('bindList').innerHTML = ACTIONS.map(([id, label, , padDefault]) => `<div class="bind-row"><span>${esc(label)}</span>`
+    + `<button data-kind="key" data-id="${id}">${esc(keyName(binds.key[id]))}</button>`
+    + `<button data-kind="pad" data-id="${id}" ${padDefault === null ? 'disabled' : ''}>${padDefault === null ? 'Left stick' : esc(padName(binds.pad[id]))}</button></div>`).join('');
+  $('bindList').querySelectorAll('button').forEach((b) => {
+    b.onclick = () => {
+      const { kind, id } = b.dataset;
+      b.textContent = kind === 'key' ? 'Press a key…' : 'Press a button…';
+      b.classList.add('wait');
+      controls.capture = {
+        kind,
+        done: (v) => {
+          if (v !== null && v !== undefined && !(kind === 'key' && v === 'Escape')) {
+            const table = binds[kind];
+            // Taking a key from another action swaps them.
+            const other = Object.keys(table).find((k) => k !== id && table[k] === v);
+            if (other) table[other] = table[id];
+            table[id] = v;
+            bindsChanged();
+          }
+          renderBinds();
+        },
+      };
+    };
+  });
+}
+$('btnControls').onclick = () => { renderBinds(); show('binds'); };
+$('btnBindsReset').onclick = () => { resetBinds(); bindsChanged(); renderBinds(); };
+$('btnTouchLayout').onclick = () => { controls.capture = null; show(null); editTouchLayout(() => show('binds')); };
 
 // Settings sliders.
 const sliders = [

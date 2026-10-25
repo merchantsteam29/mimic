@@ -17,6 +17,8 @@ import { Events } from './events.js';
 import { Hand } from './hand.js';
 import { Skinwalker } from './skinwalker.js';
 import { Hunter } from './hunter.js';
+import { Chat } from './chat.js';
+import { Haunt } from './haunt.js';
 import { mulberry32 } from './level.js';
 import { keyLabel, rumble } from './controls.js';
 
@@ -138,6 +140,8 @@ export class Game {
     if (dc) this.items.push({ type: dc.kind, fake: true, x: dc.x, y: 0.1, z: dc.z, mesh: dc.mesh, range: 2.1, active: true });
     this.scares = new Scares(this);
     this.traitor = new Traitor(this, { mode, traitorId });
+    this.chat = new Chat(this);   // quick chat (online)
+    this.haunt = new Haunt(this); // the dead reaching back (online)
     this.doorEm = sfx.emitter();
     // Hunger: every couple of minutes it gets bolder, and lights die for good (in the same order for everyone).
     this.hungerT = 0;
@@ -158,6 +162,8 @@ export class Game {
     this.keys = new Set();
     this.onKeyDown = (e) => {
       if (this.menuOpen) return;
+      const live = this.state === 'playing' || this.state === 'spectate';
+      if (live && !e.repeat && (this.chat.onKey(e.code) || this.haunt.onKey(e.code))) { if (e.code === 'Tab') e.preventDefault(); return; }
       if (this.state === 'spectate' && !e.repeat && (e.code === 'Space' || e.code === 'KeyE')) { this.specIdx++; return; }
       if (e.code === 'Tab') { e.preventDefault(); this.tabDown = true; return; } // hold Tab to see the HUD
       if (this.state !== 'playing') return;
@@ -256,6 +262,8 @@ export class Game {
     this.mimic.dispose();
     this.sw.dispose();
     this.hunt.dispose();
+    this.chat.dispose();
+    this.haunt.dispose();
     this.ambientEmitter.dispose();
     this.director.dispose();
     this.events.dispose();
@@ -293,7 +301,7 @@ export class Game {
   // Host: a player's intent.
   hostHandle(m, from) {
     const r = this.remotes.get(from);
-    if (this.hunt.hostHandle(m, from) || this.obj.hostHandle(m, from) || this.ab.hostHandle(m, from) || this.traitor.hostHandle(m, from)) return;
+    if (this.hunt.hostHandle(m, from) || this.chat.hostHandle(m, from) || this.haunt.hostHandle(m, from) || this.obj.hostHandle(m, from) || this.ab.hostHandle(m, from) || this.traitor.hostHandle(m, from)) return;
     switch (m.t) {
       case 'door': { // open / close a real door
         const d = this.level.idoors[m.i | 0];
@@ -369,7 +377,7 @@ export class Game {
 
   // Everyone: what happened.
   onNet(m) {
-    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m)) return;
+    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m)) return;
     switch (m.t) {
       case 'doorSet': {
         const d = this.level.idoors[m.i | 0];
@@ -582,6 +590,8 @@ export class Game {
       if (this.isHost && !this.power) this.updateHunger(dt);
     } else if (this.state === 'caught') this.updateCaught(dt);
     this.updateDoor(dt);
+    this.chat.update(dt);
+    this.haunt.update(dt);
     if (!this.hunt.me) { this.ab.update(dt); this.scares.update(dt); }
     this.traitor.update(dt);
     this.updateDoors(dt);
@@ -1285,7 +1295,8 @@ export class Game {
     const living = [...this.remotes.entries()].filter(([id, r]) => this.alive(id) && r.seen);
     if (!living.length) { this.hud.spec.textContent = 'No one is left to watch.'; return null; }
     const [id, r] = living[this.specIdx % living.length];
-    this.hud.spec.textContent = `Watching ${this.nameOf(id)}  ·  ${keyLabel('Next')} for next  ·  Only the dead can hear you`;
+    this.specId = id;
+    this.hud.spec.textContent = `Watching ${this.nameOf(id)}  ·  ${keyLabel('Next')} for next  ·  ${this.status.get(this.me) === 'dead' ? 'Only the dead can hear you' : 'You got out'}${this.haunt.hint()}`;
     return r;
   }
 

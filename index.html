@@ -30,75 +30,81 @@
 <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=VT323&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script>window.MIMIC_VERSION = '20261025182758';</script>
+<script>window.MIMIC_VERSION = '20261025184115';</script>
 <script type="importmap">
 {
   "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
     "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-    "./js/abilities.js": "./js/abilities.js?v=20261025182758",
-    "./js/classes.js": "./js/classes.js?v=20261025182758",
-    "./js/controls.js": "./js/controls.js?v=20261025182758",
-    "./js/director.js": "./js/director.js?v=20261025182758",
-    "./js/events.js": "./js/events.js?v=20261025182758",
-    "./js/game.js": "./js/game.js?v=20261025182758",
-    "./js/hand.js": "./js/hand.js?v=20261025182758",
-    "./js/heartbeat.js": "./js/heartbeat.js?v=20261025182758",
-    "./js/hunter.js": "./js/hunter.js?v=20261025182758",
-    "./js/level.js": "./js/level.js?v=20261025182758",
-    "./js/lore.js": "./js/lore.js?v=20261025182758",
-    "./js/main.js": "./js/main.js?v=20261025182758",
-    "./js/mimic.js": "./js/mimic.js?v=20261025182758",
-    "./js/mp.js": "./js/mp.js?v=20261025182758",
-    "./js/net.js": "./js/net.js?v=20261025182758",
-    "./js/objectives.js": "./js/objectives.js?v=20261025182758",
-    "./js/remote.js": "./js/remote.js?v=20261025182758",
-    "./js/samples.js": "./js/samples.js?v=20261025182758",
-    "./js/scares.js": "./js/scares.js?v=20261025182758",
-    "./js/sfx.js": "./js/sfx.js?v=20261025182758",
-    "./js/skinwalker.js": "./js/skinwalker.js?v=20261025182758",
-    "./js/story.js": "./js/story.js?v=20261025182758",
-    "./js/textures.js": "./js/textures.js?v=20261025182758",
-    "./js/title.js": "./js/title.js?v=20261025182758",
-    "./js/traitor.js": "./js/traitor.js?v=20261025182758",
-    "./js/vc.js": "./js/vc.js?v=20261025182758",
-    "./js/version.js": "./js/version.js?v=20261025182758",
-    "./js/vhs.js": "./js/vhs.js?v=20261025182758",
-    "./js/voice.js": "./js/voice.js?v=20261025182758"
+    "./js/abilities.js": "./js/abilities.js?v=20261025184115",
+    "./js/binds.js": "./js/binds.js?v=20261025184115",
+    "./js/chat.js": "./js/chat.js?v=20261025184115",
+    "./js/classes.js": "./js/classes.js?v=20261025184115",
+    "./js/controls.js": "./js/controls.js?v=20261025184115",
+    "./js/director.js": "./js/director.js?v=20261025184115",
+    "./js/events.js": "./js/events.js?v=20261025184115",
+    "./js/game.js": "./js/game.js?v=20261025184115",
+    "./js/hand.js": "./js/hand.js?v=20261025184115",
+    "./js/haunt.js": "./js/haunt.js?v=20261025184115",
+    "./js/heartbeat.js": "./js/heartbeat.js?v=20261025184115",
+    "./js/hunter.js": "./js/hunter.js?v=20261025184115",
+    "./js/level.js": "./js/level.js?v=20261025184115",
+    "./js/lore.js": "./js/lore.js?v=20261025184115",
+    "./js/main.js": "./js/main.js?v=20261025184115",
+    "./js/mimic.js": "./js/mimic.js?v=20261025184115",
+    "./js/mp.js": "./js/mp.js?v=20261025184115",
+    "./js/net.js": "./js/net.js?v=20261025184115",
+    "./js/objectives.js": "./js/objectives.js?v=20261025184115",
+    "./js/remote.js": "./js/remote.js?v=20261025184115",
+    "./js/samples.js": "./js/samples.js?v=20261025184115",
+    "./js/scares.js": "./js/scares.js?v=20261025184115",
+    "./js/sfx.js": "./js/sfx.js?v=20261025184115",
+    "./js/skinwalker.js": "./js/skinwalker.js?v=20261025184115",
+    "./js/story.js": "./js/story.js?v=20261025184115",
+    "./js/textures.js": "./js/textures.js?v=20261025184115",
+    "./js/title.js": "./js/title.js?v=20261025184115",
+    "./js/traitor.js": "./js/traitor.js?v=20261025184115",
+    "./js/vc.js": "./js/vc.js?v=20261025184115",
+    "./js/version.js": "./js/version.js?v=20261025184115",
+    "./js/vhs.js": "./js/vhs.js?v=20261025184115",
+    "./js/voice.js": "./js/voice.js?v=20261025184115"
   }
 }
 </script>
 <!-- Fetch every game module in parallel (must come after the import map). Add new js files here too. -->
 <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js">
-<link rel="modulepreload" href="js/main.js?v=20261025182758">
-<link rel="modulepreload" href="js/game.js?v=20261025182758">
-<link rel="modulepreload" href="js/level.js?v=20261025182758">
-<link rel="modulepreload" href="js/mimic.js?v=20261025182758">
-<link rel="modulepreload" href="js/director.js?v=20261025182758">
-<link rel="modulepreload" href="js/sfx.js?v=20261025182758">
-<link rel="modulepreload" href="js/voice.js?v=20261025182758">
-<link rel="modulepreload" href="js/textures.js?v=20261025182758">
-<link rel="modulepreload" href="js/net.js?v=20261025182758">
-<link rel="modulepreload" href="js/vc.js?v=20261025182758">
-<link rel="modulepreload" href="js/mp.js?v=20261025182758">
-<link rel="modulepreload" href="js/remote.js?v=20261025182758">
-<link rel="modulepreload" href="js/classes.js?v=20261025182758">
-<link rel="modulepreload" href="js/objectives.js?v=20261025182758">
-<link rel="modulepreload" href="js/abilities.js?v=20261025182758">
-<link rel="modulepreload" href="js/heartbeat.js?v=20261025182758">
-<link rel="modulepreload" href="js/scares.js?v=20261025182758">
-<link rel="modulepreload" href="js/lore.js?v=20261025182758">
-<link rel="modulepreload" href="js/story.js?v=20261025182758">
-<link rel="modulepreload" href="js/traitor.js?v=20261025182758">
-<link rel="modulepreload" href="js/samples.js?v=20261025182758">
-<link rel="modulepreload" href="js/events.js?v=20261025182758">
-<link rel="modulepreload" href="js/hand.js?v=20261025182758">
-<link rel="modulepreload" href="js/vhs.js?v=20261025182758">
-<link rel="modulepreload" href="js/skinwalker.js?v=20261025182758">
-<link rel="modulepreload" href="js/title.js?v=20261025182758">
-<link rel="modulepreload" href="js/hunter.js?v=20261025182758">
-<link rel="modulepreload" href="js/controls.js?v=20261025182758">
-<link rel="modulepreload" href="js/version.js?v=20261025182758">
+<link rel="modulepreload" href="js/main.js?v=20261025184115">
+<link rel="modulepreload" href="js/game.js?v=20261025184115">
+<link rel="modulepreload" href="js/level.js?v=20261025184115">
+<link rel="modulepreload" href="js/mimic.js?v=20261025184115">
+<link rel="modulepreload" href="js/director.js?v=20261025184115">
+<link rel="modulepreload" href="js/sfx.js?v=20261025184115">
+<link rel="modulepreload" href="js/voice.js?v=20261025184115">
+<link rel="modulepreload" href="js/textures.js?v=20261025184115">
+<link rel="modulepreload" href="js/net.js?v=20261025184115">
+<link rel="modulepreload" href="js/vc.js?v=20261025184115">
+<link rel="modulepreload" href="js/mp.js?v=20261025184115">
+<link rel="modulepreload" href="js/remote.js?v=20261025184115">
+<link rel="modulepreload" href="js/classes.js?v=20261025184115">
+<link rel="modulepreload" href="js/objectives.js?v=20261025184115">
+<link rel="modulepreload" href="js/abilities.js?v=20261025184115">
+<link rel="modulepreload" href="js/heartbeat.js?v=20261025184115">
+<link rel="modulepreload" href="js/scares.js?v=20261025184115">
+<link rel="modulepreload" href="js/lore.js?v=20261025184115">
+<link rel="modulepreload" href="js/story.js?v=20261025184115">
+<link rel="modulepreload" href="js/traitor.js?v=20261025184115">
+<link rel="modulepreload" href="js/samples.js?v=20261025184115">
+<link rel="modulepreload" href="js/events.js?v=20261025184115">
+<link rel="modulepreload" href="js/hand.js?v=20261025184115">
+<link rel="modulepreload" href="js/vhs.js?v=20261025184115">
+<link rel="modulepreload" href="js/skinwalker.js?v=20261025184115">
+<link rel="modulepreload" href="js/title.js?v=20261025184115">
+<link rel="modulepreload" href="js/hunter.js?v=20261025184115">
+<link rel="modulepreload" href="js/binds.js?v=20261025184115">
+<link rel="modulepreload" href="js/chat.js?v=20261025184115">
+<link rel="modulepreload" href="js/haunt.js?v=20261025184115">
+<link rel="modulepreload" href="js/controls.js?v=20261025184115">
+<link rel="modulepreload" href="js/version.js?v=20261025184115">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -125,6 +131,8 @@
   <div id="stickBase" hidden><i id="stickKnob"></i></div>
   <button class="t-btn t-pause" data-act="pause" aria-label="Pause">II</button>
   <button class="t-btn t-jobs" data-k="Tab">Jobs</button>
+  <button class="t-btn t-say" data-k="KeyT" hidden>Say</button>
+  <div id="touchEditBar"><p>Drag the buttons where you want them.</p><button data-edit="reset">Reset</button><button data-edit="done" class="primary">Done</button></div>
   <div class="t-right">
     <button class="t-btn t-beat" data-k="Space" hidden>Tap</button>
     <button class="t-btn t-use" data-k="KeyE">Use</button>
@@ -137,6 +145,9 @@
     <button class="t-btn t-evil" data-k="KeyV" hidden>Accuse</button>
   </div>
 </div>
+<!-- Quick chat: the list (when open) and what people said (online). Outside the HUD so the dead see it too. -->
+<div id="chat" hidden></div>
+<div id="chatFeed"></div>
 <div id="rotate"><p>Turn your phone sideways</p></div>
 
 <!-- In-game HUD (mostly hidden: hold Tab to see it) -->
@@ -227,6 +238,8 @@
       <span><kbd>G</kbd> class ability</span>
       <span><kbd>Space</kbd> skill checks, heartbeats</span>
       <span><kbd>Tab</kbd> objectives</span>
+      <span><kbd>T</kbd> quick chat (online)</span>
+      <span><kbd>F G C</kbd> when dead: flicker a light, knock, whisper</span>
       <span><kbd>Esc</kbd> pause</span>
     </div>
     <div class="keys keys-pad">
@@ -239,6 +252,7 @@
       <span><kbd>Y</kbd> class ability</span>
       <span><kbd>RT</kbd> skill checks</span>
       <span><kbd>View</kbd> objectives</span>
+      <span><kbd>R3</kbd> quick chat</span>
       <span><kbd>Start</kbd> pause</span>
     </div>
     <div class="keys keys-touch">
@@ -251,7 +265,7 @@
       <span><kbd>Tap</kbd> / <kbd>Beat</kbd> appear for skill checks and heartbeats</span>
       <span><kbd>Jobs</kbd> objectives</span>
     </div>
-    <p class="fine keys-mouse">A controller or a touch screen works too.</p>
+    <p class="fine">A controller or a touch screen works too. Every key and button can be changed in Settings › Controls.</p>
     <div class="buttons"><button class="back">Back</button></div>
   </div>
 </section>
@@ -268,7 +282,22 @@
     <label class="row">Mic sensitivity <input type="range" id="setMic" min="0" max="1" step="0.01"><output></output></label>
     <div class="meter big"><i></i><b></b></div>
     <p class="fine">Talk normally: the bar should pass the white line. If background noise passes it, lower the sensitivity.</p>
-    <div class="buttons"><button class="back">Back</button></div>
+    <div class="buttons"><button id="btnControls">Controls</button><button class="back">Back</button></div>
+  </div>
+</section>
+
+<!-- Controls: rebind keys and controller buttons, move the touch buttons -->
+<section id="binds" class="screen" hidden>
+  <div class="panel wide-panel">
+    <h2>Controls</h2>
+    <p class="fine">Click a key or button, then press the new one (Esc or Start cancels). Taking a key from another action swaps them.</p>
+    <div class="bind-head"><span></span><span>Keyboard</span><span>Controller</span></div>
+    <div id="bindList"></div>
+    <div class="buttons wide-buttons">
+      <button id="btnTouchLayout">Move touch buttons</button>
+      <button id="btnBindsReset">Reset to defaults</button>
+      <button class="back" data-to="settings">Back</button>
+    </div>
   </div>
 </section>
 
@@ -418,6 +447,6 @@
   </div>
 </section>
 
-<script type="module" src="js/main.js?v=20261025182758"></script>
+<script type="module" src="js/main.js?v=20261025184115"></script>
 </body>
 </html>

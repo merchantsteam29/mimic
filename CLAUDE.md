@@ -111,6 +111,15 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   (votes on the D-pad, B = nobody), View = Tab, Start pause; in menus the D-pad moves focus. Touch (`#touch`): left thumb stick, right
   thumb drag to look, buttons, vote by tapping a name. Pad and touch play **without pointer lock** (`openPause`/`closePause` in main.js).
   `rumble()` on catches and heartbeats.
+- `binds.js`: **rebinding** (Settings > Controls, `#binds`; localStorage `mimic.binds`). The game always listens for its default
+  codes (`GAME_CODE`); `controls.js` translates a rebound key into that code in a capture-phase listener (and swallows a default
+  key that was moved away), and `gamePad` reads controller buttons from `binds.pad`. `keyLabel` names keys from the bindings.
+  Touch buttons can be dragged in a layout editor (`editTouchLayout`); positions are `binds.touch` (screen fractions).
+- `chat.js`: **quick chat** (online), 8 set phrases. T / R3 / Say opens it. Intent `chat` -> broadcast `said`. Same rules as voices:
+  the living see the living within 30 m, only the dead see the dead. The Hunt-mode mimic can't use it. `#chat`, `#chatFeed`.
+- `haunt.js`: **haunting**: a dead spectator (not an escaped one) can, every 30 s, flicker the light nearest the player they
+  watch (F), knock nearby (G) or whisper behind them (C). Intent `haunt` -> broadcast `haunted`; positional, so only people
+  nearby hear it. The hint and feedback live in the spectator line (`game.specId` is who you're watching).
 - `skinwalker.js`: online, **Normal mode only**, a host lobby toggle (`session.setSkinwalker`, `start` carries `sw`). A second
   creature that wears a **living** player (`wearId`): a copy of their avatar with their flashlight and their own clips (`swSay`). It
   spawns out of sight of everyone, finds a victim far (14 m+) from the real player, and stands at the edge of the light calling

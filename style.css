@@ -320,3 +320,35 @@ body.input-touch #prompt { top: calc(50% + 26px); font-size: 14px; }
 body.input-touch #hunter li { pointer-events: auto; padding: 4px 0; }
 body.hunter-me #hud #objective, body.hunter-me #hud #ability, body.hunter-me #hud #mic, body.hunter-me #hud #stamina, body.hunter-me #hud #battery, body.hunter-me #hud #crosshair { display: none; }
 body.hunter-me #hud:not(.reveal) #hunter { opacity: 1; }
+
+/* ---------- quick chat ---------- */
+#chat { position: fixed; left: 24px; top: 50%; transform: translateY(-50%); z-index: 6; padding: 14px 18px; background: rgba(5,5,5,.8); border: 1px solid var(--line); font: 15px "Special Elite", monospace; }
+#chat ol { list-style: none; padding: 0; margin: 6px 0 0; }
+#chat li { margin: 5px 0; padding: 2px 6px; }
+#chat li.sel { background: rgba(196,26,50,.25); }
+#chat kbd { font: 800 11px Inter, sans-serif; border: 1px solid var(--dim); border-radius: 4px; padding: 0 5px; margin-right: 8px; }
+#chat .fine { margin-top: 8px; }
+body.input-touch #chat li { pointer-events: auto; padding: 8px 6px; }
+#chatFeed { position: fixed; left: 24px; bottom: 175px; z-index: 4; pointer-events: none; font: 15px "Special Elite", monospace; text-shadow: 0 0 6px #000; }
+#chatFeed p { margin: 4px 0; animation: chatIn .2s ease-out; }
+#chatFeed b { color: #e8d6a0; font-weight: 400; }
+#chatFeed p.dead { color: #9fb4c0; font-style: italic; }
+#chatFeed span { color: var(--dim); font-size: 12px; }
+@keyframes chatIn { from { opacity: 0; transform: translateX(-6px); } }
+.t-say { left: calc(130px + env(safe-area-inset-left)); top: 56px; width: 54px; height: 44px; border-radius: 22px; }
+
+/* ---------- controls screen ---------- */
+.bind-head, .bind-row { display: grid; grid-template-columns: 1fr 120px 120px; gap: 8px; align-items: center; }
+.bind-head { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--dim); margin: 14px 0 4px; }
+.bind-row { margin: 5px 0; font-size: 14px; }
+.bind-row button { padding: 6px 4px; font-size: 12px; letter-spacing: .04em; text-transform: none; }
+.bind-row button.wait { border-color: var(--red); color: #ff8090; }
+.wide-buttons { max-width: none; flex-direction: row; flex-wrap: wrap; justify-content: center; }
+@media (max-width: 480px) { .bind-head, .bind-row { grid-template-columns: 1fr 86px 86px; } }
+
+/* ---------- touch layout editor ---------- */
+#touchEditBar { display: none; }
+body.touch-edit #touch { z-index: 30; background: rgba(0,0,0,.6); }
+body.touch-edit #touchEditBar { display: flex; position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%); gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; text-align: center; }
+body.touch-edit #touchEditBar p { width: 100%; margin: 0 0 6px; color: var(--ink); font-family: "Special Elite", monospace; }
+body.touch-edit .t-btn { outline: 1px dashed rgba(233,228,218,.5); cursor: grab; }

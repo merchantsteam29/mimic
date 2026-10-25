@@ -69,6 +69,11 @@ Hold `Tab` to see your objectives.
 Controls: `WASD` move, mouse look, `Shift` sprint, `C` crouch, `F` flashlight, `E` interact / hide (hold to
 repair), `G` class ability, `Space` skill checks and heartbeats, `Esc` pause.
 
+**Change any key or button** in Settings › Controls, and drag the touch buttons wherever you like.
+
+**Quick chat** (online, `T`): set phrases for when you can't talk. **When you're dead**, you can still reach the living
+every 30 seconds: flicker a light near them (`F`), knock (`G`) or whisper behind them (`C`). They won't know it was you.
+
 **Controllers and phones work too.** Controller: left stick move, right stick look, `A` use, `B` crouch, `X` flashlight,
 `Y` ability, `LT` sprint, `RT` skill checks, `Start` pause (menus work with the D-pad). Phone or tablet: play sideways, left
 thumb moves, drag with the right thumb to look, and tap the on-screen buttons.
