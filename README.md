@@ -6,6 +6,10 @@ around the next corner.
 
 ## Play
 
+Best in a dark room, with headphones and the volume up. The game asks you to set the brightness once,
+and plays in full screen (Esc pauses).
+
+
 ```bash
 node serve.js        # then open http://localhost:8080 in Chrome
 ```

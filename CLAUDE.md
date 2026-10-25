@@ -90,6 +90,8 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - Danger: it sees 22 m (flashlight on) or 12 m (off) and is fast in the dark (3.6 m/s), but slower under working lights
   (`hooks.isLit`). Hiding makes it lose you faster. Alone, lures are disguised: `stranger` (pitched, over a bad phone line),
   `playStitch` (half of one clip plus half of another), and `ellie` in the story.
+- `#ready` ("Before you go in"): tips plus a brightness check (setting `bright` scales `toneMappingExposure`), shown before the first
+  intro of each session (`readyShown` in main.js). "Click to enter" / Resume / clicking the view ask for full screen; leaving it pauses.
 - `classes.js` / `abilities.js`: classes (all free, no unlocks; G = ability). Brute: 2 flares (`flare`: host stuns
   the mimic for 4 s if it's within 8 m and in sight). Runner: sprints 6.2 m/s for 13 s, recovers fast, louder steps. Medic: 1 rescue
   (`rescue` on the teammate in front, or self; the host's `hostSave` turns their next catch into a stun plus `saved`). Tracker:

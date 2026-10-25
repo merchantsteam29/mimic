@@ -227,3 +227,12 @@ body.vhs #grain, body.vhs #vignette { display: none; }
 #objective { top: 78px; left: 34px; }
 #ability { left: 34px; bottom: 104px; }
 #mic { left: 34px; bottom: 140px; }
+
+/* ---------- before you go in ---------- */
+.ready-list { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 10px; }
+.ready-list li { color: var(--dim); }
+.ready-list b { color: var(--ink); font-weight: 600; }
+.calib { margin-top: 6px; }
+.calib-shapes { display: flex; justify-content: center; gap: 40px; background: #000; padding: 18px; font-size: 54px; line-height: 1; }
+/* The same three greys the game's darkest shadows use; brightness is applied by the slider (filter). */
+.calib-shapes .s1 { color: #070707; } .calib-shapes .s2 { color: #141414; } .calib-shapes .s3 { color: #2a2a2a; }

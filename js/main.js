@@ -30,7 +30,7 @@ if (window.MIMIC_VERSION !== VERSION) { // (pages from before this check have no
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 // ---------- settings ----------
-const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75 };
+const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1 };
 let settings = { ...DEFAULTS };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('mimic.settings') || '{}')); } catch { /* private mode */ }
 const saveSettings = () => { try { localStorage.setItem('mimic.settings', JSON.stringify(settings)); } catch { /* ignore */ } };
@@ -40,7 +40,8 @@ const renderer = new THREE.WebGLRenderer({ canvas: $('view'), antialias: true, p
 renderer.setPixelRatio(1); // the camcorder pass renders the scene at VHS resolution anyway
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.3;
+const applyBright = () => { renderer.toneMappingExposure = 1.3 * settings.bright; };
+applyBright();
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const vhs = new VHS(renderer);
@@ -97,6 +98,8 @@ const sliders = [
   ['setVolume', 'volume', (v) => `${Math.round(v * 100)}%`],
   ['setFov', 'fov', (v) => `${v}°`],
   ['setMic', 'mic', (v) => `${Math.round(v * 100)}%`],
+  ['setBright', 'bright', (v) => `${Math.round(v * 100)}%`],
+  ['readyBright', 'bright', (v) => `${Math.round(v * 100)}%`],
 ];
 for (const [id, key, fmt] of sliders) {
   const input = $(id), out = input.nextElementSibling;
@@ -108,6 +111,7 @@ for (const [id, key, fmt] of sliders) {
     if (key === 'volume') sfx?.setVolume(settings.volume);
     if (key === 'mic') voice.setSensitivity(settings.mic);
     if (key === 'fov') game?.resize();
+    if (key === 'bright') { applyBright(); syncBright(); }
     saveSettings();
   };
 }
@@ -240,13 +244,23 @@ function startRun(si = null) {
 
 const lineText = (l) => (typeof l === 'string' ? l : l.text);
 
+// The "before you go in" screen comes first, once per session.
+let readyShown = false;
+function syncBright() {
+  for (const id of ['setBright', 'readyBright']) { const el = $(id); el.value = settings.bright; el.nextElementSibling.textContent = `${Math.round(settings.bright * 100)}%`; }
+  // The calibration shapes get the same boost the game's picture does.
+  document.querySelector('.calib-shapes').style.filter = `brightness(${settings.bright * 1.3})`;
+}
+syncBright();
+$('btnReady').onclick = () => { readyShown = true; show('intro'); };
+
 function showIntro(themeId, story = null, introLines = null) {
   $('introKicker').textContent = story ? `Chapter ${story.index + 1}` : THEMES[themeId].kicker;
   $('introName').textContent = story ? story.title : game.level.name;
   const lines = introLines || (story ? story.intro : ['The power is out. Get it back on, and get out.']);
   $('introText').innerHTML = lines.map((l) => `<p>${esc(lineText(l))}</p>`).join('');
   $('introWhisper').hidden = !!story;
-  show('intro');
+  show(readyShown || params.has('autostart') ? 'intro' : 'ready');
 }
 
 function lock() {
@@ -255,12 +269,24 @@ function lock() {
   p?.catch?.(() => renderer.domElement.requestPointerLock()?.catch?.(() => {}));
 }
 
+// The game plays in full screen (it needs the click to ask).
+function goFullscreen() {
+  if (document.fullscreenElement || !document.documentElement.requestFullscreen) return;
+  document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+}
+
 $('btnEnter').onclick = () => {
   ensureAudio();
+  goFullscreen();
   show(null);
   game.begin();
   lock();
 };
+
+// Leaving full screen while playing pauses, like Esc.
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && game && (game.state === 'playing' || game.state === 'spectate') && document.pointerLockElement) document.exitPointerLock();
+});
 
 document.addEventListener('pointerlockchange', () => {
   if (!game) return;
@@ -271,6 +297,7 @@ document.addEventListener('pointerlockchange', () => {
       ? 'The game keeps going while this menu is open.'
       : voice.clips.length ? `It has ${voice.clips.length} recording${voice.clips.length > 1 ? 's' : ''} of your voice.` : '';
     $('btnQuit').textContent = session ? 'Leave game' : 'Quit to menu';
+    $('pauseClips').textContent += (($('pauseClips').textContent ? ' ' : '') + 'Resume returns to full screen.');
     show('pause');
   } else if (document.pointerLockElement && game.paused) {
     show(null);
@@ -278,10 +305,10 @@ document.addEventListener('pointerlockchange', () => {
   }
 });
 
-$('btnResume').onclick = () => lock();
+$('btnResume').onclick = () => { goFullscreen(); lock(); };
 // Clicking the game view while paused also resumes (handy after the browser's Esc cooldown).
 renderer.domElement.addEventListener('click', () => {
-  if (game && (game.state === 'playing' || game.state === 'spectate') && !document.pointerLockElement && !game.noLock) lock();
+  if (game && (game.state === 'playing' || game.state === 'spectate') && !document.pointerLockElement && !game.noLock) { goFullscreen(); lock(); }
 });
 
 $('btnQuit').onclick = () => {
