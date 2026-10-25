@@ -7,76 +7,96 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Mimic</title>
 <meta name="theme-color" content="#050505">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23050505'/><ellipse cx='22' cy='26' rx='7' ry='10' fill='%23c9c2b4'/><ellipse cx='42' cy='26' rx='7' ry='10' fill='%23c9c2b4'/><path d='M14 44 Q32 56 50 44' stroke='%23b3122a' stroke-width='4' fill='none'/></svg>">
+<meta name="description" content="A free first-person horror game in your browser. It records your voice and uses it to lure you, and your friends, into the dark.">
+<!-- Link previews (Discord, iMessage, X...) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Mimic">
+<meta property="og:url" content="https://merchantsteam29.github.io/mimic/">
+<meta property="og:title" content="MIMIC: it learns your voice">
+<meta property="og:description" content="Free browser horror. It records your voice and uses it to lure your friends into the dark. Alone or up to 4 players with proximity voice chat. Keyboard, controller or phone.">
+<meta property="og:image" content="https://merchantsteam29.github.io/mimic/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="MIMIC: a figure that looks like your friend, waiting at the end of a dark hospital hallway">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="MIMIC: it learns your voice">
+<meta name="twitter:description" content="Free browser horror. It records your voice and uses it to lure your friends into the dark.">
+<meta name="twitter:image" content="https://merchantsteam29.github.io/mimic/og.png">
+<!-- Installable app -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=VT323&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script>window.MIMIC_VERSION = '20261025181527';</script>
+<script>window.MIMIC_VERSION = '20261025182046';</script>
 <script type="importmap">
 {
   "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
     "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-    "./js/abilities.js": "./js/abilities.js?v=20261025181527",
-    "./js/classes.js": "./js/classes.js?v=20261025181527",
-    "./js/controls.js": "./js/controls.js?v=20261025181527",
-    "./js/director.js": "./js/director.js?v=20261025181527",
-    "./js/events.js": "./js/events.js?v=20261025181527",
-    "./js/game.js": "./js/game.js?v=20261025181527",
-    "./js/hand.js": "./js/hand.js?v=20261025181527",
-    "./js/heartbeat.js": "./js/heartbeat.js?v=20261025181527",
-    "./js/level.js": "./js/level.js?v=20261025181527",
-    "./js/lore.js": "./js/lore.js?v=20261025181527",
-    "./js/main.js": "./js/main.js?v=20261025181527",
-    "./js/mimic.js": "./js/mimic.js?v=20261025181527",
-    "./js/mp.js": "./js/mp.js?v=20261025181527",
-    "./js/net.js": "./js/net.js?v=20261025181527",
-    "./js/objectives.js": "./js/objectives.js?v=20261025181527",
-    "./js/remote.js": "./js/remote.js?v=20261025181527",
-    "./js/samples.js": "./js/samples.js?v=20261025181527",
-    "./js/scares.js": "./js/scares.js?v=20261025181527",
-    "./js/sfx.js": "./js/sfx.js?v=20261025181527",
-    "./js/skinwalker.js": "./js/skinwalker.js?v=20261025181527",
-    "./js/story.js": "./js/story.js?v=20261025181527",
-    "./js/textures.js": "./js/textures.js?v=20261025181527",
-    "./js/traitor.js": "./js/traitor.js?v=20261025181527",
-    "./js/vc.js": "./js/vc.js?v=20261025181527",
-    "./js/version.js": "./js/version.js?v=20261025181527",
-    "./js/vhs.js": "./js/vhs.js?v=20261025181527",
-    "./js/voice.js": "./js/voice.js?v=20261025181527"
+    "./js/abilities.js": "./js/abilities.js?v=20261025182046",
+    "./js/classes.js": "./js/classes.js?v=20261025182046",
+    "./js/controls.js": "./js/controls.js?v=20261025182046",
+    "./js/director.js": "./js/director.js?v=20261025182046",
+    "./js/events.js": "./js/events.js?v=20261025182046",
+    "./js/game.js": "./js/game.js?v=20261025182046",
+    "./js/hand.js": "./js/hand.js?v=20261025182046",
+    "./js/heartbeat.js": "./js/heartbeat.js?v=20261025182046",
+    "./js/level.js": "./js/level.js?v=20261025182046",
+    "./js/lore.js": "./js/lore.js?v=20261025182046",
+    "./js/main.js": "./js/main.js?v=20261025182046",
+    "./js/mimic.js": "./js/mimic.js?v=20261025182046",
+    "./js/mp.js": "./js/mp.js?v=20261025182046",
+    "./js/net.js": "./js/net.js?v=20261025182046",
+    "./js/objectives.js": "./js/objectives.js?v=20261025182046",
+    "./js/remote.js": "./js/remote.js?v=20261025182046",
+    "./js/samples.js": "./js/samples.js?v=20261025182046",
+    "./js/scares.js": "./js/scares.js?v=20261025182046",
+    "./js/sfx.js": "./js/sfx.js?v=20261025182046",
+    "./js/skinwalker.js": "./js/skinwalker.js?v=20261025182046",
+    "./js/story.js": "./js/story.js?v=20261025182046",
+    "./js/textures.js": "./js/textures.js?v=20261025182046",
+    "./js/title.js": "./js/title.js?v=20261025182046",
+    "./js/traitor.js": "./js/traitor.js?v=20261025182046",
+    "./js/vc.js": "./js/vc.js?v=20261025182046",
+    "./js/version.js": "./js/version.js?v=20261025182046",
+    "./js/vhs.js": "./js/vhs.js?v=20261025182046",
+    "./js/voice.js": "./js/voice.js?v=20261025182046"
   }
 }
 </script>
 <!-- Fetch every game module in parallel (must come after the import map). Add new js files here too. -->
 <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js">
-<link rel="modulepreload" href="js/main.js?v=20261025181527">
-<link rel="modulepreload" href="js/game.js?v=20261025181527">
-<link rel="modulepreload" href="js/level.js?v=20261025181527">
-<link rel="modulepreload" href="js/mimic.js?v=20261025181527">
-<link rel="modulepreload" href="js/director.js?v=20261025181527">
-<link rel="modulepreload" href="js/sfx.js?v=20261025181527">
-<link rel="modulepreload" href="js/voice.js?v=20261025181527">
-<link rel="modulepreload" href="js/textures.js?v=20261025181527">
-<link rel="modulepreload" href="js/net.js?v=20261025181527">
-<link rel="modulepreload" href="js/vc.js?v=20261025181527">
-<link rel="modulepreload" href="js/mp.js?v=20261025181527">
-<link rel="modulepreload" href="js/remote.js?v=20261025181527">
-<link rel="modulepreload" href="js/classes.js?v=20261025181527">
-<link rel="modulepreload" href="js/objectives.js?v=20261025181527">
-<link rel="modulepreload" href="js/abilities.js?v=20261025181527">
-<link rel="modulepreload" href="js/heartbeat.js?v=20261025181527">
-<link rel="modulepreload" href="js/scares.js?v=20261025181527">
-<link rel="modulepreload" href="js/lore.js?v=20261025181527">
-<link rel="modulepreload" href="js/story.js?v=20261025181527">
-<link rel="modulepreload" href="js/traitor.js?v=20261025181527">
-<link rel="modulepreload" href="js/samples.js?v=20261025181527">
-<link rel="modulepreload" href="js/events.js?v=20261025181527">
-<link rel="modulepreload" href="js/hand.js?v=20261025181527">
-<link rel="modulepreload" href="js/vhs.js?v=20261025181527">
-<link rel="modulepreload" href="js/skinwalker.js?v=20261025181527">
-<link rel="modulepreload" href="js/controls.js?v=20261025181527">
-<link rel="modulepreload" href="js/version.js?v=20261025181527">
+<link rel="modulepreload" href="js/main.js?v=20261025182046">
+<link rel="modulepreload" href="js/game.js?v=20261025182046">
+<link rel="modulepreload" href="js/level.js?v=20261025182046">
+<link rel="modulepreload" href="js/mimic.js?v=20261025182046">
+<link rel="modulepreload" href="js/director.js?v=20261025182046">
+<link rel="modulepreload" href="js/sfx.js?v=20261025182046">
+<link rel="modulepreload" href="js/voice.js?v=20261025182046">
+<link rel="modulepreload" href="js/textures.js?v=20261025182046">
+<link rel="modulepreload" href="js/net.js?v=20261025182046">
+<link rel="modulepreload" href="js/vc.js?v=20261025182046">
+<link rel="modulepreload" href="js/mp.js?v=20261025182046">
+<link rel="modulepreload" href="js/remote.js?v=20261025182046">
+<link rel="modulepreload" href="js/classes.js?v=20261025182046">
+<link rel="modulepreload" href="js/objectives.js?v=20261025182046">
+<link rel="modulepreload" href="js/abilities.js?v=20261025182046">
+<link rel="modulepreload" href="js/heartbeat.js?v=20261025182046">
+<link rel="modulepreload" href="js/scares.js?v=20261025182046">
+<link rel="modulepreload" href="js/lore.js?v=20261025182046">
+<link rel="modulepreload" href="js/story.js?v=20261025182046">
+<link rel="modulepreload" href="js/traitor.js?v=20261025182046">
+<link rel="modulepreload" href="js/samples.js?v=20261025182046">
+<link rel="modulepreload" href="js/events.js?v=20261025182046">
+<link rel="modulepreload" href="js/hand.js?v=20261025182046">
+<link rel="modulepreload" href="js/vhs.js?v=20261025182046">
+<link rel="modulepreload" href="js/skinwalker.js?v=20261025182046">
+<link rel="modulepreload" href="js/title.js?v=20261025182046">
+<link rel="modulepreload" href="js/controls.js?v=20261025182046">
+<link rel="modulepreload" href="js/version.js?v=20261025182046">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -158,6 +178,10 @@
 
 <!-- Title -->
 <section id="title" class="screen">
+  <div id="titleGrain" class="title-grain"></div>
+  <div id="titleFx" class="title-fx"></div>
+  <div class="title-cam" aria-hidden="true"><span class="play">▶ PLAY</span><span class="stamp">OCT 31 1998
+2:13 AM</span><span class="counter" id="titleCounter">0:00:00</span></div>
   <div class="panel title-panel">
     <h1 class="logo" data-text="MIMIC">MIMIC</h1>
     <p class="tag">It learns your voice.</p>
@@ -167,6 +191,7 @@
       <button id="btnFriends" class="primary">Play with friends</button>
       <button id="btnHow">How to play</button>
       <button id="btnSettings">Settings</button>
+      <button id="btnInstall" hidden>Install as an app</button>
     </div>
     <p class="fine">🎧 Headphones strongly recommended. The game uses your microphone; recordings stay in this tab and are deleted when you close it.</p>
   </div>
@@ -234,6 +259,7 @@
     <label class="row">Volume <input type="range" id="setVolume" min="0" max="1" step="0.01"><output></output></label>
     <label class="row">Field of view <input type="range" id="setFov" min="60" max="100" step="1"><output></output></label>
     <label class="row">Brightness <input type="range" id="setBright" min="0.6" max="1.8" step="0.02"><output></output></label>
+    <div class="row">Graphics <div class="seg" id="setQuality"><button data-q="low">Low</button><button data-q="medium">Medium</button><button data-q="high">High</button></div></div>
     <label class="row">Mic sensitivity <input type="range" id="setMic" min="0" max="1" step="0.01"><output></output></label>
     <div class="meter big"><i></i><b></b></div>
     <p class="fine">Talk normally: the bar should pass the white line. If background noise passes it, lower the sensitivity.</p>
@@ -386,6 +412,6 @@
   </div>
 </section>
 
-<script type="module" src="js/main.js?v=20261025181527"></script>
+<script type="module" src="js/main.js?v=20261025182046"></script>
 </body>
 </html>

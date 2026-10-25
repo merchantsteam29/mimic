@@ -19,7 +19,8 @@ import { Skinwalker } from './skinwalker.js';
 import { mulberry32 } from './level.js';
 import { keyLabel, rumble } from './controls.js';
 
-const POOL = 6;              // real point lights, moved to the nearest fixtures
+const POOL = 6;              // real point lights, moved to the nearest fixtures (fewer on lower graphics settings)
+const QUALITY = { low: { lights: 3, shadow: 512 }, medium: { lights: 4, shadow: 768 }, high: { lights: POOL, shadow: 1024 } };
 const EYE = 1.62, EYE_CROUCH = 1.0;
 const PLAYER_R = 0.3;
 const BATTERY_LIFE = 300;    // seconds of flashlight on a full battery
@@ -55,7 +56,8 @@ export class Game {
     // Flashlight: the only shadow-casting light.
     this.flash = new THREE.SpotLight(0xfff1d8, 0, 24, 0.4, 0.55, 1.5);
     this.flash.castShadow = true;
-    this.flash.shadow.mapSize.set(1024, 1024);
+    const q = QUALITY[settings.quality] || QUALITY.high;
+    this.flash.shadow.mapSize.set(q.shadow, q.shadow);
     this.flash.shadow.bias = -0.0006;
     this.flash.shadow.camera.near = 0.1;
     this.flash.shadow.camera.far = 26;
@@ -63,7 +65,7 @@ export class Game {
     this.flashDir = new THREE.Vector3(0, 0, -1);
 
     this.pool = [];
-    for (let i = 0; i < POOL; i++) {
+    for (let i = 0; i < q.lights; i++) {
       const l = new THREE.PointLight(th.light, 0, 10, 1.6);
       scene.add(l);
       this.pool.push(l);
@@ -1122,7 +1124,7 @@ export class Game {
       this.poolT = 0.25;
       this.assigned = this.world.fixtures.filter((L) => !L.broken || this.power)
         .map((L) => ({ L, d: Math.hypot(L.x - c.x, L.z - c.z) })).sort((a, b) => a.d - b.d)
-        .slice(0, POOL).map((e) => e.L);
+        .slice(0, this.pool.length).map((e) => e.L);
     }
     this.pool.forEach((pl, i) => {
       const L = this.assigned[i];

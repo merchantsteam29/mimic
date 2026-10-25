@@ -70,5 +70,8 @@ repair), `G` class ability, `Space` skill checks and heartbeats, `Esc` pause.
 `Y` ability, `LT` sprint, `RT` skill checks, `Start` pause (menus work with the D-pad). Phone or tablet: play sideways, left
 thumb moves, drag with the right thumb to look, and tap the on-screen buttons.
 
+**Install it:** in Chrome or Edge, use "Install as an app" on the title screen. On a phone, Add to Home Screen.
+It opens full screen like a normal app. Settings has a Graphics option (Low / Medium / High) for slower devices.
+
 Privacy: recordings stay in memory in your browser tab. They are never uploaded or saved to disk,
 and closing the tab deletes them.

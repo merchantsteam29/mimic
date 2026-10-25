@@ -22,7 +22,13 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 
 ## Modules (`js/`)
 
-- `main.js`: menus, settings (localStorage `mimic.settings`), voice check, pointer lock / pause, run start / end.
+- `main.js`: menus, settings (localStorage `mimic.settings`; `quality` low/medium/high sets the tape lines and pixel ratio,
+  and `game.js` uses it for the light pool size and the flashlight's shadow map), voice check, pointer lock / pause, run start / end,
+  the Install button (`beforeinstallprompt`).
+- `title.js`: the title screen as found footage: camcorder text, scanlines and grain, whispered lines surfacing at the edges, eyes
+  that vanish when the cursor nears, a tagline that slips, and after 25 s idle it plays one of your clips (once per visit).
+- Sharing and installing: Open Graph / Twitter tags in `index.html` point at `og.png` (1200x630) on GitHub Pages;
+  `manifest.webmanifest` + `icons/` + `sw.js` (a pass-through service worker that caches nothing, only there for installing).
 - `game.js`: one run. Player movement, collision, stamina, flashlight battery, interactables (fuses,
   batteries, fuse box, hiding spots, exit), the light pool, fear / heartbeat, power-on, jumpscare, win.
 - `level.js`: grid map generator (2 m cells, `WALL/FLOOR/PROP/EXIT`) with rooms, spanning-tree corridors

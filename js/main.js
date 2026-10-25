@@ -13,6 +13,7 @@ import { CLASSES, CLASS_ORDER } from './classes.js';
 import { VERSION } from './version.js';
 import { CHAPTERS, SIGNAL, storyProgress, finishChapter } from './story.js';
 import { controls, initControls } from './controls.js';
+import { initTitle } from './title.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -32,7 +33,8 @@ const randomTheme = () => { const ids = Object.keys(THEMES); return ids[Math.flo
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 // ---------- settings ----------
-const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1 };
+// Phones and tablets start on medium graphics.
+const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1, quality: matchMedia('(pointer: coarse)').matches ? 'medium' : 'high' };
 let settings = { ...DEFAULTS };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('mimic.settings') || '{}')); } catch { /* private mode */ }
 const saveSettings = () => { try { localStorage.setItem('mimic.settings', JSON.stringify(settings)); } catch { /* ignore */ } };
@@ -49,6 +51,23 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const vhs = new VHS(renderer);
 document.body.classList.add('vhs');
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); vhs.resize(); game?.resize(); });
+
+// Graphics quality: tape and screen resolution change now; game.js also uses fewer lights and softer
+// shadows from the next game.
+const QUALITY = { low: { lines: 240, ratio: 0.6 }, medium: { lines: 300, ratio: 0.8 }, high: { lines: 360, ratio: 1 } };
+if (!QUALITY[settings.quality]) settings.quality = DEFAULTS.quality;
+function applyQuality() {
+  const q = QUALITY[settings.quality];
+  renderer.setPixelRatio(q.ratio);
+  renderer.setSize(innerWidth, innerHeight);
+  vhs.lines = q.lines;
+  vhs.resize();
+  document.querySelectorAll('#setQuality button').forEach((b) => b.classList.toggle('on', b.dataset.q === settings.quality));
+}
+document.querySelectorAll('#setQuality button').forEach((b) => {
+  b.onclick = () => { settings.quality = b.dataset.q; saveSettings(); applyQuality(); };
+});
+applyQuality();
 
 $('grain').style.backgroundImage = `url(${grainDataUrl()})`;
 preloadPhotos();
@@ -88,6 +107,30 @@ function show(id) {
   document.querySelectorAll('.screen').forEach((s) => { s.hidden = s.id !== id; });
 }
 const current = () => document.querySelector('.screen:not([hidden])')?.id;
+
+initTitle({
+  voiceCount: () => voice.clips.length,
+  // Left on the title long enough, it tries out your voice. Only once it has one, and only if sound is on.
+  whisper: () => {
+    if (!sfx || ctx.state !== 'running' || !voice.started || !voice.clips.length || game) return false;
+    const c = voice.pick();
+    if (c) sfx.playVoice(c.buffer, null, 'echo');
+    return !!c;
+  },
+});
+
+// Install as an app (Chrome / Edge / Android). iPhone: Share > Add to Home Screen.
+let installEvt = null;
+addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; $('btnInstall').hidden = false; });
+addEventListener('appinstalled', () => { installEvt = null; $('btnInstall').hidden = true; });
+$('btnInstall').onclick = async () => {
+  if (!installEvt) return;
+  installEvt.prompt();
+  await installEvt.userChoice.catch(() => {});
+  installEvt = null;
+  $('btnInstall').hidden = true;
+};
+if ('serviceWorker' in navigator && !params.has('autostart')) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 $('btnHow').onclick = () => show('how');
 $('btnSettings').onclick = () => { screenBeforeSettings = 'title'; openSettings(); };
