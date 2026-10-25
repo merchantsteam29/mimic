@@ -18,7 +18,10 @@ export class Sfx {
     this.ctx = ctx;
     const out = ctx.createDynamicsCompressor();
     out.threshold.value = -12; out.ratio.value = 4; out.attack.value = 0.003; out.release.value = 0.2;
-    out.connect(ctx.destination);
+    // The compressor adds automatic make-up gain, so trim the whole mix back down after it.
+    const trim = ctx.createGain();
+    trim.gain.value = 0.4;
+    out.connect(trim).connect(ctx.destination);
     this.master = ctx.createGain();
     this.master.connect(out);
 
