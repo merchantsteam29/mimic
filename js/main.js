@@ -6,7 +6,7 @@ import { Samples } from './samples.js';
 import { VHS } from './vhs.js';
 import { Voice } from './voice.js';
 import { THEMES } from './level.js';
-import { grainDataUrl } from './textures.js';
+import { grainDataUrl, preloadPhotos } from './textures.js';
 import { Session } from './mp.js';
 import { newCode, cleanCode, cleanName } from './net.js';
 import { CLASSES, CLASS_ORDER } from './classes.js';
@@ -48,6 +48,7 @@ document.body.classList.add('vhs');
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); vhs.resize(); game?.resize(); });
 
 $('grain').style.backgroundImage = `url(${grainDataUrl()})`;
+preloadPhotos();
 
 const hud = {
   root: $('hud'), objective: $('objective'), prompt: $('prompt'), toast: $('toast'),

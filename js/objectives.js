@@ -151,6 +151,7 @@ export class Objectives {
           g.sfx.engine(this.emitter);
           if (this.repairing?.i === i) { this.repairing = null; this.endSkill(); }
           g.toast('Generator running');
+          g.events?.progress('gen');
         }
         g.updateObjective();
         return true;
@@ -161,7 +162,7 @@ export class Objectives {
         this.tapesLeft = Math.max(0, this.tapesLeft - 1);
         if (Array.isArray(m.keys) && g.mp) for (const k of m.keys) g.mp.clips.delete(k);
         if (m.n) g.voice.clips.splice(0, Math.min(g.voice.clips.length, m.n));
-        if (m.by === g.me) g.toast('Tape destroyed. It forgot some of the voices.');
+        if (m.by === g.me) { g.toast('Tape destroyed. It forgot some of the voices.'); g.events?.progress('tape'); }
         g.updateObjective();
         return true;
       }

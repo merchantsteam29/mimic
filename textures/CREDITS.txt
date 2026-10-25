@@ -1,0 +1,5 @@
+All textures here are CC0 (public domain), from ambientCG (https://ambientcg.com). Thank you!
+
+concreteWall   = Concrete031      concreteFloor = Concrete034     officeCeiling = OfficeCeiling001
+paintedMetal   = PaintedMetal009  woodFloor     = WoodFloor041    plaster       = PaintedPlaster017
+wood           = Wood049

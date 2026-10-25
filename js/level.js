@@ -628,8 +628,9 @@ export function buildLevelScene(level) {
   const group = new THREE.Group();
   const mat = (map, opts = {}) => new THREE.MeshStandardMaterial({ map, roughness: 0.9, metalness: 0, ...opts });
   const M = {
-    wood: mat(tex.wood), darkWood: mat(tex.darkWood), crate: mat(tex.crate), metal: mat(tex.metal, { roughness: 0.6, metalness: 0.4 }),
-    locker: mat(tex.locker, { roughness: 0.55, metalness: 0.45 }), rust: mat(tex.rust, { roughness: 0.8, metalness: 0.3 }),
+    wood: mat(tex.wood, { normalMap: tex.woodN, roughness: 0.75 }), darkWood: mat(tex.darkWood, { normalMap: tex.woodN, color: 0x6a5040, roughness: 0.8 }),
+    crate: mat(tex.crate), metal: mat(tex.metal, { roughness: 0.6, metalness: 0.4 }),
+    locker: mat(tex.locker, { normalMap: tex.metalN, color: th.id === 'house' ? 0x8a8070 : 0x7a8a7e, roughness: 0.6, metalness: 0.35 }), rust: mat(tex.rust, { roughness: 0.8, metalness: 0.3 }),
     fabric: mat(tex.fabric), sheet: mat(tex.sheet), black: new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.8 }),
     paper: new THREE.MeshStandardMaterial({ color: 0xb8b2a2, roughness: 1 }), cardboard: new THREE.MeshStandardMaterial({ color: 0x7a5e3c, roughness: 1 }),
     mirror: new THREE.MeshStandardMaterial({ color: 0x9aa4a8, roughness: 0.08, metalness: 1 }),
@@ -638,11 +639,12 @@ export function buildLevelScene(level) {
   };
 
   // Floor and ceiling: one plane each over the whole grid (walls hide the rest).
-  tex.floor.repeat.set(N, N);
+  tex.floor.repeat.set(N, N); tex.floorN.repeat.set(N, N);
+  tex.ceilingN.repeat.set(N, N);
   tex.ceiling.repeat.set(N, N);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(S, S), mat(tex.floor, { roughness: th.id === 'house' ? 0.75 : 0.85 }));
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(S, S), mat(tex.floor, { normalMap: tex.floorN, roughness: th.id === 'house' ? 0.7 : 0.85 }));
   floor.rotation.x = -Math.PI / 2; floor.position.set(S / 2, 0, S / 2); floor.receiveShadow = true;
-  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(S, S), mat(tex.ceiling));
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(S, S), mat(tex.ceiling, { normalMap: tex.ceilingN, color: 0x9a968e }));
   ceil.rotation.x = Math.PI / 2; ceil.position.set(S / 2, WALL_H, S / 2); ceil.receiveShadow = true;
   group.add(floor, ceil);
 
@@ -652,7 +654,7 @@ export function buildLevelScene(level) {
     if (level.get(x, z) !== WALL) continue;
     if (DIRS.some(([dx, dz]) => level.get(x + dx, z + dz) !== WALL)) wallCells.push([x, z]);
   }
-  const walls = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, WALL_H, CELL), mat(tex.wall), wallCells.length);
+  const walls = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, WALL_H, CELL), mat(tex.wall, { normalMap: tex.wallN, color: th.id === 'house' ? 0xffffff : 0xb8b4aa }), wallCells.length);
   const m4 = new THREE.Matrix4();
   wallCells.forEach(([x, z], i) => walls.setMatrixAt(i, m4.makeTranslation(center(x), WALL_H / 2, center(z))));
   walls.castShadow = walls.receiveShadow = true;

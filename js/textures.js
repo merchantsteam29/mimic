@@ -287,17 +287,56 @@ export function grainDataUrl() {
   return c.toDataURL();
 }
 
+// Photo-scanned textures (CC0, ambientCG; see textures/CREDITS.txt). Loaded once, then each run gets
+// its own copies (they share the image), so a run can set repeats and dispose them freely.
+const loader = new THREE.TextureLoader();
+const photos = new Map();
+function photo(name, color = true) {
+  let p = photos.get(name);
+  if (!p) {
+    p = { tex: null, loaded: false, copies: [] };
+    // Copies made before the image arrives are refreshed when it does.
+    p.tex = loader.load(`textures/${name}.jpg`, () => { p.loaded = true; for (const c of p.copies) c.needsUpdate = true; p.copies = []; });
+    p.tex.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+    photos.set(name, p);
+  }
+  const t = p.tex.clone();
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = 4;
+  if (p.loaded) t.needsUpdate = true; else p.copies.push(t);
+  return t;
+}
+
+// Start downloading every photo texture (call at page load, so a run never starts with blank walls).
+export function preloadPhotos() {
+  for (const n of ['concreteWall', 'concreteFloor', 'officeCeiling', 'paintedMetal', 'woodFloor', 'plaster', 'wood']) {
+    photo(`${n}_color`); photo(`${n}_normal`, false);
+  }
+}
+
+// Wrinkled, clammy skin for the mimic.
+export function skinNormal() {
+  const t = photo('plaster_normal', false);
+  t.repeat.set(3, 3);
+  return t;
+}
+
 export function makeTextures(theme) {
   const facility = theme === 'facility';
+  const pair = (name) => [photo(`${name}_color`), photo(`${name}_normal`, false)];
+  const [wall, wallN] = facility ? pair('concreteWall') : [houseWall(), photo('plaster_normal', false)];
+  const [floor, floorN] = pair(facility ? 'concreteFloor' : 'woodFloor');
+  const [ceiling, ceilingN] = pair(facility ? 'officeCeiling' : 'plaster');
+  const [woodC, woodN] = pair('wood');
+  const [metalC, metalN] = pair('paintedMetal');
+  wall.repeat.set(1, 1.5); wallN.repeat.set(1, 1.5); // one 2m x 3m wall face
   return {
-    wall: facility ? facilityWall() : houseWall(),
-    floor: facility ? facilityFloor() : houseFloor(),
-    ceiling: facility ? facilityCeiling() : houseCeiling(),
-    wood: wood(),
-    darkWood: wood([48, 30, 20]),
+    wall, wallN, floor, floorN, ceiling, ceilingN, woodN, metalN,
+    wood: woodC,
+    darkWood: photo('wood_color'),
     crate: wood([120, 92, 58]),
     metal: metal(),
-    locker: metal(facility ? '#4f5b55' : '#5c6166'),
+    locker: metalC,
     rust: metal('#5a3b26'),
     fabric: fabric(facility ? '#3b3d3a' : '#4a2f2c'),
     sheet: fabric('#8b877c'),

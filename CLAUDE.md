@@ -82,6 +82,14 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   falling back to the synthesized sound. Banks: steps, creaks, doors, latch, click, cloth, bang, metal, glass, slam, snarl, attack, moan.
 - Mimic look: grey gaunt body, `faceTexture` (sunken eyes, upper teeth) plus `jawTexture` on a hinged `jaw` (opens when talking,
   chasing, and in the jumpscare), unlit black hair, all fours when chasing.
+- Photo textures: `textures/` (CC0 ambientCG, 512px, credits in `textures/CREDITS.txt`), loaded once by `textures.js` `photo()`
+  (each run gets copies; `preloadPhotos()` at page load) with normal maps. The mimic's skin uses the plaster normal map.
+- `events.js`: **hand-placed scares** (hello whisper at ~9 s, it crossing the end of a long hallway, a door slamming ahead,
+  first-progress reactions via `events.progress(kind)`, lights going out behind you then a step, a knock on your first hide).
+- `hand.js`: your gloved hand holding the flashlight (drawn on top; the beam starts at its lens; it shakes with `fear`).
+- Danger: it sees 22 m (flashlight on) or 12 m (off) and is fast in the dark (3.6 m/s), but slower under working lights
+  (`hooks.isLit`). Hiding makes it lose you faster. Alone, lures are disguised: `stranger` (pitched, over a bad phone line),
+  `playStitch` (half of one clip plus half of another), and `ellie` in the story.
 - `classes.js` / `abilities.js`: classes (all free, no unlocks; G = ability). Brute: 2 flares (`flare`: host stuns
   the mimic for 4 s if it's within 8 m and in sight). Runner: sprints 6.2 m/s for 13 s, recovers fast, louder steps. Medic: 1 rescue
   (`rescue` on the teammate in front, or self; the host's `hostSave` turns their next catch into a stun plus `saved`). Tracker:

@@ -14,7 +14,7 @@
 // Also: it may crawl on the ceiling (dropping down when it chases), wear a dead player's body
 // (online), and open doors (slowly, unless it's chasing).
 import * as THREE from 'three';
-import { faceTexture, jawTexture } from './textures.js';
+import { faceTexture, jawTexture, skinNormal } from './textures.js';
 
 const TURN = 7;          // rad/s
 const STATES = ['wander', 'investigate', 'stalk', 'chase', 'hunt', 'peek', 'flee', 'stunned', 'sniff', 'transform'];
@@ -24,7 +24,7 @@ const RADIUS = 0.35;
 
 export function buildModel() {
   const root = new THREE.Group();
-  const skin = new THREE.MeshStandardMaterial({ color: 0x3c3832, roughness: 0.85 }); // grey, sickly, almost human
+  const skin = new THREE.MeshStandardMaterial({ color: 0x3c3832, roughness: 0.55, normalMap: skinNormal(), normalScale: new THREE.Vector2(0.8, 0.8) }); // grey, clammy, almost human
   const pale = new THREE.MeshStandardMaterial({ color: 0x3e3832, roughness: 0.8 });
   const part = (geo, mat, x = 0, y = 0, z = 0) => {
     const m = new THREE.Mesh(geo, mat);
@@ -32,9 +32,11 @@ export function buildModel() {
     m.castShadow = true;
     return m;
   };
+  // Smooth, rounded limbs (pivot at the top).
   const limb = (r1, r2, len, mat) => {
-    const g = new THREE.CylinderGeometry(r1, r2, len, 6);
-    g.translate(0, -len / 2, 0); // pivot at the top
+    const r = (r1 + r2) / 2;
+    const g = new THREE.CapsuleGeometry(r, Math.max(0.01, len - 2 * r), 4, 10);
+    g.translate(0, -len / 2, 0);
     return new THREE.Mesh(g, mat);
   };
 
@@ -64,9 +66,12 @@ export function buildModel() {
   torso.position.y = 1.2;
   torso.rotation.x = 0.28;
   body.add(torso);
-  const chestGeo = new THREE.CylinderGeometry(0.16, 0.085, 0.82, 9); // starved
-  chestGeo.scale(1, 1, 0.55);
-  torso.add(part(chestGeo, skin, 0, 0.4, 0));
+  // A starved body: a wide ribcage over a sunken belly.
+  const profile = [[0.075, 0], [0.085, 0.1], [0.075, 0.22], [0.11, 0.34], [0.15, 0.48], [0.165, 0.6], [0.155, 0.7], [0.12, 0.78], [0.05, 0.83]]
+    .map(([r, y]) => new THREE.Vector2(r, y));
+  const chestGeo = new THREE.LatheGeometry(profile, 16);
+  chestGeo.scale(1, 1, 0.62);
+  torso.add(part(chestGeo, skin, 0, 0, 0));
   const pelvis = new THREE.SphereGeometry(0.15, 10, 8);
   pelvis.scale(1.15, 0.6, 0.75);
   torso.add(part(pelvis, skin, 0, 0.02, 0));
@@ -211,7 +216,7 @@ export class Mimic {
     this.frozen = false;
     this.animAcc = 1;
     this.shyT = 0; // after fleeing it keeps its distance for a moment
-    this.graceT = 25; // it doesn't hunt you for the first stretch of a run
+    this.graceT = 18; // it doesn't hunt you for the first stretch of a run
     this.noticeT = 0; // how long it has been looking at you
     this.targetId = null; // which player it's after
     this.lureStyle = 'lure';
@@ -247,14 +252,14 @@ export class Mimic {
     if (this.state === 'stunned' || this.state === 'sniff') return false;
     if (P.hidden) return false;
     if (this.graceT > 0) return false;
-    let range = P.flashOn ? 16 : 9;
+    let range = P.flashOn ? 22 : 12;
     if (P.crouch) range *= 0.75;
     if (this.enraged > 0) range = 40;
     if (d > range) return false;
     if (!this.level.los(this.x, this.z, P.x, P.z)) return false;
     if (d < 2.5 || this.enraged > 0) return true;
     const dx = P.x - this.x, dz = P.z - this.z;
-    if ((Math.sin(this.yaw) * dx + Math.cos(this.yaw) * dz) / d > 0.5) return true; // in front of it
+    if ((Math.sin(this.yaw) * dx + Math.cos(this.yaw) * dz) / d > 0.3) return true; // in front of it
     // Shining a flashlight in its face gets its attention.
     if (P.flashOn && -(P.lookX * dx + P.lookZ * dz) / d > 0.85) return true;
     return false;
@@ -325,7 +330,7 @@ export class Mimic {
     const lv = this.level;
     // Usually drift toward the player's part of the map, sometimes anywhere.
     const near = lv.rooms.filter((r) => Math.hypot(lv.roomCenter(r.id).x - P.x, lv.roomCenter(r.id).z - P.z) < 22);
-    const pool = Math.random() < 0.45 && near.length ? near : lv.rooms;
+    const pool = Math.random() < 0.7 && near.length ? near : lv.rooms;
     const room = pool[Math.floor(Math.random() * pool.length)];
     const c = lv.roomCenter(room.id);
     this.path = lv.findPath(this.x, this.z, c.x + (Math.random() - 0.5) * 2, c.z + (Math.random() - 0.5) * 2);
@@ -501,10 +506,10 @@ export class Mimic {
     switch (this.state) {
       case 'chase': {
         if (!sees) {
-          this.lostT += dt;
+          this.lostT += P.hidden ? dt * 2.5 : dt; // a good hiding spot makes it lose you faster
           if (this.enraged > 0) this.lastSeen = { x: P.x, z: P.z }; // it just knows
           if (P.hidden && this.lostT < 0.6) { this.notifyHide(P.hidden, P); break; }
-          if (this.lostT > (this.enraged > 0 ? 7 : 3)) {
+          if (this.lostT > (this.enraged > 0 ? 8 : 4.5)) {
             if (this.lastSeen) this.investigate(this.lastSeen.x, this.lastSeen.z, 3.2); else this.wander(P);
             break;
           }
@@ -515,7 +520,9 @@ export class Mimic {
           this.path = this.level.findPath(this.x, this.z, tgt.x, tgt.z);
           this.repath = 0.3;
         }
-        this.follow(dt, (this.enraged > 0 ? 3.8 : this.form === 2 ? 3.4 : 3.0) * this.aggro);
+        // Fast in the dark (faster than you walk); it hates the light and slows right down under it.
+        const lit = this.hooks.isLit?.(this.x, this.z);
+        this.follow(dt, (this.enraged > 0 ? 4.4 : this.form === 2 ? 4.0 : 3.6) * this.aggro * (lit ? 0.62 : 1));
         if (sees && d < 1.35) this.hooks.onCatch(P.id); // long arms
         if (sees && d > 4 && this.screamCd <= 0 && Math.random() < dt * 0.2) { this.speak('scream'); this.screamCd = 9; }
         // All the voices it has, laughing at once.

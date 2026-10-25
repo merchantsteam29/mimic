@@ -51,6 +51,8 @@ Guess wrong, and it gets hungrier.
   Online, it can walk around as a friend it took. Old tapes from people who came before tell you what happened to them.
 - **Random maps:** each run is either a research facility or an old house, with a new layout every time.
 
+It hates the light: under working lights it's slow, but in the dark it's faster than you.
+
 It all plays out through a camcorder: grainy VHS footage that tears apart when it gets close.
 Hold `Tab` to see your objectives.
 

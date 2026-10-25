@@ -13,6 +13,8 @@ import { Abilities } from './abilities.js';
 import { Heartbeat } from './heartbeat.js';
 import { Scares } from './scares.js';
 import { Traitor } from './traitor.js';
+import { Events } from './events.js';
+import { Hand } from './hand.js';
 import { mulberry32 } from './level.js';
 
 const POOL = 6;              // real point lights, moved to the nearest fixtures
@@ -109,6 +111,7 @@ export class Game {
       onCatch: (id) => this.hostCatch(id),
       onSpotted: (id) => this.sendTo(id, { t: 'sting' }),
       onSniff: (id) => { this.sniffing = id; this.sendTo(id, { t: 'sniff' }); },
+      isLit: (x, z) => this.world.fixtures.some((L) => L.level > 0.5 && (!L.broken || this.power) && Math.hypot(L.x - x, L.z - z) < 3.2),
       openDoor: (d) => this.broadcast({ t: 'doorSet', i: d.i, open: true, by: 'm' }),
       creakDoor: (d, fast) => this.broadcast({ t: 'creak', i: d.i, fast: fast ? 1 : 0 }),
       onPeekSeen: () => {}, // each player notices a peek themselves (see watchPeek)
@@ -117,6 +120,8 @@ export class Game {
     if (story) this.mimic.graceT = story.grace;
     this.ambientEmitter = sfx.emitter();
     this.director = new Director(this);
+    this.events = new Events(this);   // hand-placed scares
+    this.hand = new Hand(this.camera); // your hand holding the flashlight
     this.obj = new Objectives(this);           // generators, tapes, keycard (adds their items)
     this.ab = new Abilities(this, this.classes[this.me] || 'runner');
     this.hb = new Heartbeat(this);
@@ -230,6 +235,7 @@ export class Game {
     this.mimic.dispose();
     this.ambientEmitter.dispose();
     this.director.dispose();
+    this.events.dispose();
     this.obj.dispose();
     this.ab.dispose();
     this.scares.dispose();
@@ -415,10 +421,10 @@ export class Game {
         it.active = false;
         it.mesh?.removeFromParent();
         const mine = m.by === this.me;
-        if (it.type === 'keycard') this.obj.tookKey(m.by);
+        if (it.type === 'keycard') { this.obj.tookKey(m.by); if (mine) this.events.progress('key'); }
         else if (it.type === 'fuse') {
           this.fusesFound++;
-          if (mine) { this.fusesHeld++; this.sfx.pickup(); this.toast(`Fuse ${this.fusesFound}/4`); }
+          if (mine) { this.fusesHeld++; this.sfx.pickup(); this.toast(`Fuse ${this.fusesFound}/4`); this.events.progress('fuse'); }
         } else if (mine) {
           this.p.battery = Math.min(100, this.p.battery + 60);
           this.sfx.pickup();
@@ -539,6 +545,7 @@ export class Game {
       this.updateFear(dt);
       this.updateAmbient(dt);
       this.director.update(dt);
+      this.events.update(dt);
       this.watchPeek();
       this.obj.update(dt);
       this.hb.update(dt);
@@ -756,7 +763,8 @@ export class Game {
     const c = this.camera;
     const fwd = c.getWorldDirection(new THREE.Vector3());
     this.flashDir.lerp(fwd, 1 - Math.exp(-dt * 16)).normalize();
-    this.flash.position.copy(c.localToWorld(new THREE.Vector3(0.12, -0.12, 0.05)));
+    this.hand.update(dt, { yaw: p.yaw, pitch: p.pitch, bob: p.bob, speed: p.speed, fear: this.fear, on: on && I > 0, visible: this.state === 'playing' && !p.hidden });
+    this.flash.position.copy(this.state === 'playing' && !p.hidden ? this.hand.lensWorld(new THREE.Vector3()) : c.localToWorld(new THREE.Vector3(0.12, -0.12, 0.05)));
     this.flash.target.position.copy(this.flash.position).addScaledVector(this.flashDir, 5);
     this.hud.batteryBar.style.width = `${p.battery}%`;
     this.hud.battery.classList.toggle('low', p.battery < 20);
@@ -835,6 +843,7 @@ export class Game {
     this.sfx.creak(null, 0.25);
     this.sfx.cloth();
     if (this.scares.trap(prop)) return; // it was it
+    this.events.onHide();
     if (this.isHost) this.mimic.notifyHide(prop, this.playerInfo());
   }
 
@@ -954,6 +963,22 @@ export class Game {
 
   // A voice only I hear (the director's tricks, the jumpscare).
   localSpeak(style, emitter) {
+    // Alone, your own voice is too obviously the mimic, so it disguises it: a stranger (pitched, over a
+    // bad phone line), a sentence stitched from two recordings, or, in the story, Ellie.
+    if (!this.mp && (style === 'lure' || style === 'distant') && this.voice.started && this.voice.clips.length) {
+      const r = Math.random();
+      if (this.story) { if (r < 0.7) style = 'ellie'; }
+      else if (r < 0.4) style = 'stranger';
+      else if (r < 0.7 && this.voice.clips.length > 1) {
+        const a = this.voice.pick(), b = this.voice.pick();
+        if (a && b && a !== b) {
+          const d = this.sfx.playStitch(a.buffer, b.buffer, emitter, 'stranger');
+          this.voice.suppress(d + 0.3);
+          this.lures++;
+          return d;
+        }
+      }
+    }
     let buffer = null;
     if (this.mp) {
       const key = this.mp.pickKey((owner) => this.status.get(owner) === 'dead');
@@ -1033,7 +1058,7 @@ export class Game {
     }
 
     // The camcorder picture breaks up when it's close: more the closer it is, with sudden tears.
-    if (vis && d < 8 && Math.random() < dt * 6 * (1 - d / 8)) this.glitchT = 0.06 + Math.random() * 0.1;
+    if (vis && d < 8 && Math.random() < dt * 1.8 * (1 - d / 8)) this.glitchT = 0.06 + Math.random() * 0.1;
     this.glitchT = Math.max(0, (this.glitchT || 0) - dt);
     const want = this.fear * 0.12 + (vis && d < 8 ? (1 - d / 8) * 0.15 : 0) + (this.glitchT > 0 ? 0.5 : 0);
     this.distort += (want - this.distort) * Math.min(1, dt * (this.glitchT > 0 ? 30 : 5));
@@ -1072,6 +1097,7 @@ export class Game {
         if (this.power) lvl *= 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(t * 4.5));
       }
       if (this.blackout > 0 && Math.hypot(L.x - this.p.x, L.z - this.p.z) < 18) lvl = 0;
+      if (L.offUntil > t) lvl = 0; // put out by a scripted scare
       L.level = lvl;
       L.mat.emissiveIntensity = lvl * 1.5;
     }
