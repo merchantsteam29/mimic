@@ -14,6 +14,10 @@ exposes `window.__game`), `?nomic`. Headless Chrome with `--use-fake-device-for-
 --use-fake-ui-for-media-stream` gives a fake mic (beeps) that exercises clip capture. SwiftShader
 renders at a few FPS, and dt is capped at 0.05, so game time runs slow in headless tests.
 
+**Before every push: `node tools/stamp.mjs`.** It stamps every module URL in `index.html` (import map, preloads, entry
+script) with a new `?v=`. GitHub Pages lets browsers cache files for 10 minutes, and a new page with old cached scripts broke
+buttons for a player. A new `js/*.js` file also needs a `<link rel="modulepreload">` (the tool warns if one is missing).
+
 ## Modules (`js/`)
 
 - `main.js`: menus, settings (localStorage `mimic.settings`), voice check, pointer lock / pause, run start / end.

@@ -13,24 +13,36 @@
 <script type="importmap">
 {
   "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "./js/director.js": "./js/director.js?v=20261025132149",
+    "./js/game.js": "./js/game.js?v=20261025132149",
+    "./js/level.js": "./js/level.js?v=20261025132149",
+    "./js/main.js": "./js/main.js?v=20261025132149",
+    "./js/mimic.js": "./js/mimic.js?v=20261025132149",
+    "./js/mp.js": "./js/mp.js?v=20261025132149",
+    "./js/net.js": "./js/net.js?v=20261025132149",
+    "./js/remote.js": "./js/remote.js?v=20261025132149",
+    "./js/sfx.js": "./js/sfx.js?v=20261025132149",
+    "./js/textures.js": "./js/textures.js?v=20261025132149",
+    "./js/vc.js": "./js/vc.js?v=20261025132149",
+    "./js/voice.js": "./js/voice.js?v=20261025132149"
   }
 }
 </script>
 <!-- Fetch every game module in parallel (must come after the import map). Add new js files here too. -->
 <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js">
-<link rel="modulepreload" href="js/main.js">
-<link rel="modulepreload" href="js/game.js">
-<link rel="modulepreload" href="js/level.js">
-<link rel="modulepreload" href="js/mimic.js">
-<link rel="modulepreload" href="js/director.js">
-<link rel="modulepreload" href="js/sfx.js">
-<link rel="modulepreload" href="js/voice.js">
-<link rel="modulepreload" href="js/textures.js">
-<link rel="modulepreload" href="js/net.js">
-<link rel="modulepreload" href="js/vc.js">
-<link rel="modulepreload" href="js/mp.js">
-<link rel="modulepreload" href="js/remote.js">
+<link rel="modulepreload" href="js/main.js?v=20261025132149">
+<link rel="modulepreload" href="js/game.js?v=20261025132149">
+<link rel="modulepreload" href="js/level.js?v=20261025132149">
+<link rel="modulepreload" href="js/mimic.js?v=20261025132149">
+<link rel="modulepreload" href="js/director.js?v=20261025132149">
+<link rel="modulepreload" href="js/sfx.js?v=20261025132149">
+<link rel="modulepreload" href="js/voice.js?v=20261025132149">
+<link rel="modulepreload" href="js/textures.js?v=20261025132149">
+<link rel="modulepreload" href="js/net.js?v=20261025132149">
+<link rel="modulepreload" href="js/vc.js?v=20261025132149">
+<link rel="modulepreload" href="js/mp.js?v=20261025132149">
+<link rel="modulepreload" href="js/remote.js?v=20261025132149">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -207,6 +219,6 @@
   </div>
 </section>
 
-<script type="module" src="js/main.js"></script>
+<script type="module" src="js/main.js?v=20261025132149"></script>
 </body>
 </html>
