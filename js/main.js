@@ -8,9 +8,22 @@ import { grainDataUrl } from './textures.js';
 import { Session } from './mp.js';
 import { newCode, cleanCode, cleanName } from './net.js';
 import { CLASSES, CLASS_ORDER } from './classes.js';
+import { VERSION } from './version.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
+
+// An old cached page running new scripts (GitHub Pages serves the newest file whatever the ?v=):
+// buttons would be missing their screens. Reload once with a fresh page.
+if (window.MIMIC_VERSION !== VERSION) { // (pages from before this check have no MIMIC_VERSION at all)
+  let tried = null;
+  try { tried = sessionStorage.getItem('mimic.reloaded'); sessionStorage.setItem('mimic.reloaded', VERSION); } catch { /* private mode */ }
+  if (tried !== VERSION) {
+    params.set('fresh', VERSION);
+    location.replace(`${location.pathname}?${params}${location.hash}`);
+    throw new Error('Page out of date: reloading');
+  }
+}
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 // ---------- settings ----------

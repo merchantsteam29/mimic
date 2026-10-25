@@ -11,7 +11,14 @@ const d = new Date();
 const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}${String(d.getSeconds()).padStart(2, '0')}`;
 const modules = readdirSync(join(root, 'js')).filter((f) => f.endsWith('.js') && f !== 'recorder-worklet.js').sort();
 
+// The scripts know their version too (js/version.js), so main.js can tell when the page and the scripts
+// don't match. GitHub Pages ignores ?v= and serves the newest file, so an old cached page can load new
+// scripts. main.js then reloads once with a fresh page.
+writeFileSync(join(root, 'js', 'version.js'), `// Written by tools/stamp.mjs. Must match window.MIMIC_VERSION in index.html.\nexport const VERSION = '${stamp}';\n`);
+
 let html = readFileSync(file, 'utf8');
+html = html.replace(/<script>window\.MIMIC_VERSION = '\d*';<\/script>/, `<script>window.MIMIC_VERSION = '${stamp}';</script>`);
+if (!html.includes(`window.MIMIC_VERSION = '${stamp}'`)) console.warn('warning: index.html has no MIMIC_VERSION script');
 
 // Import map: bare "three" plus every module mapped to its stamped URL (so `import './game.js'` gets the new one).
 const imports = { three: 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js' };

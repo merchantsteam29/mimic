@@ -16,7 +16,9 @@ renders at a few FPS, and dt is capped at 0.05, so game time runs slow in headle
 
 **Before every push: `node tools/stamp.mjs`.** It stamps every module URL in `index.html` (import map, preloads, entry
 script) with a new `?v=`. GitHub Pages lets browsers cache files for 10 minutes, and a new page with old cached scripts broke
-buttons for a player. A new `js/*.js` file also needs a `<link rel="modulepreload">` (the tool warns if one is missing).
+buttons for a player. GitHub Pages ignores `?v=` and serves the newest file, so the tool also writes `js/version.js`
+and `window.MIMIC_VERSION` in the page. When they differ (an old cached page with new scripts), `main.js` reloads once with
+`?fresh=`. A new `js/*.js` file also needs a `<link rel="modulepreload">` (the tool warns if one is missing).
 
 ## Modules (`js/`)
 
