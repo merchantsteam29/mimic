@@ -28,6 +28,7 @@ if (window.MIMIC_VERSION !== VERSION) { // (pages from before this check have no
     throw new Error('Page out of date: reloading');
   }
 }
+const randomTheme = () => { const ids = Object.keys(THEMES); return ids[Math.floor(Math.random() * ids.length)]; };
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 // ---------- settings ----------
@@ -233,7 +234,7 @@ function startRun(si = null) {
   game?.dispose();
   storyIdx = si;
   const story = si === null ? null : { ...CHAPTERS[si], index: si };
-  const themeId = story ? story.theme : params.get('theme') in THEMES ? params.get('theme') : Math.random() < 0.5 ? 'facility' : 'house';
+  const themeId = story ? story.theme : params.get('theme') in THEMES ? params.get('theme') : randomTheme();
   const seed = story ? story.seed : params.has('seed') ? Number(params.get('seed')) : Math.floor(Math.random() * 2 ** 31);
   game = new Game({
     renderer, vhs, sfx, voice, settings, hud, themeId, seed, story, classes: { h: params.get('class') in CLASSES ? params.get('class') : myClass },
@@ -506,6 +507,12 @@ function renderLobby() {
     b.disabled = !session.isHost;
     b.onclick = () => session.setMode(b.dataset.mode);
   });
+  // The skinwalker: a Normal-mode extra the host switches on.
+  const sw = $('btnSkinwalker'), swOn = session.skinwalker && session.mode === 'normal';
+  sw.classList.toggle('on', swOn);
+  sw.querySelector('b').textContent = `Skinwalker: ${swOn ? 'on' : 'off'}`;
+  sw.disabled = !session.isHost || session.mode !== 'normal';
+  sw.onclick = () => session.setSkinwalker(!session.skinwalker);
 }
 
 $('btnInvite').onclick = async () => {
@@ -517,7 +524,7 @@ $('btnInvite').onclick = async () => {
 
 $('btnStart').onclick = () => {
   if (!session?.isHost) return;
-  const theme = params.get('theme') in THEMES ? params.get('theme') : Math.random() < 0.5 ? 'facility' : 'house';
+  const theme = params.get('theme') in THEMES ? params.get('theme') : randomTheme();
   session.start(theme, Math.floor(Math.random() * 2 ** 31));
 };
 
@@ -534,7 +541,7 @@ function startMpRun(m) {
   const themeId = m.theme in THEMES ? m.theme : 'facility';
   game = new Game({
     renderer, vhs, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order, classes: m.classes || {},
-    mode: m.mode === 'story' ? 'story' : 'normal', traitorId: session.isHost ? session.traitorId : null,
+    mode: m.mode === 'story' ? 'story' : 'normal', traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw,
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),
   });

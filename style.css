@@ -271,3 +271,4 @@ body.input-touch #prompt { top: calc(50% + 26px); font-size: 14px; }
 
 #rotate { display: none; position: fixed; inset: 0; z-index: 20; place-items: center; background: #000; color: var(--dim); font: 18px "Special Elite", monospace; letter-spacing: .1em; }
 @media (orientation: portrait) { body.ingame.input-touch #rotate { display: grid; } }
+.sw-pick { grid-template-columns: 1fr; }

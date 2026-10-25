@@ -1,4 +1,4 @@
-// Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility or a house.
+// Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house or a hospital.
 // Also holds the collision, line-of-sight and path-finding the player and the mimic use.
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
@@ -20,7 +20,7 @@ export function mulberry32(a) {
 
 export const THEMES = {
   facility: {
-    id: 'facility', kicker: 'Research facility',
+    id: 'facility', look: 'facility', kicker: 'Research facility',
     names: ['Site-9 · Sublevel 3', 'Kestrel Labs · Wing C', 'Pump Station 14', 'Archive Bunker 7'],
     size: 28, roomSize: [4, 7], tries: 120, minRooms: 8,
     light: 0xd8ecff, lightIntensity: 8.5, corridorLights: true, flicker: 0.4, broken: 0.3,
@@ -28,12 +28,21 @@ export const THEMES = {
     props: ['crate', 'shelf', 'desk', 'barrel', 'cabinet', 'crate'], hideProp: 'locker', surface: 'hard',
   },
   house: {
-    id: 'house', kicker: 'Abandoned house',
+    id: 'house', look: 'house', kicker: 'Abandoned house',
     names: ['The Holloway House', '14 Ashgrove Lane', 'The Marrow Estate', 'Grandmother\'s House'],
     size: 24, roomSize: [3, 6], tries: 100, minRooms: 7,
     light: 0xffb36b, lightIntensity: 7, corridorLights: false, flicker: 0.3, broken: 0.35,
     fog: 0x030201, fogDensity: 0.085, reverb: [1.4, 0.28],
     props: ['bed', 'sofa', 'table', 'bookshelf', 'dresser'], hideProp: 'wardrobe', surface: 'wood',
+  },
+  // Built like the facility (look: tube lights, metal doors, keycards), dressed as a closed-down hospital.
+  hospital: {
+    id: 'hospital', look: 'facility', kicker: 'Abandoned hospital',
+    names: ['St. Agnes Hospital · Ward 4', 'Mercy General · Isolation Wing', 'Holloway Sanatorium', 'Ward B · Paediatrics'],
+    size: 28, roomSize: [3, 6], tries: 120, minRooms: 9,
+    light: 0xdcf5e4, lightIntensity: 8, corridorLights: true, flicker: 0.55, broken: 0.35,
+    fog: 0x020302, fogDensity: 0.085, reverb: [2.4, 0.4],
+    props: ['gurney', 'wheelchair', 'ivstand', 'curtain', 'medcabinet', 'gurney', 'desk'], hideProp: 'locker', surface: 'hard',
   },
 };
 
@@ -42,6 +51,7 @@ const PROP_DEFS = {
   crate: { w: 1.25, d: 1.25 }, shelf: { w: 1.8, d: 0.6 }, desk: { w: 1.6, d: 0.8 }, barrel: { w: 1.3, d: 0.75 },
   cabinet: { w: 0.9, d: 0.55 }, locker: { w: 1.0, d: 0.75 }, bed: { w: 1.4, d: 1.95 }, sofa: { w: 1.8, d: 0.85 },
   table: { w: 1.4, d: 0.9 }, generator: { w: 1.5, d: 0.95 }, bookshelf: { w: 1.6, d: 0.45 }, dresser: { w: 1.2, d: 0.55 }, wardrobe: { w: 1.25, d: 0.75 },
+  gurney: { w: 0.9, d: 2.0 }, wheelchair: { w: 0.7, d: 0.8 }, ivstand: { w: 0.5, d: 0.5 }, curtain: { w: 1.9, d: 0.3 }, medcabinet: { w: 1.0, d: 0.45 },
 };
 
 // opts (story chapters): { size, tasks: { fuses, gens, tapes, keycard }, lore (tape count), broken (share of dead lights) }
@@ -286,7 +296,7 @@ function tryGenerate(seed, th, opts = {}) {
   const taken = new Set(doors.map((d) => key(d.cx, d.cz)));
   const idoors = [];
   for (const room of rooms) {
-    if (rand() > (th.id === 'house' ? 0.65 : 0.4) || (room === exitRoom && doors.length)) continue;
+    if (rand() > (th.look === 'house' ? 0.65 : 0.4) || (room === exitRoom && doors.length)) continue;
     const ent = [], seen = new Set();
     for (let z = room.z; z < room.z + room.h; z++) for (let x = room.x; x < room.x + room.w; x++) {
       for (const [dx, dz] of DIRS) {
@@ -306,7 +316,7 @@ function tryGenerate(seed, th, opts = {}) {
   // Mirrors on room walls.
   const mirrors = [];
   for (const room of shuffle(rooms.slice())) {
-    if (mirrors.length >= (th.id === 'house' ? 3 : 2)) break;
+    if (mirrors.length >= (th.look === 'house' ? 3 : 2)) break;
     if (room === spawnRoom) continue;
     const c = wallCells(room).find((w) => grid[key(w.x, w.z)] === FLOOR && !reserved.has(key(w.x, w.z)));
     if (!c) continue;
@@ -599,6 +609,51 @@ function buildProp(type, M) {
       g.userData.lamp = lamp.material;
       break;
     }
+    case 'gurney': { // a hospital bed on wheels, sheet still on it
+      g.add(box(0.85, 0.08, 1.95, M.metal, 0, 0.62, 0));
+      g.add(box(0.8, 0.12, 1.85, M.sheet, 0, 0.72, 0));
+      if (r() < 0.5) g.add(box(0.45, 0.14, 1.1, M.sheet, 0.05, 0.85, 0.2)); // something under the sheet
+      g.add(box(0.85, 0.5, 0.05, M.metal, 0, 0.9, -0.97));
+      for (const x of [-0.42, 0.42]) {
+        g.add(box(0.03, 0.03, 1.8, M.metal, x, 0.85, 0)); // rails
+        for (const z of [-0.85, 0.85]) { g.add(box(0.04, 0.58, 0.04, M.metal, x * 0.9, 0.31, z)); g.add(cyl(0.05, 0.05, 0.04, M.black, x * 0.9, 0.05, z, 8)); }
+      }
+      break;
+    }
+    case 'wheelchair': {
+      g.add(box(0.5, 0.05, 0.45, M.fabric, 0, 0.5, 0));
+      g.add(box(0.5, 0.45, 0.04, M.fabric, 0, 0.78, -0.22));
+      for (const x of [-0.3, 0.3]) {
+        const w = cyl(0.3, 0.3, 0.03, M.metal, x, 0.3, -0.05, 16);
+        w.rotation.z = Math.PI / 2;
+        g.add(w, box(0.03, 0.03, 0.4, M.metal, x * 0.85, 0.7, 0)); // armrests
+      }
+      for (const x of [-0.2, 0.2]) g.add(cyl(0.06, 0.06, 0.03, M.black, x, 0.06, 0.3, 8));
+      g.rotation.y = (r() - 0.5) * 0.8;
+      break;
+    }
+    case 'ivstand':
+      g.add(cyl(0.015, 0.015, 1.9, M.metal, 0, 0.95, 0, 6));
+      for (let i = 0; i < 4; i++) { const leg = box(0.32, 0.02, 0.02, M.metal, 0, 0.04, 0); leg.rotation.y = (i * Math.PI) / 2; leg.position.set(Math.cos(i * Math.PI / 2) * 0.14, 0.04, Math.sin(i * Math.PI / 2) * 0.14); g.add(leg); }
+      g.add(box(0.3, 0.015, 0.015, M.metal, 0, 1.85, 0));
+      g.add(box(0.12, 0.2, 0.05, M.bag, 0.12, 1.68, 0));
+      if (r() < 0.6) g.add(box(0.12, 0.2, 0.05, M.bag, -0.12, 1.68, 0));
+      break;
+    case 'curtain': { // a privacy screen on a frame, a little torn
+      for (const x of [-0.9, 0.9]) { g.add(box(0.03, 1.9, 0.03, M.metal, x, 0.95, 0)); g.add(box(0.03, 0.03, 0.4, M.metal, x, 0.02, 0)); }
+      g.add(box(1.8, 0.03, 0.03, M.metal, 0, 1.9, 0));
+      for (let i = 0; i < 6; i++) {
+        const h = 1.35 + (r() < 0.2 ? -0.5 * r() : 0);
+        g.add(box(0.3, h, 0.02, M.curtain, -0.75 + i * 0.3, 1.88 - h / 2, (i % 2) * 0.04 - 0.02));
+      }
+      break;
+    }
+    case 'medcabinet':
+      g.add(box(1.0, 1.9, 0.45, M.white, 0, 0.95, 0));
+      g.add(box(0.9, 0.9, 0.01, M.glass, 0, 1.35, 0.23));
+      for (const y of [1.0, 1.3, 1.6]) for (let x = -0.35; x < 0.4; x += 0.14) if (r() < 0.55) g.add(cyl(0.035, 0.035, 0.12, M.bottles[Math.floor(r() * M.bottles.length)], x, y + 0.07, 0.05, 8));
+      g.add(box(0.95, 0.02, 0.01, M.black, 0, 0.55, 0.23));
+      break;
     case 'wardrobe':
       g.add(box(1.25, 2.2, 0.75, M.darkWood, 0, 1.1, 0));
       g.add(box(0.015, 2.0, 0.01, M.black, 0, 1.1, 0.376));
@@ -630,11 +685,16 @@ export function buildLevelScene(level) {
   const M = {
     wood: mat(tex.wood, { normalMap: tex.woodN, roughness: 0.75 }), darkWood: mat(tex.darkWood, { normalMap: tex.woodN, color: 0x6a5040, roughness: 0.8 }),
     crate: mat(tex.crate), metal: mat(tex.metal, { roughness: 0.6, metalness: 0.4 }),
-    locker: mat(tex.locker, { normalMap: tex.metalN, color: th.id === 'house' ? 0x8a8070 : 0x7a8a7e, roughness: 0.6, metalness: 0.35 }), rust: mat(tex.rust, { roughness: 0.8, metalness: 0.3 }),
+    locker: mat(tex.locker, { normalMap: tex.metalN, color: th.look === 'house' ? 0x8a8070 : 0x7a8a7e, roughness: 0.6, metalness: 0.35 }), rust: mat(tex.rust, { roughness: 0.8, metalness: 0.3 }),
     fabric: mat(tex.fabric), sheet: mat(tex.sheet), black: new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.8 }),
     paper: new THREE.MeshStandardMaterial({ color: 0xb8b2a2, roughness: 1 }), cardboard: new THREE.MeshStandardMaterial({ color: 0x7a5e3c, roughness: 1 }),
     mirror: new THREE.MeshStandardMaterial({ color: 0x9aa4a8, roughness: 0.08, metalness: 1 }),
-    genPaint: new THREE.MeshStandardMaterial({ color: th.id === 'house' ? 0x5a4a2a : 0x6a6a2a, roughness: 0.6, metalness: 0.3 }),
+    genPaint: new THREE.MeshStandardMaterial({ color: th.look === 'house' ? 0x5a4a2a : 0x6a6a2a, roughness: 0.6, metalness: 0.3 }),
+    white: new THREE.MeshStandardMaterial({ color: 0xb8bab2, roughness: 0.5, metalness: 0.2 }),
+    glass: new THREE.MeshStandardMaterial({ color: 0x9fb4b0, roughness: 0.1, metalness: 0.3, transparent: true, opacity: 0.25 }),
+    curtain: new THREE.MeshStandardMaterial({ color: 0x7f9a8e, roughness: 1, side: THREE.DoubleSide }),
+    bag: new THREE.MeshStandardMaterial({ color: 0x8a1010, roughness: 0.3, transparent: true, opacity: 0.8 }),
+    bottles: [0x5a3a14, 0x8a8a80, 0x2a4a5a].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.2 })),
     books: [0x4a1c1c, 0x1c2f4a, 0x2f3a1c, 0x4a3b1c, 0x2a2a2a, 0x5a4a3a].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.9 })),
   };
 
@@ -642,7 +702,7 @@ export function buildLevelScene(level) {
   tex.floor.repeat.set(N, N); tex.floorN.repeat.set(N, N);
   tex.ceilingN.repeat.set(N, N);
   tex.ceiling.repeat.set(N, N);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(S, S), mat(tex.floor, { normalMap: tex.floorN, roughness: th.id === 'house' ? 0.7 : 0.85 }));
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(S, S), mat(tex.floor, { normalMap: tex.floorN, roughness: th.look === 'house' ? 0.7 : 0.85 }));
   floor.rotation.x = -Math.PI / 2; floor.position.set(S / 2, 0, S / 2); floor.receiveShadow = true;
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(S, S), mat(tex.ceiling, { normalMap: tex.ceilingN, color: 0x9a968e }));
   ceil.rotation.x = Math.PI / 2; ceil.position.set(S / 2, WALL_H, S / 2); ceil.receiveShadow = true;
@@ -654,7 +714,7 @@ export function buildLevelScene(level) {
     if (level.get(x, z) !== WALL) continue;
     if (DIRS.some(([dx, dz]) => level.get(x + dx, z + dz) !== WALL)) wallCells.push([x, z]);
   }
-  const walls = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, WALL_H, CELL), mat(tex.wall, { normalMap: tex.wallN, color: th.id === 'house' ? 0xffffff : 0xb8b4aa }), wallCells.length);
+  const walls = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, WALL_H, CELL), mat(tex.wall, { normalMap: tex.wallN, color: th.look === 'house' ? 0xffffff : 0xb8b4aa }), wallCells.length);
   const m4 = new THREE.Matrix4();
   wallCells.forEach(([x, z], i) => walls.setMatrixAt(i, m4.makeTranslation(center(x), WALL_H / 2, center(z))));
   walls.castShadow = walls.receiveShadow = true;
@@ -674,7 +734,7 @@ export function buildLevelScene(level) {
     const fm = new THREE.MeshStandardMaterial({ color: 0x222222, emissive: th.light, emissiveIntensity: 1, roughness: 0.5 });
     const x = l.cx * CELL, z = l.cz * CELL;
     const g = new THREE.Group();
-    if (th.id === 'facility') {
+    if (th.look === 'facility') {
       g.add(box(1.3, 0.08, 0.3, M.metal, 0, WALL_H - 0.04, 0));
       const tube = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.04, 0.2), fm);
       tube.position.y = WALL_H - 0.09;
@@ -690,7 +750,7 @@ export function buildLevelScene(level) {
     g.position.set(x, 0, z);
     g.traverse((o) => { o.castShadow = false; });
     group.add(g);
-    return { ...l, x, z, y: th.id === 'facility' ? WALL_H - 0.35 : WALL_H - 0.9, mat: fm, burst: 0, seed: Math.random() * 100 };
+    return { ...l, x, z, y: th.look === 'facility' ? WALL_H - 0.35 : WALL_H - 0.9, mat: fm, burst: 0, seed: Math.random() * 100 };
   });
 
   // Pickup spots come from the seed, so every player's copy of the level has them in the same place.
@@ -733,7 +793,7 @@ export function buildLevelScene(level) {
   let keycard = null;
   if (level.keycard) {
     const g = new THREE.Group();
-    if (th.id === 'house') {
+    if (th.look === 'house') {
       const brass = new THREE.MeshStandardMaterial({ color: 0xb08a3a, emissive: 0x3a2a08, roughness: 0.3, metalness: 0.9 });
       g.add(box(0.12, 0.012, 0.012, brass, 0, 0.01, 0), cyl(0.025, 0.025, 0.012, brass, -0.07, 0.01, 0, 12), box(0.012, 0.012, 0.03, brass, 0.05, 0.01, 0.012));
     } else {
@@ -749,7 +809,7 @@ export function buildLevelScene(level) {
   const doors = level.doors.map((d) => {
     const g = new THREE.Group();
     const along = d.dx ? [0.12, WALL_H, CELL] : [CELL, WALL_H, 0.12];
-    g.add(box(...along, th.id === 'house' ? M.darkWood : M.locker, 0, WALL_H / 2, 0));
+    g.add(box(...along, th.look === 'house' ? M.darkWood : M.locker, 0, WALL_H / 2, 0));
     const pad = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.16, 0.12), new THREE.MeshStandardMaterial({ color: 0x110000, emissive: 0xff1020, emissiveIntensity: 1.5 }));
     pad.position.set(-d.dx * 0.1 + (d.dx ? 0 : 0.6), 1.3, -d.dz * 0.1 + (d.dz ? 0 : 0.6));
     g.add(pad);
@@ -774,7 +834,7 @@ export function buildLevelScene(level) {
   }
 
   // Real doors: double doors hinged at both sides, swinging into the room.
-  const idoorMat = th.id === 'house' ? M.darkWood : M.locker;
+  const idoorMat = th.look === 'house' ? M.darkWood : M.locker;
   const idoors = level.idoors.map((d) => {
     const g = new THREE.Group();
     g.position.set(d.x, 0, d.z);
@@ -803,7 +863,7 @@ export function buildLevelScene(level) {
     const g = new THREE.Group();
     const glass = new Reflector(new THREE.PlaneGeometry(0.8, 1.25), { textureWidth: 384, textureHeight: 600, color: 0x9a9890, clipBias: 0.003 });
     g.add(glass);
-    const frameMat = th.id === 'house' ? M.darkWood : M.metal;
+    const frameMat = th.look === 'house' ? M.darkWood : M.metal;
     g.add(box(0.92, 0.06, 0.05, frameMat, 0, 0.66, -0.02), box(0.92, 0.06, 0.05, frameMat, 0, -0.66, -0.02),
       box(0.06, 1.3, 0.05, frameMat, 0.46, 0, -0.02), box(0.06, 1.3, 0.05, frameMat, -0.46, 0, -0.02));
     g.position.set(m.x, 1.55, m.z);
@@ -845,7 +905,7 @@ export function buildLevelScene(level) {
 
   // Exit door, with a cold glow from outside behind it.
   const ex = level.exit;
-  const doorMat = th.id === 'facility'
+  const doorMat = th.look === 'facility'
     ? new THREE.MeshStandardMaterial({ color: 0x3b4246, roughness: 0.5, metalness: 0.6 })
     : mat(tex.darkWood);
   const door = box(CELL, WALL_H, 0.16, doorMat);

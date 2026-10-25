@@ -28,7 +28,9 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - `level.js`: grid map generator (2 m cells, `WALL/FLOOR/PROP/EXIT`) with rooms, spanning-tree corridors
   plus loops, props that never disconnect the map, fuse / battery / exit / fuse box placement, and the lights.
   `Level` has `collide`, `los` (walls block sight, furniture doesn't), `clearWalk`, `findPath` (BFS).
-  `buildLevelScene` makes the meshes. Themes live in `THEMES`.
+  `buildLevelScene` makes the meshes. Themes live in `THEMES`: `facility`, `house`, `hospital`. Each theme has a `look`
+  (`facility` or `house`) that picks lights, doors, keycard vs key and so on; branch on `th.look`, not `th.id`, unless it's truly
+  theme-specific (textures in `makeTextures`, the ambience in `sfx.startAmbient`: the hospital has a ballast buzz and a heart monitor).
 - `mimic.js`: model and AI. States: `wander`, `investigate` (heard something), `stalk` (goes out of sight
   6–14 m from the player and plays a voice clip), `chase` (saw the player), `hunt` (goes to the player's
   hiding spot), `peek` (set up by the director: stares from 8-13 m with glowing eyes), and `flee` (after
@@ -103,6 +105,13 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   (votes on the D-pad, B = nobody), View = Tab, Start pause; in menus the D-pad moves focus. Touch (`#touch`): left thumb stick, right
   thumb drag to look, buttons, vote by tapping a name. Pad and touch play **without pointer lock** (`openPause`/`closePause` in main.js).
   `rumble()` on catches and heartbeats.
+- `skinwalker.js`: online, **Normal mode only**, a host lobby toggle (`session.setSkinwalker`, `start` carries `sw`). A second
+  creature that wears a **living** player (`wearId`): a copy of their avatar with their flashlight and their own clips (`swSay`). It
+  spawns out of sight of everyone, finds a victim far (14 m+) from the real player, and stands at the edge of the light calling
+  (`lure`). Tells: it crawls when nobody is looking at it, its eyes shine in your flashlight, its head tilts up close, and the real
+  friend's voice comes from elsewhere. Getting within 3.2 m, or lighting it up for 2.6 s, triggers `swReveal` -> `chase` (pale, long
+  limbs, upside-down head, split mouth). A catch is `hostCatch(id, 'sw')` -> `caught` with `sw` (the jumpscare uses `sw.poseAt`). It
+  leaves if the real friend could see it, and stops after power-on. Host state goes in `snap.sw`.
 - `heartbeat.js`: the hiding-spot minigame. When the mimic hunts you to a locker, it stops at the door (`sniff` state), and
   the hidden player gets `sniff`: press Space on 10–13 beats. Miss 3, or make a sound on the mic, and `sniffRes` false means
   caught. Success means it flees. If the mimic leaves without a verdict (a teammate's flare), the host sends `sniffEnd`.

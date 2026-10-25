@@ -53,7 +53,10 @@ Guess wrong, and it gets hungrier.
   pickups are it. A body on the floor isn't where you left it. Mirrors show it standing behind you (usually it isn't).
   It opens doors, slowly. It gets hungrier over time, and lights die for good. When the power comes back, it changes.
   Online, it can walk around as a friend it took. Old tapes from people who came before tell you what happened to them.
-- **Random maps:** each run is either a research facility or an old house, with a new layout every time.
+- **Random maps:** each run is a research facility, an old house or an abandoned hospital, with a new layout every time.
+- **Skinwalker** (online, Normal mode, the host switches it on in the lobby): something else is in there too, and it wears
+  one of you who is still alive. Same body, same flashlight, same voice. If your friend is waiting for you at the end of a
+  hallway, check where their voice is coming from. And don't stare at it too long.
 
 It hates the light: under working lights it's slow, but in the dark it's faster than you.
 

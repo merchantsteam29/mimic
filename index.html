@@ -12,69 +12,71 @@
 <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=VT323&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script>window.MIMIC_VERSION = '20261025173915';</script>
+<script>window.MIMIC_VERSION = '20261025181527';</script>
 <script type="importmap">
 {
   "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
     "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-    "./js/abilities.js": "./js/abilities.js?v=20261025173915",
-    "./js/classes.js": "./js/classes.js?v=20261025173915",
-    "./js/controls.js": "./js/controls.js?v=20261025173915",
-    "./js/director.js": "./js/director.js?v=20261025173915",
-    "./js/events.js": "./js/events.js?v=20261025173915",
-    "./js/game.js": "./js/game.js?v=20261025173915",
-    "./js/hand.js": "./js/hand.js?v=20261025173915",
-    "./js/heartbeat.js": "./js/heartbeat.js?v=20261025173915",
-    "./js/level.js": "./js/level.js?v=20261025173915",
-    "./js/lore.js": "./js/lore.js?v=20261025173915",
-    "./js/main.js": "./js/main.js?v=20261025173915",
-    "./js/mimic.js": "./js/mimic.js?v=20261025173915",
-    "./js/mp.js": "./js/mp.js?v=20261025173915",
-    "./js/net.js": "./js/net.js?v=20261025173915",
-    "./js/objectives.js": "./js/objectives.js?v=20261025173915",
-    "./js/remote.js": "./js/remote.js?v=20261025173915",
-    "./js/samples.js": "./js/samples.js?v=20261025173915",
-    "./js/scares.js": "./js/scares.js?v=20261025173915",
-    "./js/sfx.js": "./js/sfx.js?v=20261025173915",
-    "./js/story.js": "./js/story.js?v=20261025173915",
-    "./js/textures.js": "./js/textures.js?v=20261025173915",
-    "./js/traitor.js": "./js/traitor.js?v=20261025173915",
-    "./js/vc.js": "./js/vc.js?v=20261025173915",
-    "./js/version.js": "./js/version.js?v=20261025173915",
-    "./js/vhs.js": "./js/vhs.js?v=20261025173915",
-    "./js/voice.js": "./js/voice.js?v=20261025173915"
+    "./js/abilities.js": "./js/abilities.js?v=20261025181527",
+    "./js/classes.js": "./js/classes.js?v=20261025181527",
+    "./js/controls.js": "./js/controls.js?v=20261025181527",
+    "./js/director.js": "./js/director.js?v=20261025181527",
+    "./js/events.js": "./js/events.js?v=20261025181527",
+    "./js/game.js": "./js/game.js?v=20261025181527",
+    "./js/hand.js": "./js/hand.js?v=20261025181527",
+    "./js/heartbeat.js": "./js/heartbeat.js?v=20261025181527",
+    "./js/level.js": "./js/level.js?v=20261025181527",
+    "./js/lore.js": "./js/lore.js?v=20261025181527",
+    "./js/main.js": "./js/main.js?v=20261025181527",
+    "./js/mimic.js": "./js/mimic.js?v=20261025181527",
+    "./js/mp.js": "./js/mp.js?v=20261025181527",
+    "./js/net.js": "./js/net.js?v=20261025181527",
+    "./js/objectives.js": "./js/objectives.js?v=20261025181527",
+    "./js/remote.js": "./js/remote.js?v=20261025181527",
+    "./js/samples.js": "./js/samples.js?v=20261025181527",
+    "./js/scares.js": "./js/scares.js?v=20261025181527",
+    "./js/sfx.js": "./js/sfx.js?v=20261025181527",
+    "./js/skinwalker.js": "./js/skinwalker.js?v=20261025181527",
+    "./js/story.js": "./js/story.js?v=20261025181527",
+    "./js/textures.js": "./js/textures.js?v=20261025181527",
+    "./js/traitor.js": "./js/traitor.js?v=20261025181527",
+    "./js/vc.js": "./js/vc.js?v=20261025181527",
+    "./js/version.js": "./js/version.js?v=20261025181527",
+    "./js/vhs.js": "./js/vhs.js?v=20261025181527",
+    "./js/voice.js": "./js/voice.js?v=20261025181527"
   }
 }
 </script>
 <!-- Fetch every game module in parallel (must come after the import map). Add new js files here too. -->
 <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js">
-<link rel="modulepreload" href="js/main.js?v=20261025173915">
-<link rel="modulepreload" href="js/game.js?v=20261025173915">
-<link rel="modulepreload" href="js/level.js?v=20261025173915">
-<link rel="modulepreload" href="js/mimic.js?v=20261025173915">
-<link rel="modulepreload" href="js/director.js?v=20261025173915">
-<link rel="modulepreload" href="js/sfx.js?v=20261025173915">
-<link rel="modulepreload" href="js/voice.js?v=20261025173915">
-<link rel="modulepreload" href="js/textures.js?v=20261025173915">
-<link rel="modulepreload" href="js/net.js?v=20261025173915">
-<link rel="modulepreload" href="js/vc.js?v=20261025173915">
-<link rel="modulepreload" href="js/mp.js?v=20261025173915">
-<link rel="modulepreload" href="js/remote.js?v=20261025173915">
-<link rel="modulepreload" href="js/classes.js?v=20261025173915">
-<link rel="modulepreload" href="js/objectives.js?v=20261025173915">
-<link rel="modulepreload" href="js/abilities.js?v=20261025173915">
-<link rel="modulepreload" href="js/heartbeat.js?v=20261025173915">
-<link rel="modulepreload" href="js/scares.js?v=20261025173915">
-<link rel="modulepreload" href="js/lore.js?v=20261025173915">
-<link rel="modulepreload" href="js/story.js?v=20261025173915">
-<link rel="modulepreload" href="js/traitor.js?v=20261025173915">
-<link rel="modulepreload" href="js/samples.js?v=20261025173915">
-<link rel="modulepreload" href="js/events.js?v=20261025173915">
-<link rel="modulepreload" href="js/hand.js?v=20261025173915">
-<link rel="modulepreload" href="js/vhs.js?v=20261025173915">
-<link rel="modulepreload" href="js/controls.js?v=20261025173915">
-<link rel="modulepreload" href="js/version.js?v=20261025173915">
+<link rel="modulepreload" href="js/main.js?v=20261025181527">
+<link rel="modulepreload" href="js/game.js?v=20261025181527">
+<link rel="modulepreload" href="js/level.js?v=20261025181527">
+<link rel="modulepreload" href="js/mimic.js?v=20261025181527">
+<link rel="modulepreload" href="js/director.js?v=20261025181527">
+<link rel="modulepreload" href="js/sfx.js?v=20261025181527">
+<link rel="modulepreload" href="js/voice.js?v=20261025181527">
+<link rel="modulepreload" href="js/textures.js?v=20261025181527">
+<link rel="modulepreload" href="js/net.js?v=20261025181527">
+<link rel="modulepreload" href="js/vc.js?v=20261025181527">
+<link rel="modulepreload" href="js/mp.js?v=20261025181527">
+<link rel="modulepreload" href="js/remote.js?v=20261025181527">
+<link rel="modulepreload" href="js/classes.js?v=20261025181527">
+<link rel="modulepreload" href="js/objectives.js?v=20261025181527">
+<link rel="modulepreload" href="js/abilities.js?v=20261025181527">
+<link rel="modulepreload" href="js/heartbeat.js?v=20261025181527">
+<link rel="modulepreload" href="js/scares.js?v=20261025181527">
+<link rel="modulepreload" href="js/lore.js?v=20261025181527">
+<link rel="modulepreload" href="js/story.js?v=20261025181527">
+<link rel="modulepreload" href="js/traitor.js?v=20261025181527">
+<link rel="modulepreload" href="js/samples.js?v=20261025181527">
+<link rel="modulepreload" href="js/events.js?v=20261025181527">
+<link rel="modulepreload" href="js/hand.js?v=20261025181527">
+<link rel="modulepreload" href="js/vhs.js?v=20261025181527">
+<link rel="modulepreload" href="js/skinwalker.js?v=20261025181527">
+<link rel="modulepreload" href="js/controls.js?v=20261025181527">
+<link rel="modulepreload" href="js/version.js?v=20261025181527">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -183,7 +185,7 @@
       <li><b>Classes</b> (all free): Brute has 2 flares that stun it. Runner is fast. Medic can save one person from a catch. Tracker has a motion tracker.</li>
       <li>If it follows you to your hiding spot, it stops at the door and listens. Keep your heart steady (<kbd data-k="Beat">Space</kbd> on the beat) and stay silent.</li>
       <li>Hide in lockers and wardrobes. It can't see you there, but it can still hear you.</li>
-      <li>The map is different every time: a research facility or an old house.</li>
+      <li>The map is different every time: a research facility, an old house or an abandoned hospital.</li>
       <li><b>With friends</b> (up to 4): voice chat is proximity-based. If a friend goes quiet, they might just be lost. Or it might be using their voice now.</li>
     </ul>
     <div class="keys keys-mouse">
@@ -288,6 +290,9 @@
       <button data-mode="normal">Normal</button>
       <button data-mode="story">Story: The Signal <span>one of you might be working for it</span></button>
     </div>
+    <div class="mode-pick sw-pick">
+      <button id="btnSkinwalker"><b>Skinwalker: off</b> <span>Normal mode only. Something else is in there, wearing one of you. One of you who is still alive.</span></button>
+    </div>
     <p class="kicker pick-title">Your class</p>
     <div class="class-pick" data-for="lobby"></div>
     <p class="fine">Voice chat is on. In the lobby everyone hears everyone; in the game, only players near you can. Dead players can only talk to each other.</p>
@@ -381,6 +386,6 @@
   </div>
 </section>
 
-<script type="module" src="js/main.js?v=20261025173915"></script>
+<script type="module" src="js/main.js?v=20261025181527"></script>
 </body>
 </html>

@@ -23,7 +23,7 @@ export class Objectives {
     this.whisperT = 15 + Math.random() * 15;
     this.doorT = -1;
     this.emitter = game.sfx.emitter();
-    this.keyName = lv.theme.id === 'house' ? 'key' : 'keycard';
+    this.keyName = lv.theme.look === 'house' ? 'key' : 'keycard';
 
     // New things to use with E (appended after the core items, same order for every player).
     lv.gens.forEach((p, i) => game.items.push({ type: 'gen', i, prop: p, x: p.x - p.dx * (p.d / 2), y: 0.9, z: p.z - p.dz * (p.d / 2), range: 2.4, active: true }));

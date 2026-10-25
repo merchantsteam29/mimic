@@ -100,6 +100,40 @@ function facilityCeiling() {
   return toTexture(c);
 }
 
+// ---------- hospital ----------
+function hospitalWall() {
+  const [c, g] = canvas(256, 384); // one 2m x 3m wall face
+  g.fillStyle = '#9a9c8e'; g.fillRect(0, 0, 256, 384);           // old cream paint above
+  // Pale green tiles up to shoulder height.
+  for (let y = 200; y < 372; y += 21) for (let x = 0; x < 256; x += 32) {
+    const v = Math.random() * 10;
+    g.fillStyle = `rgb(${112 + v},${138 + v},${122 + v})`;
+    g.fillRect(x + 1, y + 1, 30, 19);
+  }
+  g.fillStyle = '#4e5a52'; g.fillRect(0, 194, 256, 6);           // tile cap
+  g.fillStyle = '#2a2c28'; g.fillRect(0, 372, 256, 12);          // skirting
+  blotches(g, 256, 384, 8, 0.3);
+  streaks(g, 256, 200, 5, 'rgba(60,50,25,.35)');
+  stains(g, 256, 384, 4, 'rgba(40,30,15,.35)');
+  // Now and then, a smear nobody cleaned.
+  if (Math.random() < 0.25) stains(g, 256, 384, 1, 'rgba(70,8,8,.45)');
+  grain(g, 256, 384, 24);
+  return toTexture(c);
+}
+
+function hospitalFloor() {
+  const [c, g] = canvas(256); // one 2m cell: checkerboard linoleum
+  for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
+    const dark = (x + y) % 2, v = Math.random() * 10;
+    g.fillStyle = dark ? `rgb(${58 + v},${70 + v},${64 + v})` : `rgb(${150 + v},${152 + v},${140 + v})`;
+    g.fillRect(x * 64, y * 64, 64, 64);
+  }
+  blotches(g, 256, 256, 6, 0.4);
+  stains(g, 256, 256, 3, 'rgba(50,40,20,.4)');
+  grain(g, 256, 256, 26);
+  return toTexture(c);
+}
+
 // ---------- house ----------
 const WALLPAPERS = [['#4d5a45', '#5f6d55'], ['#6e4f4f', '#7d5d5b'], ['#6f6141', '#7f7150'], ['#4a4f63', '#5a5f73']];
 
@@ -322,11 +356,11 @@ export function skinNormal() {
 }
 
 export function makeTextures(theme) {
-  const facility = theme === 'facility';
+  const facility = theme === 'facility', hospital = theme === 'hospital';
   const pair = (name) => [photo(`${name}_color`), photo(`${name}_normal`, false)];
-  const [wall, wallN] = facility ? pair('concreteWall') : [houseWall(), photo('plaster_normal', false)];
-  const [floor, floorN] = pair(facility ? 'concreteFloor' : 'woodFloor');
-  const [ceiling, ceilingN] = pair(facility ? 'officeCeiling' : 'plaster');
+  const [wall, wallN] = facility ? pair('concreteWall') : [hospital ? hospitalWall() : houseWall(), photo('plaster_normal', false)];
+  const [floor, floorN] = hospital ? [hospitalFloor(), photo('concreteFloor_normal', false)] : pair(facility ? 'concreteFloor' : 'woodFloor');
+  const [ceiling, ceilingN] = pair(facility || hospital ? 'officeCeiling' : 'plaster');
   const [woodC, woodN] = pair('wood');
   const [metalC, metalN] = pair('paintedMetal');
   wall.repeat.set(1, 1.5); wallN.repeat.set(1, 1.5); // one 2m x 3m wall face
@@ -338,7 +372,7 @@ export function makeTextures(theme) {
     metal: metal(),
     locker: metalC,
     rust: metal('#5a3b26'),
-    fabric: fabric(facility ? '#3b3d3a' : '#4a2f2c'),
+    fabric: fabric(facility ? '#3b3d3a' : hospital ? '#2f3b40' : '#4a2f2c'),
     sheet: fabric('#8b877c'),
     exitSign: label('EXIT', '#160404', '#ff2b3a'),
   };

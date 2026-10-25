@@ -553,7 +553,21 @@ export class Sfx {
     lfo.connect(lfoG).connect(rg.gain); lfo.start();
     nodes.push(lfo);
 
-    if (theme === 'facility') {
+    if (theme === 'hospital') {
+      // Fluorescent ballast buzz, and a heart monitor somewhere, still beeping for nobody.
+      [120, 240].forEach((f, i) => {
+        const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f;
+        const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
+        const g = ctx.createGain(); g.gain.value = [0.006, 0.003][i];
+        o.connect(lp).connect(g).connect(bus); o.start(); nodes.push(o);
+      });
+      const sr = ctx.sampleRate, beep = ctx.createBuffer(1, Math.floor(sr * 1.1), sr), d = beep.getChannelData(0);
+      for (let i = 0; i < sr * 0.09; i++) d[i] = Math.sin((2 * Math.PI * 960 * i) / sr) * Math.min(1, i / 200, (sr * 0.09 - i) / 400);
+      const mon = ctx.createBufferSource(); mon.buffer = beep; mon.loop = true;
+      const mg = ctx.createGain(); mg.gain.value = 0.012;
+      const mlp = ctx.createBiquadFilter(); mlp.type = 'lowpass'; mlp.frequency.value = 1800; // through a wall or two
+      mon.connect(mlp).connect(mg).connect(bus); mon.start(); nodes.push(mon);
+    } else if (theme === 'facility') {
       // Mains hum from dead machinery.
       [50, 100, 150.5].forEach((f, i) => {
         const o = ctx.createOscillator(); o.frequency.value = f;

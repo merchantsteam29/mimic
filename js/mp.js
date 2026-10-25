@@ -34,6 +34,7 @@ export class Session {
     this.lastKey = null;
     this.game = null;
     this.mode = 'normal';   // or 'story' (The Signal: maybe a traitor)
+    this.skinwalker = false; // Normal mode only: something that wears a living friend
     this.traitorId = null;  // host only
     this.onRoster = () => {};
     this.onStart = () => {};   // ({ seed, theme, order })
@@ -41,7 +42,7 @@ export class Session {
     this.onClose = () => {};   // (reason)
     this.net.onRoster = (r) => {
       this.vc?.sync(r);
-      if (this.isHost) this.net.broadcast({ t: 'mode', mode: this.mode }, { self: false }); // newcomers learn the mode
+      if (this.isHost) this.net.broadcast({ t: 'mode', mode: this.mode, sw: this.skinwalker }, { self: false }); // newcomers learn the mode
       this.onRoster(r);
     };
     this.net.onClose = (why) => { this.dispose(); this.onClose(why); };
@@ -117,7 +118,7 @@ export class Session {
       return;
     }
     if (m.t === 'start') { this.net.locked = true; this.onStart(m); return; }
-    if (m.t === 'mode') { if (from === 'h') { this.mode = m.mode === 'story' ? 'story' : 'normal'; this.onRoster(this.roster); } return; }
+    if (m.t === 'mode') { if (from === 'h') { this.mode = m.mode === 'story' ? 'story' : 'normal'; this.skinwalker = !!m.sw; this.onRoster(this.roster); } return; }
     if (m.t === 'role') { if (from === 'h') this.game?.traitor.onNet(m); return; }
     if (m.t === 'class') { // a player picked a class (host keeps it in the roster)
       const r = this.isHost && this.roster.find((x) => x.id === from);
@@ -138,14 +139,21 @@ export class Session {
     // Story mode: half the time, one of you is secretly working for it. Only they are told.
     const ids = this.roster.map((r) => r.id);
     this.traitorId = this.mode === 'story' && ids.length > 1 && Math.random() < 0.5 ? ids[Math.floor(Math.random() * ids.length)] : null;
-    this.net.broadcast({ t: 'start', theme, seed, order: ids, classes, mode: this.mode });
+    this.net.broadcast({ t: 'start', theme, seed, order: ids, classes, mode: this.mode, sw: this.mode === 'normal' && this.skinwalker });
     if (this.traitorId && this.traitorId !== 'h') this.net.sendTo(this.traitorId, { t: 'role', traitor: true });
   }
 
   setMode(mode) {
     if (!this.isHost) return;
     this.mode = mode === 'story' ? 'story' : 'normal';
-    this.net.broadcast({ t: 'mode', mode: this.mode }, { self: false });
+    this.net.broadcast({ t: 'mode', mode: this.mode, sw: this.skinwalker }, { self: false });
+    this.onRoster(this.roster);
+  }
+
+  setSkinwalker(on) {
+    if (!this.isHost) return;
+    this.skinwalker = !!on;
+    this.net.broadcast({ t: 'mode', mode: this.mode, sw: this.skinwalker }, { self: false });
     this.onRoster(this.roster);
   }
 

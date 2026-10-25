@@ -15,6 +15,7 @@ import { Scares } from './scares.js';
 import { Traitor } from './traitor.js';
 import { Events } from './events.js';
 import { Hand } from './hand.js';
+import { Skinwalker } from './skinwalker.js';
 import { mulberry32 } from './level.js';
 import { keyLabel, rumble } from './controls.js';
 
@@ -28,7 +29,7 @@ const angleDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 const num = (v, d = 0) => (Number.isFinite(v) ? v : d);
 
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null }) {
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false }) {
     Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs });
     this.distort = 0;    // camcorder distortion, 0..1
     this.peekHud = 0;    // seconds the HUD stays visible after something changes
@@ -45,7 +46,7 @@ export class Game {
     scene.fog = new THREE.FogExp2(th.fog, th.fogDensity);
     this.world = buildLevelScene(level);
     scene.add(this.world.group);
-    scene.add(new THREE.HemisphereLight(th.id === 'house' ? 0x6a5a48 : 0x56687a, 0x0a0806, 0.12));
+    scene.add(new THREE.HemisphereLight(th.look === 'house' ? 0x6a5a48 : 0x56687a, 0x0a0806, 0.12));
 
     this.camera = new THREE.PerspectiveCamera(settings.fov, innerWidth / innerHeight, 0.05, 80);
     this.camera.rotation.order = 'YXZ';
@@ -118,6 +119,7 @@ export class Game {
       onPeekSeen: () => {}, // each player notices a peek themselves (see watchPeek)
     });
     if (mp) { this.mimic.lureStyle = 'distant'; this.mimic.stalkRange = [9, 16]; }
+    this.sw = new Skinwalker(this, skinwalker); // online only: something wearing a living friend
     if (story) this.mimic.graceT = story.grace;
     this.ambientEmitter = sfx.emitter();
     this.director = new Director(this);
@@ -241,6 +243,7 @@ export class Game {
     removeEventListener('mousemove', this.onMouse);
     removeEventListener('mousedown', this.onClick);
     this.mimic.dispose();
+    this.sw.dispose();
     this.ambientEmitter.dispose();
     this.director.dispose();
     this.events.dispose();
@@ -352,7 +355,7 @@ export class Game {
 
   // Everyone: what happened.
   onNet(m) {
-    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m)) return;
+    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m)) return;
     switch (m.t) {
       case 'doorSet': {
         const d = this.level.idoors[m.i | 0];
@@ -402,6 +405,7 @@ export class Game {
       case 'snap': {
         if (this.isHost) return;
         if (Array.isArray(m.m) && !(this.state === 'caught')) this.mimic.applySnap(m.m);
+        if (m.sw && this.state !== 'caught') this.sw.applySnap(m.sw);
         for (const row of m.p || []) {
           const r = this.remotes.get(row[0]);
           if (r) r.setState(row.slice(1).map((v) => num(v)));
@@ -475,7 +479,7 @@ export class Game {
       case 'power': this.powerOn(m.by); break;
       case 'caught': {
         this.status.set(m.id, 'dead');
-        if (m.id === this.me) this.caught();
+        if (m.id === this.me) this.caught(Array.isArray(m.sw) ? { x: num(m.sw[0]), z: num(m.sw[1]), ceiling: false, dropT: 0, sw: true } : null);
         // Nobody else is told. Their voice just stops, as if they wandered off.
         else if (this.alive(this.me)) this.mp?.vc?.route(m.id, { on: false });
         this.checkEnd();
@@ -507,11 +511,12 @@ export class Game {
     this.broadcast({ t: 'end', st: Object.fromEntries(this.status), time: this.time, mode: this.traitor.on ? 'story' : 'normal', ...this.traitor.result() });
   }
 
-  // Host: the mimic reached a player.
-  hostCatch(id) {
+  // Host: the mimic (or, by 'sw', the skinwalker) reached a player.
+  hostCatch(id, by = null) {
     if (!this.alive(id)) return;
     if (this.ab.hostSave(id)) return; // a medic's rescue: they tear free
     this.dropFuses(id);
+    if (by === 'sw') { this.broadcast({ t: 'caught', id, sw: [+this.sw.x.toFixed(2), +this.sw.z.toFixed(2)] }); return; }
     this.mimic.shyT = 8; // it lets the others breathe for a moment
     this.mimic.state = 'wander';
     this.mimic.path = [];
@@ -571,6 +576,7 @@ export class Game {
 
     if (!this.isHost) this.mimic.puppet(dt, this.t);
     else if (this.mp || this.state === 'playing') this.mimic.update(dt, this.targets(), this.t);
+    this.sw.update(dt);
 
     const watching = this.state === 'spectate' ? this.specTarget() : null;
     const worn = this.mimic.wearId && this.remotes.get(this.mimic.wearId);
@@ -610,7 +616,7 @@ export class Game {
       const rows = [];
       if (mine) rows.push([this.me, ...mine]);
       for (const [id, r] of this.remotes) if (this.alive(id) && r.seen) rows.push([id, +r.tx.toFixed(2), +r.tz.toFixed(2), +r.tyaw.toFixed(2), +r.pitch.toFixed(2), r.crouch ? 1 : 0, r.flash ? 1 : 0, r.hidden]);
-      this.mp.net.broadcast({ t: 'snap', m: this.mimic.snap(), p: rows }, { self: false });
+      this.mp.net.broadcast({ t: 'snap', m: this.mimic.snap(), p: rows, sw: this.sw.on ? this.sw.snap() : undefined }, { self: false });
     } else if (mine) this.send({ t: 'st', s: mine });
   }
 
@@ -1090,7 +1096,7 @@ export class Game {
     this.ambientEmitter.setPos(p.x, 1.5, p.z);
     this.ambientEmitter.setOcclusion(!this.level.los(this.p.x, this.p.z, p.x, p.z));
     if (Math.random() < 0.35 && this.sfx.moan(this.ambientEmitter)) return; // something, far off, moaning
-    if (this.level.theme.id === 'facility') this.sfx.clank(this.ambientEmitter, 0.5);
+    if (this.level.theme.look === 'facility') this.sfx.clank(this.ambientEmitter, 0.5);
     else this.sfx.creak(this.ambientEmitter, 0.5);
   }
 
@@ -1169,8 +1175,10 @@ export class Game {
   }
 
   // ---------- death, escape, spectating ----------
-  caught() {
+  // by: where the skinwalker got me (null = the mimic).
+  caught(by = null) {
     if (this.state !== 'playing') return;
+    this.scareBy = by?.sw && this.sw.wearId ? this.sw : null;
     this.hb.stop();
     this.obj.repairing = null;
     this.obj.endSkill();
@@ -1190,14 +1198,14 @@ export class Game {
     this.renderer.domElement.style.transform = this.renderer.domElement.style.filter = '';
     setTimeout(() => this.localSpeak('scream', null), 150);
     // Turn to face it.
-    const p = this.p, m = this.mimic;
+    const p = this.p, m = by || this.mimic;
     this.catchYaw = Math.atan2(-(m.x - p.x), -(m.z - p.z));
     p.speed = 0;
     // How it gets you: from above (off the ceiling), from behind, dragged away, or straight on.
     const dx = m.x - p.x, dz = m.z - p.z, d = Math.hypot(dx, dz) || 1;
     const behind = (-Math.sin(p.yaw) * dx - Math.cos(p.yaw) * dz) / d < -0.3;
     this.scare = m.ceiling || m.dropT > 0 ? 'above' : behind ? 'behind' : Math.random() < 0.3 ? 'drag' : 'front';
-    if (this.scare === 'behind') this.sfx.sniff(m.emitter);
+    if (this.scare === 'behind') this.sfx.sniff(by ? this.sw.emitter : m.emitter);
   }
 
   updateCaught(dt) {
@@ -1206,7 +1214,8 @@ export class Game {
     const fx = -Math.sin(this.catchYaw), fz = -Math.cos(this.catchYaw);
     // It lunges in, then stays bent over right in your face (or hangs down from above).
     const dist = sc === 'above' ? 1.05 : 1.25 + Math.max(0, 1 - this.ct * 5) * 0.6;
-    this.mimic.pose(p.x + fx * dist, p.z + fz * dist, Math.atan2(-fx, -fz), this.t, sc === 'above');
+    const it = this.scareBy && this.scareBy.poseAt(p.x + fx * dist, p.z + fz * dist, Math.atan2(-fx, -fz), this.t);
+    if (!it) this.mimic.pose(p.x + fx * dist, p.z + fz * dist, Math.atan2(-fx, -fz), this.t, sc === 'above');
     if (sc === 'drag') {
       // Pulled off your feet and dragged backwards into the dark.
       if (this.ct > 1.5 && !this.dragging) {
@@ -1217,9 +1226,9 @@ export class Game {
       }
       if (this.dragging) { p.eye = Math.max(0.25, p.eye - dt * 3); p.x -= fx * dt * 1.2; p.z -= fz * dt * 1.2; }
     }
-    const root = this.mimic.model.root;
+    const root = it ? it.root : this.mimic.model.root;
     root.updateMatrixWorld(true);
-    const head = this.mimic.model.head.getWorldPosition(new THREE.Vector3());
+    const head = (it ? it.head : this.mimic.model.head).getWorldPosition(new THREE.Vector3());
     const dx = head.x - p.x, dy = head.y - p.eye, dz = head.z - p.z;
     if (sc === 'behind' && this.ct < 0.4) return; // you hear it breathe behind you first
     const k = Math.min(1, dt * (sc === 'behind' ? 22 : 14));
@@ -1234,6 +1243,7 @@ export class Game {
       this.dragging = false;
       if (!this.mp) { this.end(false); return; }
       this.mimic.frozen = false;
+      this.sw.posed = false;
       this.startSpectate();
     }
   }
