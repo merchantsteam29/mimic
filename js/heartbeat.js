@@ -2,6 +2,8 @@
 // you press Space as each one arrives. Miss three, or make a sound into your mic, and it hears you.
 // Runs on the hidden player's own browser; the result goes to the host ('sniffRes').
 
+import { rumble } from './controls.js';
+
 const TRAVEL = 1.5;   // seconds a beat takes to cross the track
 const WINDOW = 0.17;  // seconds either side of the beat that count as a hit
 const LIVES = 3;
@@ -61,7 +63,7 @@ export class Heartbeat {
         this.el.beats.appendChild(b.el);
       }
       if (b.el) b.el.style.left = `calc(18px + ${Math.max(-0.2, x).toFixed(3)} * (100% - 36px))`;
-      if (!b.ticked && this.t >= b.at) { b.ticked = true; g.sfx.heartbeat(0.45); }
+      if (!b.ticked && this.t >= b.at) { b.ticked = true; g.sfx.heartbeat(0.45); rumble(0.25, 90); }
       if (!b.done && this.t > b.at + WINDOW) { b.done = true; b.el?.classList.add('missed'); this.miss(); if (!this.on) return; }
       if (b.done && b.el && x < -0.15) { b.el.remove(); b.el = null; }
       if (!b.done) left++;
@@ -88,6 +90,7 @@ export class Heartbeat {
     this.misses++;
     this.drawLives();
     this.g.sfx.heartbeat(1.3); // your heart slams
+    rumble(0.8, 160);
     if (this.misses >= LIVES) this.finish(false, 'Your heart is too loud.');
   }
 

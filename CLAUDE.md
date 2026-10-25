@@ -96,6 +96,13 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   the mimic for 4 s if it's within 8 m and in sight). Runner: sprints 6.2 m/s for 13 s, recovers fast, louder steps. Medic: 1 rescue
   (`rescue` on the teammate in front, or self; the host's `hostSave` turns their next catch into a stun plus `saved`). Tracker:
   a local motion tracker (90 s of battery) whose beeps make noise. The host caps uses per player.
+- `controls.js`: **controllers and touch screens**. Both feed the game as synthetic `keydown`/`keyup` events (so key handlers
+  just work), plus `game.stick` (analog move) and `game.look(dx, dy)`. The mode (`mouse|pad|touch`, body class `input-*`) follows the
+  last device used; `keyLabel(k)` names keys for prompts, `kbd[data-k]` and `data-mouse/pad/touch` text update in the page. Pad: A use
+  (and heartbeat while hidden), B crouch toggle, X light, Y ability, LT/L3 sprint, RT Space, LB/RB jam/sabotage, D-pad up accuse
+  (votes on the D-pad, B = nobody), View = Tab, Start pause; in menus the D-pad moves focus. Touch (`#touch`): left thumb stick, right
+  thumb drag to look, buttons, vote by tapping a name. Pad and touch play **without pointer lock** (`openPause`/`closePause` in main.js).
+  `rumble()` on catches and heartbeats.
 - `heartbeat.js`: the hiding-spot minigame. When the mimic hunts you to a locker, it stops at the door (`sniff` state), and
   the hidden player gets `sniff`: press Space on 10–13 beats. Miss 3, or make a sound on the mic, and `sniffRes` false means
   caught. Success means it flees. If the mimic leaves without a verdict (a teammate's flare), the host sends `sniffEnd`.

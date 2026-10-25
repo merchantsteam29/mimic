@@ -2,6 +2,7 @@
 // Runner's legs. Online, flares and rescues go through the host (it moves the mimic); the tracker is local.
 import * as THREE from 'three';
 import { classOf } from './classes.js';
+import { keyLabel } from './controls.js';
 
 const TRACK_RANGE = 25;
 
@@ -209,7 +210,7 @@ export class Abilities {
 
   // The HUD line for my class.
   draw() {
-    const k = '<kbd>G</kbd>';
+    const k = `<kbd>${keyLabel('G')}</kbd>`;
     let t;
     switch (this.id) {
       case 'brute': t = `${k}Flares ×${this.charges}`; break;

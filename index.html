@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>Mimic</title>
 <meta name="theme-color" content="#050505">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23050505'/><ellipse cx='22' cy='26' rx='7' ry='10' fill='%23c9c2b4'/><ellipse cx='42' cy='26' rx='7' ry='10' fill='%23c9c2b4'/><path d='M14 44 Q32 56 50 44' stroke='%23b3122a' stroke-width='4' fill='none'/></svg>">
@@ -10,67 +12,69 @@
 <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=VT323&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script>window.MIMIC_VERSION = '20261025160103';</script>
+<script>window.MIMIC_VERSION = '20261025173915';</script>
 <script type="importmap">
 {
   "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
     "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-    "./js/abilities.js": "./js/abilities.js?v=20261025160103",
-    "./js/classes.js": "./js/classes.js?v=20261025160103",
-    "./js/director.js": "./js/director.js?v=20261025160103",
-    "./js/events.js": "./js/events.js?v=20261025160103",
-    "./js/game.js": "./js/game.js?v=20261025160103",
-    "./js/hand.js": "./js/hand.js?v=20261025160103",
-    "./js/heartbeat.js": "./js/heartbeat.js?v=20261025160103",
-    "./js/level.js": "./js/level.js?v=20261025160103",
-    "./js/lore.js": "./js/lore.js?v=20261025160103",
-    "./js/main.js": "./js/main.js?v=20261025160103",
-    "./js/mimic.js": "./js/mimic.js?v=20261025160103",
-    "./js/mp.js": "./js/mp.js?v=20261025160103",
-    "./js/net.js": "./js/net.js?v=20261025160103",
-    "./js/objectives.js": "./js/objectives.js?v=20261025160103",
-    "./js/remote.js": "./js/remote.js?v=20261025160103",
-    "./js/samples.js": "./js/samples.js?v=20261025160103",
-    "./js/scares.js": "./js/scares.js?v=20261025160103",
-    "./js/sfx.js": "./js/sfx.js?v=20261025160103",
-    "./js/story.js": "./js/story.js?v=20261025160103",
-    "./js/textures.js": "./js/textures.js?v=20261025160103",
-    "./js/traitor.js": "./js/traitor.js?v=20261025160103",
-    "./js/vc.js": "./js/vc.js?v=20261025160103",
-    "./js/version.js": "./js/version.js?v=20261025160103",
-    "./js/vhs.js": "./js/vhs.js?v=20261025160103",
-    "./js/voice.js": "./js/voice.js?v=20261025160103"
+    "./js/abilities.js": "./js/abilities.js?v=20261025173915",
+    "./js/classes.js": "./js/classes.js?v=20261025173915",
+    "./js/controls.js": "./js/controls.js?v=20261025173915",
+    "./js/director.js": "./js/director.js?v=20261025173915",
+    "./js/events.js": "./js/events.js?v=20261025173915",
+    "./js/game.js": "./js/game.js?v=20261025173915",
+    "./js/hand.js": "./js/hand.js?v=20261025173915",
+    "./js/heartbeat.js": "./js/heartbeat.js?v=20261025173915",
+    "./js/level.js": "./js/level.js?v=20261025173915",
+    "./js/lore.js": "./js/lore.js?v=20261025173915",
+    "./js/main.js": "./js/main.js?v=20261025173915",
+    "./js/mimic.js": "./js/mimic.js?v=20261025173915",
+    "./js/mp.js": "./js/mp.js?v=20261025173915",
+    "./js/net.js": "./js/net.js?v=20261025173915",
+    "./js/objectives.js": "./js/objectives.js?v=20261025173915",
+    "./js/remote.js": "./js/remote.js?v=20261025173915",
+    "./js/samples.js": "./js/samples.js?v=20261025173915",
+    "./js/scares.js": "./js/scares.js?v=20261025173915",
+    "./js/sfx.js": "./js/sfx.js?v=20261025173915",
+    "./js/story.js": "./js/story.js?v=20261025173915",
+    "./js/textures.js": "./js/textures.js?v=20261025173915",
+    "./js/traitor.js": "./js/traitor.js?v=20261025173915",
+    "./js/vc.js": "./js/vc.js?v=20261025173915",
+    "./js/version.js": "./js/version.js?v=20261025173915",
+    "./js/vhs.js": "./js/vhs.js?v=20261025173915",
+    "./js/voice.js": "./js/voice.js?v=20261025173915"
   }
 }
 </script>
 <!-- Fetch every game module in parallel (must come after the import map). Add new js files here too. -->
 <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js">
-<link rel="modulepreload" href="js/main.js?v=20261025160103">
-<link rel="modulepreload" href="js/game.js?v=20261025160103">
-<link rel="modulepreload" href="js/level.js?v=20261025160103">
-<link rel="modulepreload" href="js/mimic.js?v=20261025160103">
-<link rel="modulepreload" href="js/director.js?v=20261025160103">
-<link rel="modulepreload" href="js/sfx.js?v=20261025160103">
-<link rel="modulepreload" href="js/voice.js?v=20261025160103">
-<link rel="modulepreload" href="js/textures.js?v=20261025160103">
-<link rel="modulepreload" href="js/net.js?v=20261025160103">
-<link rel="modulepreload" href="js/vc.js?v=20261025160103">
-<link rel="modulepreload" href="js/mp.js?v=20261025160103">
-<link rel="modulepreload" href="js/remote.js?v=20261025160103">
-<link rel="modulepreload" href="js/classes.js?v=20261025160103">
-<link rel="modulepreload" href="js/objectives.js?v=20261025160103">
-<link rel="modulepreload" href="js/abilities.js?v=20261025160103">
-<link rel="modulepreload" href="js/heartbeat.js?v=20261025160103">
-<link rel="modulepreload" href="js/scares.js?v=20261025160103">
-<link rel="modulepreload" href="js/lore.js?v=20261025160103">
-<link rel="modulepreload" href="js/story.js?v=20261025160103">
-<link rel="modulepreload" href="js/traitor.js?v=20261025160103">
-<link rel="modulepreload" href="js/samples.js?v=20261025160103">
-<link rel="modulepreload" href="js/events.js?v=20261025160103">
-<link rel="modulepreload" href="js/hand.js?v=20261025160103">
-<link rel="modulepreload" href="js/vhs.js?v=20261025160103">
-<link rel="modulepreload" href="js/version.js?v=20261025160103">
+<link rel="modulepreload" href="js/main.js?v=20261025173915">
+<link rel="modulepreload" href="js/game.js?v=20261025173915">
+<link rel="modulepreload" href="js/level.js?v=20261025173915">
+<link rel="modulepreload" href="js/mimic.js?v=20261025173915">
+<link rel="modulepreload" href="js/director.js?v=20261025173915">
+<link rel="modulepreload" href="js/sfx.js?v=20261025173915">
+<link rel="modulepreload" href="js/voice.js?v=20261025173915">
+<link rel="modulepreload" href="js/textures.js?v=20261025173915">
+<link rel="modulepreload" href="js/net.js?v=20261025173915">
+<link rel="modulepreload" href="js/vc.js?v=20261025173915">
+<link rel="modulepreload" href="js/mp.js?v=20261025173915">
+<link rel="modulepreload" href="js/remote.js?v=20261025173915">
+<link rel="modulepreload" href="js/classes.js?v=20261025173915">
+<link rel="modulepreload" href="js/objectives.js?v=20261025173915">
+<link rel="modulepreload" href="js/abilities.js?v=20261025173915">
+<link rel="modulepreload" href="js/heartbeat.js?v=20261025173915">
+<link rel="modulepreload" href="js/scares.js?v=20261025173915">
+<link rel="modulepreload" href="js/lore.js?v=20261025173915">
+<link rel="modulepreload" href="js/story.js?v=20261025173915">
+<link rel="modulepreload" href="js/traitor.js?v=20261025173915">
+<link rel="modulepreload" href="js/samples.js?v=20261025173915">
+<link rel="modulepreload" href="js/events.js?v=20261025173915">
+<link rel="modulepreload" href="js/hand.js?v=20261025173915">
+<link rel="modulepreload" href="js/vhs.js?v=20261025173915">
+<link rel="modulepreload" href="js/controls.js?v=20261025173915">
+<link rel="modulepreload" href="js/version.js?v=20261025173915">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -92,6 +96,25 @@
 </div>
 <div id="signal" hidden><span>SIGNAL LOST</span></div>
 
+<!-- Touch controls (phones and tablets): left thumb moves, right thumb looks. -->
+<div id="touch" hidden>
+  <div id="stickBase" hidden><i id="stickKnob"></i></div>
+  <button class="t-btn t-pause" data-act="pause" aria-label="Pause">II</button>
+  <button class="t-btn t-jobs" data-k="Tab">Jobs</button>
+  <div class="t-right">
+    <button class="t-btn t-beat" data-k="Space" hidden>Tap</button>
+    <button class="t-btn t-use" data-k="KeyE">Use</button>
+    <button class="t-btn" data-k="KeyF">Light</button>
+    <button class="t-btn" data-k="KeyG">Ability</button>
+    <button class="t-btn" data-k="KeyC" data-toggle>Crouch</button>
+    <button class="t-btn" data-k="ShiftLeft" data-toggle>Run</button>
+    <button class="t-btn t-evil" data-k="KeyQ" hidden>Jam</button>
+    <button class="t-btn t-evil" data-k="KeyR" hidden>Sabotage</button>
+    <button class="t-btn t-evil" data-k="KeyV" hidden>Accuse</button>
+  </div>
+</div>
+<div id="rotate"><p>Turn your phone sideways</p></div>
+
 <!-- In-game HUD (mostly hidden: hold Tab to see it) -->
 <div id="hud" hidden>
   <div id="objective"></div>
@@ -109,21 +132,21 @@
   <!-- Generator skill check: press Space when the needle is in the bright zone. -->
   <div id="skill" hidden>
     <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" class="ring"/><path id="skillZone" class="zone"/><line id="skillNeedle" x1="50" y1="50" x2="50" y2="8" class="needle"/></svg>
-    <span><kbd>Space</kbd></span>
+    <span><kbd data-k="Space">Space</kbd></span>
   </div>
   <!-- Traitor: only the traitor sees this. -->
   <div id="traitor" hidden></div>
-  <div id="vote" hidden><p id="voteTitle" class="whisper"></p><ol id="voteList"></ol><p class="fine">Press a number to vote</p></div>
+  <div id="vote" hidden><p id="voteTitle" class="whisper"></p><ol id="voteList"></ol><p class="fine" id="voteHint">Press a number to vote</p></div>
   <!-- Old tapes: what the voice said, as subtitles. -->
   <div id="lore" hidden><p id="loreWho" class="kicker"></p><p id="loreLine"></p></div>
   <!-- The fake locker: mash E. -->
-  <div id="qte" hidden><p class="whisper">IT'S IN HERE WITH YOU</p><div class="bar"><i></i></div><p class="fine">Mash <kbd>E</kbd></p></div>
+  <div id="qte" hidden><p class="whisper">IT'S IN HERE WITH YOU</p><div class="bar"><i></i></div><p class="fine">Mash <kbd data-k="E">E</kbd></p></div>
   <!-- Hiding-spot heartbeat game: press Space as each beat reaches your heart. -->
   <div id="heart" hidden>
     <p class="whisper" id="heartText">It's right outside. Keep your heart steady.</p>
     <div class="track"><span class="core">♥</span><div id="heartBeats"></div></div>
     <p class="lives" id="heartLives"></p>
-    <p class="fine"><kbd>Space</kbd> on each beat · don't make a sound</p>
+    <p class="fine"><kbd data-k="Beat">Space</kbd> on each beat · don't make a sound</p>
   </div>
   <div id="battery">
     <svg viewBox="0 0 24 24"><path d="M7 2h10v4l-2 3v13H9V9L7 6z"/></svg>
@@ -158,20 +181,45 @@
       <li>It can <b>hear you</b>. Talking, shouting and sprinting all bring it to you. Watch the mic bar: when it turns red, it heard you.</li>
       <li>Every run has 2–3 jobs before you can restore the power: find <b>fuses</b> for the panel, repair <b>generators</b> (hit the skill checks or they bang), smash its <b>tapes</b> (each one erases some of the voices it stole), and sometimes find a <b>keycard</b> for a locked room. Then pull the power lever and get out.</li>
       <li><b>Classes</b> (all free): Brute has 2 flares that stun it. Runner is fast. Medic can save one person from a catch. Tracker has a motion tracker.</li>
-      <li>If it follows you to your hiding spot, it stops at the door and listens. Keep your heart steady (<kbd>Space</kbd> on the beat) and stay silent.</li>
+      <li>If it follows you to your hiding spot, it stops at the door and listens. Keep your heart steady (<kbd data-k="Beat">Space</kbd> on the beat) and stay silent.</li>
       <li>Hide in lockers and wardrobes. It can't see you there, but it can still hear you.</li>
       <li>The map is different every time: a research facility or an old house.</li>
       <li><b>With friends</b> (up to 4): voice chat is proximity-based. If a friend goes quiet, they might just be lost. Or it might be using their voice now.</li>
     </ul>
-    <div class="keys">
+    <div class="keys keys-mouse">
       <span><kbd>W A S D</kbd> move</span>
       <span><kbd>Shift</kbd> sprint</span>
       <span><kbd>C</kbd> crouch (quieter)</span>
       <span><kbd>F</kbd> flashlight</span>
       <span><kbd>E</kbd> interact / hide (hold to repair)</span>
       <span><kbd>G</kbd> class ability</span>
+      <span><kbd>Space</kbd> skill checks, heartbeats</span>
+      <span><kbd>Tab</kbd> objectives</span>
       <span><kbd>Esc</kbd> pause</span>
     </div>
+    <div class="keys keys-pad">
+      <span><kbd>L</kbd> move</span>
+      <span><kbd>R</kbd> look</span>
+      <span><kbd>LT</kbd> / <kbd>L3</kbd> sprint</span>
+      <span><kbd>B</kbd> crouch</span>
+      <span><kbd>X</kbd> flashlight</span>
+      <span><kbd>A</kbd> interact / hide (hold to repair), heartbeats</span>
+      <span><kbd>Y</kbd> class ability</span>
+      <span><kbd>RT</kbd> skill checks</span>
+      <span><kbd>View</kbd> objectives</span>
+      <span><kbd>Start</kbd> pause</span>
+    </div>
+    <div class="keys keys-touch">
+      <span><kbd>Left thumb</kbd> move</span>
+      <span><kbd>Right thumb</kbd> drag to look</span>
+      <span><kbd>Run</kbd> sprint until you stop</span>
+      <span><kbd>Crouch</kbd> quieter</span>
+      <span><kbd>Light</kbd> flashlight</span>
+      <span><kbd>Use</kbd> interact / hide (hold to repair)</span>
+      <span><kbd>Tap</kbd> / <kbd>Beat</kbd> appear for skill checks and heartbeats</span>
+      <span><kbd>Jobs</kbd> objectives</span>
+    </div>
+    <p class="fine keys-mouse">A controller or a touch screen works too.</p>
     <div class="buttons"><button class="back">Back</button></div>
   </div>
 </section>
@@ -180,7 +228,7 @@
 <section id="settings" class="screen" hidden>
   <div class="panel">
     <h2>Settings</h2>
-    <label class="row">Mouse sensitivity <input type="range" id="setMouse" min="0.2" max="3" step="0.05"><output></output></label>
+    <label class="row">Look sensitivity <input type="range" id="setMouse" min="0.2" max="3" step="0.05"><output></output></label>
     <label class="row">Volume <input type="range" id="setVolume" min="0" max="1" step="0.01"><output></output></label>
     <label class="row">Field of view <input type="range" id="setFov" min="60" max="100" step="1"><output></output></label>
     <label class="row">Brightness <input type="range" id="setBright" min="0.6" max="1.8" step="0.02"><output></output></label>
@@ -280,7 +328,7 @@
       <li><b>🌑 Turn the lights off.</b> Play in a dark room. The game is built for it.</li>
       <li><b>🎧 Wear headphones.</b> You'll hear which way it is, and through which wall. Speakers also let it hear itself.</li>
       <li><b>🔊 Turn the volume up.</b> Quiet is part of it. So is not-quiet.</li>
-      <li><b>🖥️ Full screen.</b> The game goes full screen when you enter (Esc pauses).</li>
+      <li><b>🖥️ Full screen.</b> <span data-mouse="The game goes full screen when you enter (Esc pauses)." data-pad="Start pauses. Press F11 for full screen." data-touch="Turn your phone sideways. The game goes full screen when you enter.">The game goes full screen when you enter (Esc pauses).</span></li>
       <li><b>🎙️ Talk normally.</b> It learns from your voice. The less you say, the less it has, and the more it listens.</li>
       <li><b>⏱️ Give it 20 minutes,</b> alone, without distractions.</li>
     </ul>
@@ -301,7 +349,7 @@
     <h2 id="introName"></h2>
     <div id="introText"></div>
     <p class="whisper" id="introWhisper">If you hear yourself, it isn't you.</p>
-    <div class="buttons"><button id="btnEnter" class="primary">Click to enter</button></div>
+    <div class="buttons"><button id="btnEnter" class="primary" data-mouse="Click to enter" data-pad="Press A to enter" data-touch="Tap to enter">Click to enter</button></div>
   </div>
 </section>
 
@@ -333,6 +381,6 @@
   </div>
 </section>
 
-<script type="module" src="js/main.js?v=20261025160103"></script>
+<script type="module" src="js/main.js?v=20261025173915"></script>
 </body>
 </html>

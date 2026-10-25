@@ -63,5 +63,9 @@ Hold `Tab` to see your objectives.
 Controls: `WASD` move, mouse look, `Shift` sprint, `C` crouch, `F` flashlight, `E` interact / hide (hold to
 repair), `G` class ability, `Space` skill checks and heartbeats, `Esc` pause.
 
+**Controllers and phones work too.** Controller: left stick move, right stick look, `A` use, `B` crouch, `X` flashlight,
+`Y` ability, `LT` sprint, `RT` skill checks, `Start` pause (menus work with the D-pad). Phone or tablet: play sideways, left
+thumb moves, drag with the right thumb to look, and tap the on-screen buttons.
+
 Privacy: recordings stay in memory in your browser tab. They are never uploaded or saved to disk,
 and closing the tab deletes them.

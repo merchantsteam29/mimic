@@ -12,6 +12,7 @@ import { newCode, cleanCode, cleanName } from './net.js';
 import { CLASSES, CLASS_ORDER } from './classes.js';
 import { VERSION } from './version.js';
 import { CHAPTERS, SIGNAL, storyProgress, finishChapter } from './story.js';
+import { controls, initControls } from './controls.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -275,12 +276,21 @@ function goFullscreen() {
   document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
 }
 
+// Phones play sideways.
+function goLandscape() {
+  screen.orientation?.lock?.('landscape').catch(() => {});
+}
+
+// Controllers and touch screens play without pointer lock (a gamepad press can't ask for it).
+const usesLock = () => controls.mode === 'mouse' && !game?.noLock;
+
 $('btnEnter').onclick = () => {
   ensureAudio();
   goFullscreen();
+  if (controls.mode === 'touch') goLandscape();
   show(null);
   game.begin();
-  lock();
+  if (usesLock()) lock();
 };
 
 // Leaving full screen while playing pauses, like Esc.
@@ -288,24 +298,42 @@ document.addEventListener('fullscreenchange', () => {
   if (!document.fullscreenElement && game && (game.state === 'playing' || game.state === 'spectate') && document.pointerLockElement) document.exitPointerLock();
 });
 
+function openPause() {
+  if (!game || game.paused || !(game.state === 'playing' || game.state === 'spectate')) return;
+  game.pause();
+  $('pauseClips').textContent = session
+    ? 'The game keeps going while this menu is open.'
+    : voice.clips.length ? `It has ${voice.clips.length} recording${voice.clips.length > 1 ? 's' : ''} of your voice.` : '';
+  $('btnQuit').textContent = session ? 'Leave game' : 'Quit to menu';
+  if (controls.mode === 'mouse') $('pauseClips').textContent += (($('pauseClips').textContent ? ' ' : '') + 'Resume returns to full screen.');
+  show('pause');
+}
+
+function closePause() {
+  if (!game?.paused) return;
+  show(null);
+  game.resume();
+}
+
 document.addEventListener('pointerlockchange', () => {
   if (!game) return;
-  const live = game.state === 'playing' || game.state === 'spectate';
-  if (!document.pointerLockElement && live && !game.paused) {
-    game.pause();
-    $('pauseClips').textContent = session
-      ? 'The game keeps going while this menu is open.'
-      : voice.clips.length ? `It has ${voice.clips.length} recording${voice.clips.length > 1 ? 's' : ''} of your voice.` : '';
-    $('btnQuit').textContent = session ? 'Leave game' : 'Quit to menu';
-    $('pauseClips').textContent += (($('pauseClips').textContent ? ' ' : '') + 'Resume returns to full screen.');
-    show('pause');
-  } else if (document.pointerLockElement && game.paused) {
-    show(null);
-    game.resume();
-  }
+  if (!document.pointerLockElement) openPause();
+  else closePause();
 });
 
-$('btnResume').onclick = () => { goFullscreen(); lock(); };
+// Start on a controller, or the touch pause button.
+controls.getGame = () => game;
+controls.onPause = () => { if (document.pointerLockElement) document.exitPointerLock(); else openPause(); };
+initControls();
+// Switching apps on a phone (or tabs without pointer lock) pauses too.
+document.addEventListener('visibilitychange', () => { if (document.hidden && !document.pointerLockElement) openPause(); });
+
+$('btnResume').onclick = () => {
+  goFullscreen();
+  if (usesLock()) { lock(); return; } // resumes once the lock is back
+  if (controls.mode === 'touch') goLandscape();
+  closePause();
+};
 // Clicking the game view while paused also resumes (handy after the browser's Esc cooldown).
 renderer.domElement.addEventListener('click', () => {
   if (game && (game.state === 'playing' || game.state === 'spectate') && !document.pointerLockElement && !game.noLock) { goFullscreen(); lock(); }

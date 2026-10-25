@@ -16,6 +16,7 @@ import { Traitor } from './traitor.js';
 import { Events } from './events.js';
 import { Hand } from './hand.js';
 import { mulberry32 } from './level.js';
+import { keyLabel, rumble } from './controls.js';
 
 const POOL = 6;              // real point lights, moved to the nearest fixtures
 const EYE = 1.62, EYE_CROUCH = 1.0;
@@ -166,9 +167,9 @@ export class Game {
     this.onMouse = (e) => {
       if (this.state !== 'playing' || this.menuOpen || (!document.pointerLockElement && !this.noLock)) return;
       const s = 0.0022 * this.settings.mouse;
-      this.p.yaw -= e.movementX * s;
-      this.p.pitch = clamp(this.p.pitch - e.movementY * s, -1.45, 1.45);
+      this.look(e.movementX * s, e.movementY * s);
     };
+    this.stick = null; // analog movement from a controller or the touch stick (controls.js), x/y in -1..1
     this.onClick = () => { if (this.state === 'spectate' && document.pointerLockElement) this.specIdx++; };
     addEventListener('keydown', this.onKeyDown);
     addEventListener('keyup', this.onKeyUp);
@@ -198,6 +199,13 @@ export class Game {
     this.peekHud = 6;
     this.updateObjective();
     this.toast(this.level.name);
+  }
+
+  // Turn the view (radians). The mouse, a controller's right stick and touch drags all come here.
+  look(dx, dy) {
+    if (this.state !== 'playing' || this.menuOpen) return;
+    this.p.yaw -= dx;
+    this.p.pitch = clamp(this.p.pitch - dy, -1.45, 1.45);
   }
 
   get paused() { return this.state === 'paused' || !!this.menuOpen; }
@@ -664,8 +672,10 @@ export class Game {
       p.speed = 0;
       return;
     }
-    const f = (k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 1 : 0);
-    const s = (k.has('KeyD') || k.has('ArrowRight') ? 1 : 0) - (k.has('KeyA') || k.has('ArrowLeft') ? 1 : 0);
+    let f = (k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 1 : 0);
+    let s = (k.has('KeyD') || k.has('ArrowRight') ? 1 : 0) - (k.has('KeyA') || k.has('ArrowLeft') ? 1 : 0);
+    if (this.stick) { f = clamp(f - this.stick.y, -1, 1); s = clamp(s + this.stick.x, -1, 1); }
+    const push = Math.min(1, Math.hypot(f, s)); // a half-pushed stick walks slower
     p.crouch = k.has('KeyC');
     const sprint = (k.has('ShiftLeft') || k.has('ShiftRight')) && (f || s) && f >= 0 && !p.crouch && !p.tired;
 
@@ -681,7 +691,7 @@ export class Game {
     const sin = Math.sin(p.yaw), cos = Math.cos(p.yaw);
     let wx = -sin * f + cos * s, wz = -cos * f - sin * s;
     const wl = Math.hypot(wx, wz);
-    if (wl > 0) { wx /= wl; wz /= wl; }
+    if (wl > 0) { wx *= push / wl; wz *= push / wl; }
     const a = 1 - Math.exp(-dt * 12);
     p.vx += (wx * speed - p.vx) * a;
     p.vz += (wz * speed - p.vz) * a;
@@ -801,7 +811,7 @@ export class Game {
   }
 
   setPrompt(text) {
-    if (text) this.hud.prompt.innerHTML = `<kbd>E</kbd>${text}`;
+    if (text) this.hud.prompt.innerHTML = `<kbd>${keyLabel('E')}</kbd>${text}`;
     this.hud.prompt.classList.toggle('on', !!text);
   }
 
@@ -1175,6 +1185,7 @@ export class Game {
     this.hud.flash.classList.add('hit');
     this.sfx.stopAmbient();
     this.sfx.screech();
+    rumble(1, 700);
     this.sfx.setDread(0);
     this.renderer.domElement.style.transform = this.renderer.domElement.style.filter = '';
     setTimeout(() => this.localSpeak('scream', null), 150);
@@ -1245,7 +1256,7 @@ export class Game {
     const living = [...this.remotes.entries()].filter(([id, r]) => this.alive(id) && r.seen);
     if (!living.length) { this.hud.spec.textContent = 'No one is left to watch.'; return null; }
     const [id, r] = living[this.specIdx % living.length];
-    this.hud.spec.textContent = `Watching ${this.nameOf(id)}  ·  Space for next  ·  Only the dead can hear you`;
+    this.hud.spec.textContent = `Watching ${this.nameOf(id)}  ·  ${keyLabel('Next')} for next  ·  Only the dead can hear you`;
     return r;
   }
 

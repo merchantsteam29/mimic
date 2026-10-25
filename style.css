@@ -236,3 +236,38 @@ body.vhs #grain, body.vhs #vignette { display: none; }
 .calib-shapes { display: flex; justify-content: center; gap: 40px; background: #000; padding: 18px; font-size: 54px; line-height: 1; }
 /* The same three greys the game's darkest shadows use; brightness is applied by the slider (filter). */
 .calib-shapes .s1 { color: #070707; } .calib-shapes .s2 { color: #141414; } .calib-shapes .s3 { color: #2a2a2a; }
+
+/* ---------- controllers and touch (controls.js) ---------- */
+.keys-pad, .keys-touch { display: none; }
+body.input-pad .keys-mouse, body.input-touch .keys-mouse { display: none; }
+body.input-pad .keys.keys-pad, body.input-touch .keys.keys-touch { display: flex; }
+body.input-pad .screen button:focus, body.input-pad .screen input:focus { outline: 2px solid var(--ink); outline-offset: 3px; }
+body.ingame.input-pad { cursor: none; }
+
+#touch { position: fixed; inset: 0; z-index: 5; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+#stickBase { position: absolute; left: -60px; top: -60px; width: 120px; height: 120px; border-radius: 50%; border: 1px solid rgba(233,228,218,.25); background: rgba(233,228,218,.05); pointer-events: none; }
+#stickKnob { position: absolute; left: 36px; top: 36px; width: 48px; height: 48px; border-radius: 50%; background: rgba(233,228,218,.22); }
+.t-btn { position: absolute; padding: 0; width: 64px; height: 64px; border-radius: 50%; font-size: 11px; letter-spacing: .06em;
+  border: 1px solid rgba(233,228,218,.28); background: rgba(8,8,8,.35); color: rgba(233,228,218,.8); touch-action: none; }
+.t-btn.on { background: rgba(233,228,218,.25); border-color: var(--ink); color: var(--ink); }
+.t-btn[hidden] { display: none; }
+/* Clear of the camcorder overlay (REC top-left, tape counter bottom-right). */
+.t-pause { left: calc(14px + env(safe-area-inset-left)); top: 56px; width: 44px; height: 44px; }
+.t-jobs { left: calc(66px + env(safe-area-inset-left)); top: 56px; width: 58px; height: 44px; border-radius: 22px; }
+.t-right { position: absolute; right: calc(16px + env(safe-area-inset-right)); bottom: 62px; width: 250px; height: 270px; pointer-events: none; }
+.t-right .t-btn { pointer-events: auto; }
+.t-use { right: 0; bottom: 0; width: 84px; height: 84px; font-size: 13px; border-color: rgba(196,26,50,.7); }
+.t-right [data-k="KeyF"] { right: 98px; bottom: 0; }
+.t-right [data-k="KeyC"] { right: 176px; bottom: 0; }
+.t-right [data-k="ShiftLeft"] { right: 94px; bottom: 76px; }
+.t-right [data-k="KeyG"] { right: 10px; bottom: 98px; }
+.t-beat { right: 14px; bottom: 176px; width: 84px; height: 84px; font-size: 14px; border-color: var(--red); background: rgba(196,26,50,.3); }
+.t-evil { border-color: #ff5468; color: #ff5468; width: 56px; height: 56px; font-size: 10px; }
+.t-right [data-k="KeyQ"] { right: 178px; bottom: 80px; }
+.t-right [data-k="KeyR"] { right: 178px; bottom: 146px; }
+.t-right [data-k="KeyV"] { right: 112px; bottom: 150px; }
+body.input-touch #vote li { pointer-events: auto; cursor: pointer; padding: 6px 0; }
+body.input-touch #prompt { top: calc(50% + 26px); font-size: 14px; }
+
+#rotate { display: none; position: fixed; inset: 0; z-index: 20; place-items: center; background: #000; color: var(--dim); font: 18px "Special Elite", monospace; letter-spacing: .1em; }
+@media (orientation: portrait) { body.ingame.input-touch #rotate { display: grid; } }

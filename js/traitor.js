@@ -6,6 +6,8 @@
 //   it takes them. Vote out someone innocent: it gets hungrier.
 // The host knows who it is; only the traitor's own browser is told ('role').
 
+import { keyLabel } from './controls.js';
+
 const JAM_TIME = 20, JAM_CD = 45, SAB_CD = 40, VOTE_TIME = 20;
 
 export class Traitor {
@@ -38,12 +40,12 @@ export class Traitor {
   draw() {
     if (!this.me) return;
     const cd = (t) => (t > 0 ? ` (${Math.ceil(t)}s)` : '');
-    this.el.badge.innerHTML = `<b>You are working for it.</b> <kbd>Q</kbd>jam a door${cd(this.jamT)} · <kbd>R</kbd>sabotage${cd(this.sabT)}`;
+    this.el.badge.innerHTML = `<b>You are working for it.</b> <kbd>${keyLabel('Q')}</kbd>jam a door${cd(this.jamT)} · <kbd>${keyLabel('R')}</kbd>sabotage${cd(this.sabT)}`;
   }
 
   // Extra prompt text at the power panel.
   panelHint() {
-    return this.on && !this.voteUsed && this.g.alive(this.g.me) ? '  ·  V accuse someone' : '';
+    return this.on && !this.voteUsed && this.g.alive(this.g.me) ? `  ·  ${keyLabel('V')} accuse someone` : '';
   }
 
   // Keys. True if used.
@@ -151,8 +153,8 @@ export class Traitor {
         if (!g.alive(g.me) || !m.ids.includes(g.me)) return true;
         this.voting = m.ids;
         this.el.voteTitle.textContent = `${g.nameOf(m.by)} called a vote: who is working for it?`;
-        this.el.voteList.innerHTML = m.ids.map((id, i) => `<li><kbd>${i + 1}</kbd>${esc(g.nameOf(id))}${id === g.me ? ' (you)' : ''}</li>`).join('')
-          + '<li><kbd>0</kbd>Nobody</li>';
+        this.el.voteList.innerHTML = m.ids.map((id, i) => `<li><kbd>${keyLabel(i + 1)}</kbd>${esc(g.nameOf(id))}${id === g.me ? ' (you)' : ''}</li>`).join('')
+          + `<li><kbd>${keyLabel(0)}</kbd>Nobody</li>`;
         this.el.vote.hidden = false;
         this.voteT = VOTE_TIME;
         return true;
