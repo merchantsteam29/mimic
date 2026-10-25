@@ -7,62 +7,66 @@
 <meta name="theme-color" content="#050505">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23050505'/><ellipse cx='22' cy='26' rx='7' ry='10' fill='%23c9c2b4'/><ellipse cx='42' cy='26' rx='7' ry='10' fill='%23c9c2b4'/><path d='M14 44 Q32 56 50 44' stroke='%23b3122a' stroke-width='4' fill='none'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=VT323&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script>window.MIMIC_VERSION = '20261025145539';</script>
+<script>window.MIMIC_VERSION = '20261025151356';</script>
 <script type="importmap">
 {
   "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
     "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-    "./js/abilities.js": "./js/abilities.js?v=20261025145539",
-    "./js/classes.js": "./js/classes.js?v=20261025145539",
-    "./js/director.js": "./js/director.js?v=20261025145539",
-    "./js/game.js": "./js/game.js?v=20261025145539",
-    "./js/heartbeat.js": "./js/heartbeat.js?v=20261025145539",
-    "./js/level.js": "./js/level.js?v=20261025145539",
-    "./js/lore.js": "./js/lore.js?v=20261025145539",
-    "./js/main.js": "./js/main.js?v=20261025145539",
-    "./js/mimic.js": "./js/mimic.js?v=20261025145539",
-    "./js/mp.js": "./js/mp.js?v=20261025145539",
-    "./js/net.js": "./js/net.js?v=20261025145539",
-    "./js/objectives.js": "./js/objectives.js?v=20261025145539",
-    "./js/remote.js": "./js/remote.js?v=20261025145539",
-    "./js/scares.js": "./js/scares.js?v=20261025145539",
-    "./js/sfx.js": "./js/sfx.js?v=20261025145539",
-    "./js/story.js": "./js/story.js?v=20261025145539",
-    "./js/textures.js": "./js/textures.js?v=20261025145539",
-    "./js/traitor.js": "./js/traitor.js?v=20261025145539",
-    "./js/vc.js": "./js/vc.js?v=20261025145539",
-    "./js/version.js": "./js/version.js?v=20261025145539",
-    "./js/voice.js": "./js/voice.js?v=20261025145539"
+    "./js/abilities.js": "./js/abilities.js?v=20261025151356",
+    "./js/classes.js": "./js/classes.js?v=20261025151356",
+    "./js/director.js": "./js/director.js?v=20261025151356",
+    "./js/game.js": "./js/game.js?v=20261025151356",
+    "./js/heartbeat.js": "./js/heartbeat.js?v=20261025151356",
+    "./js/level.js": "./js/level.js?v=20261025151356",
+    "./js/lore.js": "./js/lore.js?v=20261025151356",
+    "./js/main.js": "./js/main.js?v=20261025151356",
+    "./js/mimic.js": "./js/mimic.js?v=20261025151356",
+    "./js/mp.js": "./js/mp.js?v=20261025151356",
+    "./js/net.js": "./js/net.js?v=20261025151356",
+    "./js/objectives.js": "./js/objectives.js?v=20261025151356",
+    "./js/remote.js": "./js/remote.js?v=20261025151356",
+    "./js/samples.js": "./js/samples.js?v=20261025151356",
+    "./js/scares.js": "./js/scares.js?v=20261025151356",
+    "./js/sfx.js": "./js/sfx.js?v=20261025151356",
+    "./js/story.js": "./js/story.js?v=20261025151356",
+    "./js/textures.js": "./js/textures.js?v=20261025151356",
+    "./js/traitor.js": "./js/traitor.js?v=20261025151356",
+    "./js/vc.js": "./js/vc.js?v=20261025151356",
+    "./js/version.js": "./js/version.js?v=20261025151356",
+    "./js/vhs.js": "./js/vhs.js?v=20261025151356",
+    "./js/voice.js": "./js/voice.js?v=20261025151356"
   }
 }
 </script>
 <!-- Fetch every game module in parallel (must come after the import map). Add new js files here too. -->
 <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js">
-<link rel="modulepreload" href="js/main.js?v=20261025145539">
-<link rel="modulepreload" href="js/game.js?v=20261025145539">
-<link rel="modulepreload" href="js/level.js?v=20261025145539">
-<link rel="modulepreload" href="js/mimic.js?v=20261025145539">
-<link rel="modulepreload" href="js/director.js?v=20261025145539">
-<link rel="modulepreload" href="js/sfx.js?v=20261025145539">
-<link rel="modulepreload" href="js/voice.js?v=20261025145539">
-<link rel="modulepreload" href="js/textures.js?v=20261025145539">
-<link rel="modulepreload" href="js/net.js?v=20261025145539">
-<link rel="modulepreload" href="js/vc.js?v=20261025145539">
-<link rel="modulepreload" href="js/mp.js?v=20261025145539">
-<link rel="modulepreload" href="js/remote.js?v=20261025145539">
-<link rel="modulepreload" href="js/classes.js?v=20261025145539">
-<link rel="modulepreload" href="js/objectives.js?v=20261025145539">
-<link rel="modulepreload" href="js/abilities.js?v=20261025145539">
-<link rel="modulepreload" href="js/heartbeat.js?v=20261025145539">
-<link rel="modulepreload" href="js/scares.js?v=20261025145539">
-<link rel="modulepreload" href="js/lore.js?v=20261025145539">
-<link rel="modulepreload" href="js/story.js?v=20261025145539">
-<link rel="modulepreload" href="js/traitor.js?v=20261025145539">
-<link rel="modulepreload" href="js/version.js?v=20261025145539">
+<link rel="modulepreload" href="js/main.js?v=20261025151356">
+<link rel="modulepreload" href="js/game.js?v=20261025151356">
+<link rel="modulepreload" href="js/level.js?v=20261025151356">
+<link rel="modulepreload" href="js/mimic.js?v=20261025151356">
+<link rel="modulepreload" href="js/director.js?v=20261025151356">
+<link rel="modulepreload" href="js/sfx.js?v=20261025151356">
+<link rel="modulepreload" href="js/voice.js?v=20261025151356">
+<link rel="modulepreload" href="js/textures.js?v=20261025151356">
+<link rel="modulepreload" href="js/net.js?v=20261025151356">
+<link rel="modulepreload" href="js/vc.js?v=20261025151356">
+<link rel="modulepreload" href="js/mp.js?v=20261025151356">
+<link rel="modulepreload" href="js/remote.js?v=20261025151356">
+<link rel="modulepreload" href="js/classes.js?v=20261025151356">
+<link rel="modulepreload" href="js/objectives.js?v=20261025151356">
+<link rel="modulepreload" href="js/abilities.js?v=20261025151356">
+<link rel="modulepreload" href="js/heartbeat.js?v=20261025151356">
+<link rel="modulepreload" href="js/scares.js?v=20261025151356">
+<link rel="modulepreload" href="js/lore.js?v=20261025151356">
+<link rel="modulepreload" href="js/story.js?v=20261025151356">
+<link rel="modulepreload" href="js/traitor.js?v=20261025151356">
+<link rel="modulepreload" href="js/samples.js?v=20261025151356">
+<link rel="modulepreload" href="js/vhs.js?v=20261025151356">
+<link rel="modulepreload" href="js/version.js?v=20261025151356">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -75,7 +79,16 @@
 <div id="flash"></div>
 <div id="spec" hidden></div>
 
-<!-- In-game HUD -->
+<!-- Camcorder overlay (found footage) -->
+<div id="cam" hidden>
+  <span class="rec">● REC</span>
+  <span class="bat" title="Flashlight battery"><i></i></span>
+  <span class="stamp" id="camStamp"></span>
+  <span class="counter" id="camCounter"></span>
+</div>
+<div id="signal" hidden><span>SIGNAL LOST</span></div>
+
+<!-- In-game HUD (mostly hidden: hold Tab to see it) -->
 <div id="hud" hidden>
   <div id="objective"></div>
   <div id="crosshair"></div>
@@ -291,6 +304,6 @@
   </div>
 </section>
 
-<script type="module" src="js/main.js?v=20261025145539"></script>
+<script type="module" src="js/main.js?v=20261025151356"></script>
 </body>
 </html>

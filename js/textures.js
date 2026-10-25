@@ -201,45 +201,75 @@ function label(text, bg, fg, w = 256, h = 96, font = 'bold 64px Inter, sans-seri
   return t;
 }
 
-// The mimic's face: pale, stretched, with an empty smile. Transparent outside the face.
+// The mimic's face: almost human. Grey, stretched skin, eyes sunk into dark sockets with tiny
+// staring pupils, hollow cheeks, and the top row of its teeth (the jaw is a separate piece).
 export function faceTexture() {
-  const [c, g] = canvas(256, 320);
-  const skin = g.createRadialGradient(128, 140, 20, 128, 160, 150);
-  skin.addColorStop(0, '#9e978a'); skin.addColorStop(0.65, '#6b655a'); skin.addColorStop(1, '#2a2622');
+  const [c, g] = canvas(256, 256);
+  const skin = g.createRadialGradient(128, 110, 10, 128, 130, 150);
+  skin.addColorStop(0, '#b5ad9f'); skin.addColorStop(0.55, '#8a8276'); skin.addColorStop(1, 'rgba(60,55,50,0)');
   g.fillStyle = skin;
-  g.beginPath(); g.ellipse(128, 160, 108, 150, 0, 0, Math.PI * 2); g.fill();
-  // Eye holes.
-  g.fillStyle = '#050403';
-  [[84, 128], [172, 128]].forEach(([x, y], i) => {
-    g.beginPath(); g.ellipse(x, y + (i ? 8 : 0), 30, 44, i ? 0.2 : -0.2, 0, Math.PI * 2); g.fill();
-  });
-  // Dark streaks running down from the eyes.
-  for (const x of [84, 172]) for (let i = 0; i < 3; i++) {
-    const sx = x - 14 + Math.random() * 28, len = 50 + Math.random() * 70;
-    const grad = g.createLinearGradient(0, 150, 0, 150 + len);
-    grad.addColorStop(0, 'rgba(5,4,3,.9)'); grad.addColorStop(1, 'rgba(5,4,3,0)');
-    g.fillStyle = grad;
-    g.fillRect(sx, 150, 3 + Math.random() * 4, len);
-  }
-  // Mouth: far too wide, with thin teeth.
-  g.beginPath();
-  g.moveTo(40, 220); g.quadraticCurveTo(128, 290, 216, 216); g.quadraticCurveTo(128, 262, 40, 220);
-  g.fill();
-  g.strokeStyle = 'rgba(200,190,170,.7)'; g.lineWidth = 2;
-  for (let x = 54; x < 206; x += 9) {
-    const y = 224 + Math.sin(((x - 40) / 176) * Math.PI) * 22;
-    g.beginPath(); g.moveTo(x, y - 6); g.lineTo(x + 1, y + 8); g.stroke();
-  }
-  // Dirt and veins.
+  g.beginPath(); g.ellipse(128, 128, 112, 128, 0, 0, Math.PI * 2); g.fill();
   g.globalCompositeOperation = 'source-atop';
-  stains(g, 256, 320, 6, 'rgba(60,40,30,.35)');
-  g.strokeStyle = 'rgba(70,40,50,.35)'; g.lineWidth = 1.5;
-  for (let i = 0; i < 6; i++) {
-    let x = 60 + Math.random() * 140, y = 30 + Math.random() * 60;
+  const dark = (x, y, rx, ry, a) => {
+    const gr = g.createRadialGradient(x, y, 2, x, y, Math.max(rx, ry));
+    gr.addColorStop(0, `rgba(8,6,5,${a})`); gr.addColorStop(0.55, `rgba(20,14,12,${a * 0.75})`); gr.addColorStop(1, 'rgba(20,14,12,0)');
+    g.fillStyle = gr;
+    g.save(); g.translate(x, y); g.scale(rx / Math.max(rx, ry), ry / Math.max(rx, ry)); g.translate(-x, -y);
+    g.beginPath(); g.arc(x, y, Math.max(rx, ry), 0, Math.PI * 2); g.fill(); g.restore();
+  };
+  dark(86, 112, 40, 34, 0.97); dark(170, 116, 40, 34, 0.97);     // eye sockets
+  dark(70, 176, 26, 40, 0.45); dark(186, 178, 26, 40, 0.45);     // hollow cheeks
+  dark(128, 60, 70, 18, 0.18);                                    // brow
+  // Eyes: wet, too wide, pupils pinpricks that don't quite look the same way.
+  [[86, 114, -3], [170, 118, 4]].forEach(([x, y, off]) => {
+    g.fillStyle = 'rgba(200,190,170,.85)';
+    g.beginPath(); g.ellipse(x, y, 13, 9, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#050403';
+    g.beginPath(); g.arc(x + off, y, 3, 0, Math.PI * 2); g.fill();
+  });
+  // Nose: a long shadow, and nostrils.
+  const nose = g.createLinearGradient(118, 120, 138, 120);
+  nose.addColorStop(0, 'rgba(30,20,15,.35)'); nose.addColorStop(0.5, 'rgba(0,0,0,0)'); nose.addColorStop(1, 'rgba(30,20,15,.25)');
+  g.fillStyle = nose; g.fillRect(116, 110, 24, 80);
+  g.fillStyle = 'rgba(10,6,5,.9)';
+  g.beginPath(); g.ellipse(120, 194, 5, 3, 0.3, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.ellipse(136, 194, 5, 3, -0.3, 0, Math.PI * 2); g.fill();
+  // Upper lip and the top row of teeth along the bottom edge.
+  g.fillStyle = 'rgba(70,40,38,.9)'; g.fillRect(70, 222, 116, 8);
+  for (let x = 74; x < 182; x += 7) {
+    g.fillStyle = `rgb(${170 + Math.random() * 30},${160 + Math.random() * 25},${120 + Math.random() * 20})`;
+    g.fillRect(x, 229, 5, 10 + Math.random() * 14);
+  }
+  // Blotches and veins.
+  stains(g, 256, 256, 7, 'rgba(70,45,40,.3)');
+  g.strokeStyle = 'rgba(60,50,80,.3)'; g.lineWidth = 1.2;
+  for (let i = 0; i < 7; i++) {
+    let x = 40 + Math.random() * 176, y = 20 + Math.random() * 60;
     g.beginPath(); g.moveTo(x, y);
-    for (let j = 0; j < 6; j++) { x += (Math.random() - 0.5) * 20; y += Math.random() * 14; g.lineTo(x, y); }
+    for (let j = 0; j < 6; j++) { x += (Math.random() - 0.5) * 18; y += Math.random() * 12; g.lineTo(x, y); }
     g.stroke();
   }
+  g.globalCompositeOperation = 'source-over';
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+// The jaw: lower teeth along the top, a split lip, a long chin.
+export function jawTexture() {
+  const [c, g] = canvas(256, 160);
+  const skin = g.createLinearGradient(0, 0, 0, 160);
+  skin.addColorStop(0, '#8e8679'); skin.addColorStop(1, 'rgba(70,64,58,0)');
+  g.fillStyle = skin;
+  g.beginPath(); g.moveTo(20, 0); g.lineTo(236, 0); g.quadraticCurveTo(220, 140, 128, 158); g.quadraticCurveTo(36, 140, 20, 0); g.fill();
+  g.globalCompositeOperation = 'source-atop';
+  g.fillStyle = 'rgba(60,30,28,.95)'; g.fillRect(0, 18, 256, 9);
+  for (let x = 48; x < 210; x += 7) {
+    g.fillStyle = `rgb(${165 + Math.random() * 30},${150 + Math.random() * 25},${110 + Math.random() * 20})`;
+    const h = 8 + Math.random() * 12;
+    g.fillRect(x, 18 - h, 5, h);
+  }
+  stains(g, 256, 160, 4, 'rgba(60,40,35,.35)');
   g.globalCompositeOperation = 'source-over';
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;

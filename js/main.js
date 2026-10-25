@@ -2,6 +2,8 @@
 import * as THREE from 'three';
 import { Game } from './game.js';
 import { Sfx } from './sfx.js';
+import { Samples } from './samples.js';
+import { VHS } from './vhs.js';
 import { Voice } from './voice.js';
 import { THEMES } from './level.js';
 import { grainDataUrl } from './textures.js';
@@ -35,13 +37,15 @@ const saveSettings = () => { try { localStorage.setItem('mimic.settings', JSON.s
 
 // ---------- renderer ----------
 const renderer = new THREE.WebGLRenderer({ canvas: $('view'), antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.setPixelRatio(1); // the camcorder pass renders the scene at VHS resolution anyway
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.1;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); game?.resize(); });
+const vhs = new VHS(renderer);
+document.body.classList.add('vhs');
+addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); vhs.resize(); game?.resize(); });
 
 $('grain').style.backgroundImage = `url(${grainDataUrl()})`;
 
@@ -51,6 +55,8 @@ const hud = {
   stamina: $('stamina'), staminaBar: document.querySelector('#stamina i'),
   battery: $('battery'), batteryBar: document.querySelector('#battery .bar i'),
   fear: $('fear'), flash: $('flash'), locker: $('locker'), grain: $('grain'), spec: $('spec'),
+  cam: $('cam'), camStamp: $('camStamp'), camCounter: $('camCounter'), camBat: document.querySelector('#cam .bat i'), camBatBox: document.querySelector('#cam .bat'),
+  signal: $('signal'),
 };
 
 // ---------- audio ----------
@@ -63,6 +69,8 @@ function ensureAudio() {
     ctx = new AudioContext({ latencyHint: 'interactive' });
     sfx = new Sfx(ctx);
     sfx.setVolume(settings.volume);
+    sfx.samples = new Samples(ctx);
+    sfx.samples.load(); // recorded sounds (CC0); synthesized ones stand in until they arrive
   }
   if (ctx.state === 'suspended') ctx.resume();
 }
@@ -222,7 +230,7 @@ function startRun(si = null) {
   const themeId = story ? story.theme : params.get('theme') in THEMES ? params.get('theme') : Math.random() < 0.5 ? 'facility' : 'house';
   const seed = story ? story.seed : params.has('seed') ? Number(params.get('seed')) : Math.floor(Math.random() * 2 ** 31);
   game = new Game({
-    renderer, sfx, voice, settings, hud, themeId, seed, story, classes: { h: params.get('class') in CLASSES ? params.get('class') : myClass },
+    renderer, vhs, sfx, voice, settings, hud, themeId, seed, story, classes: { h: params.get('class') in CLASSES ? params.get('class') : myClass },
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),
   });
@@ -468,7 +476,7 @@ function startMpRun(m) {
   game?.dispose();
   const themeId = m.theme in THEMES ? m.theme : 'facility';
   game = new Game({
-    renderer, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order, classes: m.classes || {},
+    renderer, vhs, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order, classes: m.classes || {},
     mode: m.mode === 'story' ? 'story' : 'normal', traitorId: session.isHost ? session.traitorId : null,
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),

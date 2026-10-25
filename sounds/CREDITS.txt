@@ -1,0 +1,8 @@
+All sounds here are CC0 (public domain). Thank you to the authors.
+
+- Kenney, "RPG Audio" and "Impact Sounds" (CC0): https://kenney.nl/assets/rpg-audio , https://kenney.nl/assets/impact-sounds
+  creak*, door*, metalLatch, metalClick, cloth*, bookFlip1, footstep_*, impact*
+- Darsycho, "Monster snarls" (CC0): https://opengameart.org/content/monster-snarls
+  snarl1, snarl2, snarl3, snarl5, snarlAttack
+- qubodup, "Ghost Monster Voice Moaning & Growling" (CC0): https://opengameart.org/content/ghost-monster-voice-moaning-growling
+  moan1-moan5

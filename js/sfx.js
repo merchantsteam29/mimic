@@ -1,6 +1,7 @@
 // All game audio, synthesized with Web Audio (no sound files). Positional sounds go through an
 // "emitter" (lowpass for walls in the way -> HRTF panner). playVoice() is the mimic's voice: it
 // replays the player's own clips through a slightly wrong-sounding chain.
+// Recorded sounds (samples.js) are used where we have them; the synthesized ones are the fallback.
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -43,6 +44,8 @@ export class Sfx {
   }
 
   get now() { return this.ctx.currentTime; }
+  // Play a recording if it's loaded. Returns true if it played.
+  rec(bank, emitter, opts) { return !!this.samples?.play(bank, emitter ? emitter.input : this.master, opts); }
   setVolume(v) { this.master.gain.setTargetAtTime(v, this.now, 0.05); }
 
   setReverb(seconds, wet) {
@@ -135,6 +138,12 @@ export class Sfx {
 
   // ---------- one-shots ----------
   footstep(emitter = null, { heavy = false, vol = 1, surface = 'hard' } = {}) {
+    if (heavy && this.rec('stepHeavy', emitter, { vol: 1.3 * vol, rate: 0.62, lowpass: 700 })) {
+      // Something drags: a short scrape after the step.
+      if (Math.random() < 0.35) this._noise(emitter ? emitter.input : this.master, { t: this.now + 0.12, dur: 0.3, freq: 2200, q: 2, peak: 0.08 * vol, attack: 0.08 });
+      return;
+    }
+    if (!heavy && this.rec(surface === 'wood' ? 'stepWood' : 'stepConcrete', emitter, { vol: 0.6 * vol })) return;
     const dest = emitter ? emitter.input : this.master;
     if (heavy) {
       this._noise(dest, { dur: 0.25, freq: 140 + Math.random() * 40, q: 0.9, peak: 0.9 * vol });
@@ -148,7 +157,7 @@ export class Sfx {
     }
   }
 
-  click() { this._noise(this.master, { dur: 0.04, freq: 3500, q: 3, peak: 0.25 }); }
+  click() { if (!this.rec('click', null, { vol: 0.5 })) this._noise(this.master, { dur: 0.04, freq: 3500, q: 3, peak: 0.25 }); }
 
   pickup() {
     const t = this.now;
@@ -158,6 +167,7 @@ export class Sfx {
   }
 
   clunk() {
+    if (this.rec('latch', null, { vol: 0.8 })) { this.rec('metal', null, { vol: 0.5, when: 0.08 }); return; }
     const t = this.now;
     this._noise(this.master, { t, dur: 0.3, freq: 200, q: 0.8, peak: 0.6 });
     this._tone(this.master, { t, type: 'square', freq: 90, to: 50, dur: 0.15, peak: 0.12 });
@@ -192,12 +202,14 @@ export class Sfx {
   }
 
   creak(emitter = null, vol = 0.3) {
+    if (this.rec('creak', emitter, { vol: vol * 2.2, rate: 0.85 })) return;
     const dest = emitter ? emitter.input : this.master;
     const { f } = this._noise(dest, { dur: 0.7, freq: 300, q: 18, peak: vol * 2.5, attack: 0.15 });
     f.frequency.exponentialRampToValueAtTime(900 + Math.random() * 500, this.now + 0.65);
   }
 
   clank(emitter = null, vol = 0.4) {
+    if (this.rec(Math.random() < 0.4 ? 'bang' : 'metal', emitter, { vol: vol * 1.5, rate: 0.8 })) return;
     const dest = emitter ? emitter.input : this.master, t = this.now;
     this._noise(dest, { t, dur: 0.15, freq: 1800, q: 1, peak: vol });
     [143, 217, 389].forEach((f, i) => this._tone(dest, { t, type: 'triangle', freq: f * rand(0.97, 1.03), dur: 1.4 - i * 0.3, peak: vol * 0.25 }));
@@ -210,7 +222,8 @@ export class Sfx {
   }
 
   // Short dissonant hit when the mimic spots you.
-  sting() {
+  sting(emitter = null) {
+    if (emitter) this.rec('snarl', emitter, { vol: 1.4, rate: 0.9 }); // it snarls when it sees you
     const t = this.now;
     [233, 247, 349].forEach((f) => this._tone(this.send, { t, type: 'sawtooth', freq: f, to: f * 0.92, dur: 1.6, peak: 0.05, attack: 0.02 }));
     this._noise(this.master, { t, dur: 0.6, freq: 5000, q: 0.6, peak: 0.12 });
@@ -218,6 +231,7 @@ export class Sfx {
 
   // Jumpscare scream.
   screech() {
+    this.rec('attack', null, { vol: 1.6, rate: 0.9, jitter: 0 });
     const ctx = this.ctx, t = this.now;
     const ws = ctx.createWaveShaper(); ws.curve = distortionCurve(60);
     const g = ctx.createGain();
@@ -361,6 +375,7 @@ export class Sfx {
 
   // A generator backfiring (failed skill check).
   bang(emitter = null) {
+    if (this.rec('bang', emitter, { vol: 2, rate: 0.75 })) { this._tone(emitter ? emitter.input : this.master, { type: 'square', freq: 70, to: 30, dur: 0.4, peak: 0.3 }); return; }
     const dest = emitter ? emitter.input : this.master, t = this.now;
     this._noise(dest, { t, dur: 0.6, type: 'lowpass', freq: 900, q: 0.5, peak: 1.4, attack: 0.002 });
     this._tone(dest, { t, type: 'square', freq: 70, to: 30, dur: 0.4, peak: 0.3 });
@@ -379,6 +394,7 @@ export class Sfx {
 
   // Smashing a tape recorder.
   smash(emitter = null) {
+    if (this.rec('glass', emitter, { vol: 1.4 })) { this.rec('metal', emitter, { vol: 0.6, when: 0.05 }); return; }
     const dest = emitter ? emitter.input : this.master, t = this.now;
     this._noise(dest, { t, dur: 0.35, freq: 3000, q: 0.5, peak: 0.9 });
     this._noise(dest, { t, dur: 0.2, type: 'lowpass', freq: 400, q: 0.5, peak: 0.8 });
@@ -423,6 +439,7 @@ export class Sfx {
 
   // A door handle turning, slowly (or yanked, when it's chasing).
   handle(emitter, fast = false) {
+    if (this.rec('latch', emitter, { vol: fast ? 1.2 : 0.8, rate: fast ? 1.1 : 0.7 })) { if (!fast) this.creak(emitter, 0.35); return; }
     const dest = emitter ? emitter.input : this.master, t = this.now;
     const n = fast ? 1 : 3;
     for (let i = 0; i < n; i++) this._noise(dest, { t: t + i * 0.35, dur: 0.18, freq: 2600, q: 6, peak: 0.25, attack: 0.04 });
@@ -430,6 +447,11 @@ export class Sfx {
   }
 
   door(emitter, open, fast = false) {
+    if (this.samples?.has('doorOpen')) {
+      if (open) { this.rec('doorOpen', emitter, { vol: 1.2, rate: fast ? 1.3 : 0.85 }); if (fast) this.rec('slam', emitter, { vol: 1.5 }); }
+      else this.rec('doorClose', emitter, { vol: 1.2 });
+      return;
+    }
     const dest = emitter ? emitter.input : this.master, t = this.now;
     if (open) {
       if (fast) this._noise(dest, { t, dur: 0.3, type: 'lowpass', freq: 400, q: 0.6, peak: 1.2 }); // slammed open
@@ -465,6 +487,17 @@ export class Sfx {
   drag(seconds = 2) {
     const t = this.now;
     for (let s = 0; s < seconds; s += 0.45) this._noise(this.master, { t: t + s, dur: 0.4, type: 'lowpass', freq: 350, q: 0.5, peak: 0.5, attack: 0.1 });
+  }
+
+  // Somewhere far off, something moans.
+  moan(emitter) { return this.rec('moan', emitter, { vol: 1.1, rate: 0.75, jitter: 0.1, lowpass: 2500 }); }
+  snarl(emitter, vol = 1.2) { return this.rec('snarl', emitter, { vol, rate: 0.85 }); }
+  cloth() { this.rec('cloth', null, { vol: 0.7 }); }
+
+  // The camcorder losing its signal.
+  static(seconds = 1.2) {
+    this._noise(this.master, { dur: seconds, type: 'highpass', freq: 800, q: 0.3, peak: 0.35, attack: 0.005 });
+    this._tone(this.master, { type: 'sine', freq: 1000, dur: seconds, peak: 0.04, attack: 0.01 });
   }
 
   // Tension: 0 = nothing near, 1 = it's right there / chasing you.

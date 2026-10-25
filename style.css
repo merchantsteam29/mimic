@@ -199,3 +199,31 @@ button.small { padding: 7px 12px; font-size: 12px; }
 #vote { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); width: min(420px, 90vw); background: rgba(0,0,0,.8); border: 1px solid var(--line); padding: 16px 20px; }
 #vote ol { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 6px; font-size: 16px; }
 #vote kbd { font: 800 11px Inter, sans-serif; border: 1px solid var(--dim); border-radius: 4px; padding: 0 6px; margin-right: 10px; }
+
+/* ---------- camcorder ---------- */
+body.vhs #grain, body.vhs #vignette { display: none; }
+#cam { position: fixed; inset: 0; pointer-events: none; font: 30px VT323, monospace; color: #e8f0e8; text-shadow: 2px 2px 0 rgba(0,0,0,.6), 0 0 6px rgba(200,255,220,.25); letter-spacing: .06em; }
+#cam span { position: absolute; }
+#cam .rec { top: 26px; left: 34px; }
+#cam .rec::first-letter { color: #ff3040; }
+#cam .rec { animation: recblink 1.6s steps(1) infinite; }
+@keyframes recblink { 60% { opacity: 1; } 61%, 100% { opacity: .15; } }
+#cam .bat { top: 30px; right: 34px; width: 46px; height: 20px; border: 3px solid #e8f0e8; box-shadow: 2px 2px 0 rgba(0,0,0,.6); }
+#cam .bat::after { content: ""; position: absolute; right: -9px; top: 4px; width: 5px; height: 7px; background: #e8f0e8; }
+#cam .bat i { position: absolute; left: 3px; top: 3px; bottom: 3px; width: calc(100% - 6px); background: #e8f0e8; }
+#cam .bat.low i { background: #ff3040; }
+#cam .stamp { bottom: 28px; left: 34px; white-space: pre; line-height: 1; }
+#cam .counter { bottom: 28px; right: 34px; }
+#signal { position: fixed; inset: 0; display: grid; place-items: center; background: #050805; font: 64px VT323, monospace; color: #e8f0e8; letter-spacing: .2em; z-index: 5; }
+#signal span { animation: recblink 0.8s steps(1) infinite; }
+
+/* The HUD stays out of the way: it shows while you hold Tab, briefly when something changes, and on its own when it matters. */
+#hud #objective, #hud #ability, #hud #mic, #hud #battery { transition: opacity .4s; }
+#hud:not(.reveal) #objective, #hud:not(.reveal) #ability { opacity: 0; }
+#hud:not(.reveal) #mic:not(.heard) { opacity: 0; }
+#hud #battery { display: none; } /* the camcorder shows the battery */
+#hud #crosshair { opacity: .25; width: 3px; height: 3px; }
+/* Keep clear of the camcorder text. */
+#objective { top: 78px; left: 34px; }
+#ability { left: 34px; bottom: 104px; }
+#mic { left: 34px; bottom: 140px; }

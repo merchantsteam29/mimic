@@ -25,8 +25,11 @@ const angleDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 const num = (v, d = 0) => (Number.isFinite(v) ? v : d);
 
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null }) {
-    Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story });
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null }) {
+    Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs });
+    this.distort = 0;    // camcorder distortion, 0..1
+    this.peekHud = 0;    // seconds the HUD stays visible after something changes
+    this.tabDown = false;
     this.me = mp ? mp.id : 'h';
     this.classes = classes || { [this.me]: 'runner' }; // player id -> class
     this.isHost = !mp || mp.isHost;
@@ -143,6 +146,7 @@ export class Game {
     this.onKeyDown = (e) => {
       if (this.menuOpen) return;
       if (this.state === 'spectate' && !e.repeat && (e.code === 'Space' || e.code === 'KeyE')) { this.specIdx++; return; }
+      if (e.code === 'Tab') { e.preventDefault(); this.tabDown = true; return; } // hold Tab to see the HUD
       if (this.state !== 'playing') return;
       if (e.code === 'Space') e.preventDefault();
       if (!e.repeat && (this.traitor.onKey(e.code) || this.scares.onKey(e.code) || this.hb.onKey(e.code) || this.obj.onKey(e.code))) return;
@@ -152,7 +156,7 @@ export class Game {
       if (e.code === 'KeyE') this.interact();
       if (e.code === 'KeyG') this.ab.use();
     };
-    this.onKeyUp = (e) => this.keys.delete(e.code);
+    this.onKeyUp = (e) => { this.keys.delete(e.code); if (e.code === 'Tab') this.tabDown = false; };
     this.onBlur = () => this.keys.clear();
     this.onMouse = (e) => {
       if (this.state !== 'playing' || this.menuOpen || (!document.pointerLockElement && !this.noLock)) return;
@@ -185,6 +189,8 @@ export class Game {
     if (this.state !== 'intro') return;
     this.state = 'playing';
     this.hud.root.hidden = false;
+    this.hud.cam.hidden = false;
+    this.peekHud = 6;
     this.updateObjective();
     this.toast(this.level.name);
   }
@@ -243,6 +249,8 @@ export class Game {
     this.hud.root.hidden = true;
     this.hud.locker.hidden = true;
     this.hud.spec.hidden = true;
+    this.hud.cam.hidden = true;
+    this.hud.signal.hidden = true;
     this.hud.fear.style.opacity = 0;
   }
 
@@ -573,7 +581,9 @@ export class Game {
     const c = this.camera.position;
     this.mimic.emitter.setOcclusion(!this.level.los(c.x, c.z, this.mimic.x, this.mimic.z));
     for (const r of this.remotes.values()) r.emitter.setOcclusion(!this.level.los(c.x, c.z, r.x, r.z));
-    this.renderer.render(this.scene, this.camera);
+    this.updateCam(dt);
+    if (this.vhs) this.vhs.render(this.scene, this.camera, this.t, this.distort);
+    else this.renderer.render(this.scene, this.camera);
   }
 
   netTick(dt) {
@@ -862,7 +872,24 @@ export class Game {
     if (this.doorT > 2.2) this.level.exitOpen = true;
   }
 
+  // The camcorder overlay: timestamp (it's 2:13 a.m. when you go in), tape counter, battery; and the HUD's visibility.
+  updateCam(dt) {
+    this.peekHud = Math.max(0, this.peekHud - dt);
+    this.hud.root.classList.toggle('reveal', this.tabDown || this.peekHud > 0);
+    const sec = Math.floor(this.time);
+    if (sec !== this.camSec) {
+      this.camSec = sec;
+      const clock = 2 * 3600 + 13 * 60 + 7 + sec, h = Math.floor(clock / 3600) % 12 || 12;
+      const two = (n) => String(n).padStart(2, '0');
+      this.hud.camStamp.textContent = `OCT 25 2026\n${two(h)}:${two(Math.floor(clock / 60) % 60)}:${two(clock % 60)} AM`;
+      this.hud.camCounter.textContent = `SP ▶ ${Math.floor(sec / 3600)}:${two(Math.floor(sec / 60) % 60)}:${two(sec % 60)}`;
+    }
+    this.hud.camBat.style.width = `calc(${this.p.battery}% - 6px)`;
+    this.hud.camBatBox.classList.toggle('low', this.p.battery < 20);
+  }
+
   updateObjective() {
+    this.peekHud = Math.max(this.peekHud, 4); // something changed: show the HUD for a moment
     const o = this.hud.objective;
     o.classList.toggle('alarm', this.power);
     if (this.power) { o.textContent = 'THE EXIT IS OPEN. RUN.'; return; }

@@ -14,7 +14,7 @@
 // Also: it may crawl on the ceiling (dropping down when it chases), wear a dead player's body
 // (online), and open doors (slowly, unless it's chasing).
 import * as THREE from 'three';
-import { faceTexture } from './textures.js';
+import { faceTexture, jawTexture } from './textures.js';
 
 const TURN = 7;          // rad/s
 const STATES = ['wander', 'investigate', 'stalk', 'chase', 'hunt', 'peek', 'flee', 'stunned', 'sniff', 'transform'];
@@ -24,8 +24,8 @@ const RADIUS = 0.35;
 
 export function buildModel() {
   const root = new THREE.Group();
-  const skin = new THREE.MeshStandardMaterial({ color: 0x0a0806, roughness: 0.85 }); // leathery, almost black
-  const pale = new THREE.MeshStandardMaterial({ color: 0x2c251f, roughness: 0.8 });
+  const skin = new THREE.MeshStandardMaterial({ color: 0x5e5850, roughness: 0.7 }); // grey, sickly, almost human
+  const pale = new THREE.MeshStandardMaterial({ color: 0x3e3832, roughness: 0.8 });
   const part = (geo, mat, x = 0, y = 0, z = 0) => {
     const m = new THREE.Mesh(geo, mat);
     m.position.set(x, y, z);
@@ -64,7 +64,7 @@ export function buildModel() {
   torso.position.y = 1.2;
   torso.rotation.x = 0.28;
   body.add(torso);
-  const chestGeo = new THREE.CylinderGeometry(0.19, 0.1, 0.82, 9);
+  const chestGeo = new THREE.CylinderGeometry(0.16, 0.085, 0.82, 9); // starved
   chestGeo.scale(1, 1, 0.55);
   torso.add(part(chestGeo, skin, 0, 0.4, 0));
   const pelvis = new THREE.SphereGeometry(0.15, 10, 8);
@@ -93,7 +93,7 @@ export function buildModel() {
     const hand = new THREE.Group();
     hand.position.y = -0.66;
     for (let f = 0; f < 4; f++) {
-      const finger = limb(0.012, 0.006, 0.24, pale);
+      const finger = limb(0.01, 0.005, 0.32, pale); // far too long
       finger.position.x = (f - 1.5) * 0.025;
       finger.rotation.x = 0.15 * (f - 1.5);
       hand.add(finger);
@@ -130,28 +130,47 @@ export function buildModel() {
   head.position.y = 0.32;
   head.rotation.x = -0.28; // level the face out of the hunch
   neck.add(head);
-  const skull = new THREE.SphereGeometry(0.19, 14, 12);
-  skull.scale(0.9, 1.3, 0.82); // flat-fronted, so the face sits on it
-  head.add(part(skull, skin));
-  const face = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.31, 0.42),
-    new THREE.MeshStandardMaterial({ map: faceTexture(), color: 0x9a9286, transparent: true, roughness: 0.55, alphaTest: 0.05 }),
-  );
-  face.position.set(0, -0.02, 0.172);
+  const hairMat = new THREE.MeshStandardMaterial({ color: 0x050403, roughness: 0.6 });
+  const skull = new THREE.SphereGeometry(0.17, 14, 12);
+  skull.scale(0.88, 1.32, 0.85);
+  head.add(part(skull, hairMat)); // the back of its head is all hair
+  const faceMat = new THREE.MeshStandardMaterial({ map: faceTexture(), transparent: true, roughness: 0.5, alphaTest: 0.04 });
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(0.27, 0.27), faceMat);
+  face.position.set(0, 0.03, 0.15);
   head.add(face);
-  // Eye shine: tiny points that catch the flashlight in the dark.
-  const eyeMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xfff4e0, emissiveIntensity: 0.9, fog: false }); // shine through the dark
-  const eyes = [-0.045, 0.045].map((x) => part(new THREE.SphereGeometry(0.005, 6, 4), eyeMat, x * 1.15, 0.03, 0.18));
-  head.add(...eyes);
-  // Second form: the mouth splits and glows.
-  const mouth = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.016), new THREE.MeshBasicMaterial({ color: 0x7a0008, fog: false }));
-  mouth.position.set(0, -0.115, 0.18);
-  mouth.visible = false;
+  // Behind the jaw: the inside of its mouth (red, in the second form).
+  const mouth = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.22), new THREE.MeshBasicMaterial({ color: 0x080303 }));
+  mouth.position.set(0, -0.2, 0.12);
   head.add(mouth);
+  // The jaw hangs from a hinge just under the teeth, and opens far too wide.
+  const jaw = new THREE.Group();
+  jaw.position.set(0, -0.1, 0.145);
+  const jg = new THREE.PlaneGeometry(0.22, 0.15);
+  jg.translate(0, -0.075, 0);
+  jaw.add(new THREE.Mesh(jg, new THREE.MeshStandardMaterial({ map: jawTexture(), transparent: true, roughness: 0.5, alphaTest: 0.04 })));
+  head.add(jaw);
+  // Long black hair hanging over its face.
+  const hair = new THREE.Group();
+  head.add(hair);
+  for (let i = 0; i < 46; i++) {
+    const a = (i / 46) * Math.PI * 2, len = 0.3 + Math.random() * 0.45;
+    const strand = new THREE.Mesh(new THREE.BoxGeometry(0.012 + Math.random() * 0.02, len, 0.01), hairMat);
+    strand.geometry.translate(0, -len / 2, 0);
+    const front = Math.cos(a) > 0.2;
+    // Over the face it parts in the middle, hanging down the sides; a few strands fall right across.
+    const x = Math.sin(a) * 0.15 * (front && Math.abs(Math.sin(a)) < 0.35 && Math.random() < 0.6 ? 2.2 : 1);
+    strand.position.set(Math.max(-0.17, Math.min(0.17, x)), 0.19, Math.cos(a) * 0.15 + (front ? 0.02 : 0));
+    strand.rotation.set((Math.random() - 0.5) * 0.15, 0, (Math.random() - 0.5) * 0.2);
+    hair.add(strand);
+  }
+  // Eye shine: two pinpricks that catch the flashlight.
+  const eyeMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xfff4e0, emissiveIntensity: 0.7, fog: false });
+  const eyes = [[-0.044, 0.044], [0.049, 0.04]].map(([x, y]) => part(new THREE.SphereGeometry(0.004, 6, 4), eyeMat, x, y, 0.156));
+  head.add(...eyes);
 
   root.rotation.order = 'YXZ'; // so it can flip upside down onto the ceiling
   root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-  return { root, body, legs, arms, torso, head, eyeMat, eyes, extra, mouth };
+  return { root, body, legs, arms, torso, head, eyeMat, eyes, extra, mouth, jaw, hair };
 }
 
 export class Mimic {
@@ -211,7 +230,7 @@ export class Mimic {
     const m = this.model;
     m.root.scale.setScalar(n === 2 ? 1.15 : 1);
     m.extra.forEach((e) => { e.visible = n === 2; });
-    m.mouth.visible = n === 2;
+    m.mouth.material.color.setHex(n === 2 ? 0x8a0a0a : 0x080303);
     m.eyeMat.emissive.setHex(n === 2 ? 0xff2010 : 0xfff4e0);
     m.arms.forEach((a) => { a.shoulder.scale.y = n === 2 ? 1.25 : 1; });
   }
@@ -637,6 +656,20 @@ export class Mimic {
       m.head.rotation.x = Math.sin(t * 27) * 0.5;
     }
     if (this.form === 2) m.extra.forEach((e, i) => { e.rotation.x = -0.4 + Math.sin(this.phase * 1.3 + i * 2) * 0.5; });
+    // Chasing, it drops onto all fours and comes at you like an animal.
+    if (this.state === 'chase' && this.speed > 1.5 && !this.ceiling) {
+      const q = Math.sin(this.phase * 1.6);
+      m.body.position.y = -0.55;
+      m.torso.rotation.x = 1.35;
+      m.arms.forEach((a, i) => { a.shoulder.rotation.x = -1.25 + (i ? q : -q) * 0.7; a.elbow.rotation.x = -0.15; });
+      m.legs.forEach((l, i) => { l.hip.rotation.x = 0.35 + (i ? -q : q) * 0.7; l.knee.rotation.x = 0.9; });
+      m.head.rotation.x = -1.2;
+    }
+    // The jaw: hanging slack, working while it talks, wide open when it hunts.
+    const jawOpen = this.state === 'chase' || this.state === 'transform' ? 0.7 + Math.sin(t * 9) * 0.15
+      : this.speaking > 0 ? 0.2 + Math.abs(Math.sin(t * 13)) * 0.3 : 0.08;
+    m.jaw.rotation.x = jawOpen * (this.form === 2 ? 1.5 : 1);
+    m.hair.children.forEach((h, i) => { h.rotation.x = Math.sin(t * 1.3 + i) * 0.05 + (this.state === 'chase' ? -0.4 : 0); });
     // On the ceiling: flat against it like a spider, limbs spread.
     m.body.position.y = this.ceiling ? -0.85 : m.body.position.y;
     if (this.ceiling) {
@@ -656,7 +689,7 @@ export class Mimic {
     m.head.rotation.z = this.headRoll;
     m.head.rotation.y = this.speed < 0.1 && this.state !== 'stalk' ? Math.sin(t * 0.9) * 0.7 : 0;
     if (this.ceiling) m.head.rotation.x = -1.2; // looking down at you
-    else if (this.state !== 'transform') m.head.rotation.x = 0;
+    else if (this.state !== 'transform' && !(this.state === 'chase' && this.speed > 1.5)) m.head.rotation.x = 0;
 
     this.emitter.setPos(this.x, this.ceiling ? 2.7 : 2.2, this.z);
   }
@@ -702,6 +735,7 @@ export class Mimic {
   // Jumpscare pose: crouched right in front of the camera, or hanging upside down from above.
   pose(x, z, yaw, t, above = false) {
     this.frozen = true;
+    this.model.jaw.rotation.x = 1.25 + Math.sin(t * 30) * 0.08; // far too wide
     this.x = x; this.z = z; this.yaw = yaw; this.speed = 0;
     this.wearId = null;
     const m = this.model;
