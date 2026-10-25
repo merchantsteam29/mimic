@@ -17,6 +17,10 @@ The microphone only works on `localhost` or `https`, not on `file://`. Use headp
 **Ellie** (solo, 5 chapters): your sister went into the Holloway house to film it and never came out. Find her tapes.
 Chapters unlock as you finish them (saved on your device).
 
+**The Signal** (online, pick Story in the lobby): half the time, one of you is secretly working for it. They can jam
+doors and sabotage the jobs. Once per game you can call a vote at the power panel. Guess right, and it takes them.
+Guess wrong, and it gets hungrier.
+
 ## How it works
 
 - **Your voice is its weapon.** Each time you talk, the game cuts the speech into a clip. The mimic

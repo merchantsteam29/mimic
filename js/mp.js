@@ -10,7 +10,7 @@ import { Net } from './net.js';
 import { VoiceChat } from './vc.js';
 import { CLASSES } from './classes.js';
 
-const HOST_TYPES = new Set(['st', 'noise', 'take', 'insert', 'escaped', 'work', 'bang', 'smash', 'unlock', 'lever', 'flare', 'rescue', 'sniffRes', 'door', 'trapped', 'fakeDone']);
+const HOST_TYPES = new Set(['st', 'noise', 'take', 'insert', 'escaped', 'work', 'bang', 'smash', 'unlock', 'lever', 'flare', 'rescue', 'sniffRes', 'door', 'trapped', 'fakeDone', 'jam', 'sab', 'accuse', 'ballot']);
 const CLIP_RATE = 16000;
 
 function encodeClip(buffer) {
@@ -33,11 +33,17 @@ export class Session {
     this.myClips = 0;
     this.lastKey = null;
     this.game = null;
+    this.mode = 'normal';   // or 'story' (The Signal: maybe a traitor)
+    this.traitorId = null;  // host only
     this.onRoster = () => {};
     this.onStart = () => {};   // ({ seed, theme, order })
     this.onLobby = () => {};   // host sent everyone back to the lobby
     this.onClose = () => {};   // (reason)
-    this.net.onRoster = (r) => { this.vc?.sync(r); this.onRoster(r); };
+    this.net.onRoster = (r) => {
+      this.vc?.sync(r);
+      if (this.isHost) this.net.broadcast({ t: 'mode', mode: this.mode }, { self: false }); // newcomers learn the mode
+      this.onRoster(r);
+    };
     this.net.onClose = (why) => { this.dispose(); this.onClose(why); };
     this.net.onMessage = (m, from) => this.handle(m, from);
   }
@@ -111,6 +117,8 @@ export class Session {
       return;
     }
     if (m.t === 'start') { this.net.locked = true; this.onStart(m); return; }
+    if (m.t === 'mode') { if (from === 'h') { this.mode = m.mode === 'story' ? 'story' : 'normal'; this.onRoster(this.roster); } return; }
+    if (m.t === 'role') { if (from === 'h') this.game?.traitor.onNet(m); return; }
     if (m.t === 'class') { // a player picked a class (host keeps it in the roster)
       const r = this.isHost && this.roster.find((x) => x.id === from);
       if (r && CLASSES[m.c]) { r.cls = m.c; this.net.sendRoster(); }
@@ -127,7 +135,18 @@ export class Session {
 
   start(theme, seed) {
     const classes = Object.fromEntries(this.roster.map((r) => [r.id, CLASSES[r.cls] ? r.cls : 'runner']));
-    this.net.broadcast({ t: 'start', theme, seed, order: this.roster.map((r) => r.id), classes });
+    // Story mode: half the time, one of you is secretly working for it. Only they are told.
+    const ids = this.roster.map((r) => r.id);
+    this.traitorId = this.mode === 'story' && ids.length > 1 && Math.random() < 0.5 ? ids[Math.floor(Math.random() * ids.length)] : null;
+    this.net.broadcast({ t: 'start', theme, seed, order: ids, classes, mode: this.mode });
+    if (this.traitorId && this.traitorId !== 'h') this.net.sendTo(this.traitorId, { t: 'role', traitor: true });
+  }
+
+  setMode(mode) {
+    if (!this.isHost) return;
+    this.mode = mode === 'story' ? 'story' : 'normal';
+    this.net.broadcast({ t: 'mode', mode: this.mode }, { self: false });
+    this.onRoster(this.roster);
   }
 
   setClass(c) {

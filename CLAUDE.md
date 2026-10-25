@@ -65,6 +65,14 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   `tapes` that must all be heard (shown as `lore` items, `objectives.storyNeed`), `intro` / `ending` text; a line `{ playerClip }` plays
   your own voice-check clip via `game.playOwnVoice`). Progress is `localStorage mimic.story` (chapters finished), story progress only.
   `generateLevel(seed, theme, opts)` takes the `gen` options. Online story: `SIGNAL`.
+- `traitor.js`: online **story mode** (`The Signal`, lobby Mode: `session.setMode`, `start` carries `mode`). Half the time the host
+  picks a secret traitor (`session.traitorId`, host only; only that player gets `role`). Traitor powers: Q jams a looked-at door for 20 s
+  (`jam` -> `jamDoor`; then `door` -> `jammed`), R sabotages (`sab`: generator -20%, or pulls a fuse from the panel -> `fuses` with
+  `pulled` plus a `drop`). Once per game V at the panel calls a vote (`accuse` -> `vote` -> `ballot` -> `verdict`). More than half must
+  agree; the traitor is exposed and taken, an innocent makes it hungrier. `end` carries `traitor` / `traitorWins` (wins if fewer
+  than half of the rest got out and they weren't exposed).
+- **Message names:** a client intent and the host's broadcast must never share a `t` (`mp.js` routes every `HOST_TYPES` name to
+  `hostHandle`), e.g. `jam` (intent) vs `jamDoor` (result).
 - `classes.js` / `abilities.js`: classes (all free, no unlocks; G = ability). Brute: 2 flares (`flare`: host stuns
   the mimic for 4 s if it's within 8 m and in sight). Runner: sprints 6.2 m/s for 13 s, recovers fast, louder steps. Medic: 1 rescue
   (`rescue` on the teammate in front, or self; the host's `hostSave` turns their next catch into a stun plus `saved`). Tracker:

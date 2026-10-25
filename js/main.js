@@ -9,7 +9,7 @@ import { Session } from './mp.js';
 import { newCode, cleanCode, cleanName } from './net.js';
 import { CLASSES, CLASS_ORDER } from './classes.js';
 import { VERSION } from './version.js';
-import { CHAPTERS, storyProgress, finishChapter } from './story.js';
+import { CHAPTERS, SIGNAL, storyProgress, finishChapter } from './story.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -301,6 +301,11 @@ function endRun(r) {
     $('btnAgain').hidden = true;
     $('btnToLobby').hidden = !session?.isHost;
     $('btnMenu').textContent = 'Leave';
+    if (r.mode === 'story') { // the reveal
+      $('endSub').textContent += r.traitor
+        ? ` ${r.traitor === session?.id ? 'You were' : `${r.traitorName} was`} working for it. The traitor ${r.traitorWins ? 'wins' : 'loses'}.`
+        : ' Nobody was working for it. You did this to yourselves.';
+    }
     if (session && !session.isHost) $('endSub').textContent += ' Waiting for the host…';
   } else if (r.story) {
     const ch = r.story, last = ch.index === CHAPTERS.length - 1;
@@ -431,6 +436,11 @@ function renderLobby() {
   $('lobbyStatus').textContent = session.isHost
     ? (session.roster.length < 2 ? 'Send your friends the code or the invite link.' : `${session.roster.length} of 4 players.`)
     : 'Waiting for the host to start…';
+  document.querySelectorAll('.mode-pick button').forEach((b) => {
+    b.classList.toggle('on', b.dataset.mode === session.mode);
+    b.disabled = !session.isHost;
+    b.onclick = () => session.setMode(b.dataset.mode);
+  });
 }
 
 $('btnInvite').onclick = async () => {
@@ -459,11 +469,16 @@ function startMpRun(m) {
   const themeId = m.theme in THEMES ? m.theme : 'facility';
   game = new Game({
     renderer, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order, classes: m.classes || {},
+    mode: m.mode === 'story' ? 'story' : 'normal', traitorId: session.isHost ? session.traitorId : null,
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),
   });
   session.game = game;
-  showIntro(themeId);
+  if (m.mode === 'story') {
+    showIntro(themeId, null, SIGNAL.intro);
+    $('introKicker').textContent = 'Story';
+    $('introName').textContent = SIGNAL.title;
+  } else showIntro(themeId);
 }
 
 function backToLobby() {

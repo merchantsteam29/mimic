@@ -12,6 +12,7 @@ import { Objectives } from './objectives.js';
 import { Abilities } from './abilities.js';
 import { Heartbeat } from './heartbeat.js';
 import { Scares } from './scares.js';
+import { Traitor } from './traitor.js';
 import { mulberry32 } from './level.js';
 
 const POOL = 6;              // real point lights, moved to the nearest fixtures
@@ -24,7 +25,7 @@ const angleDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 const num = (v, d = 0) => (Number.isFinite(v) ? v : d);
 
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null }) {
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null }) {
     Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story });
     this.me = mp ? mp.id : 'h';
     this.classes = classes || { [this.me]: 'runner' }; // player id -> class
@@ -120,6 +121,7 @@ export class Game {
     const dc = this.world.decoy;
     if (dc) this.items.push({ type: dc.kind, fake: true, x: dc.x, y: 0.1, z: dc.z, mesh: dc.mesh, range: 2.1, active: true });
     this.scares = new Scares(this);
+    this.traitor = new Traitor(this, { mode, traitorId });
     this.doorEm = sfx.emitter();
     // Hunger: every couple of minutes it gets bolder, and lights die for good (in the same order for everyone).
     this.hungerT = 0;
@@ -143,7 +145,7 @@ export class Game {
       if (this.state === 'spectate' && !e.repeat && (e.code === 'Space' || e.code === 'KeyE')) { this.specIdx++; return; }
       if (this.state !== 'playing') return;
       if (e.code === 'Space') e.preventDefault();
-      if (!e.repeat && (this.scares.onKey(e.code) || this.hb.onKey(e.code) || this.obj.onKey(e.code))) return;
+      if (!e.repeat && (this.traitor.onKey(e.code) || this.scares.onKey(e.code) || this.hb.onKey(e.code) || this.obj.onKey(e.code))) return;
       this.keys.add(e.code);
       if (e.repeat) return;
       if (e.code === 'KeyF') this.toggleFlash();
@@ -225,6 +227,7 @@ export class Game {
     this.obj.dispose();
     this.ab.dispose();
     this.scares.dispose();
+    this.traitor.dispose();
     this.doorEm.dispose();
     this.hb.stop();
     for (const r of this.remotes.values()) r.dispose();
@@ -253,11 +256,13 @@ export class Game {
   // Host: a player's intent.
   hostHandle(m, from) {
     const r = this.remotes.get(from);
-    if (this.obj.hostHandle(m, from) || this.ab.hostHandle(m, from)) return;
+    if (this.obj.hostHandle(m, from) || this.ab.hostHandle(m, from) || this.traitor.hostHandle(m, from)) return;
     switch (m.t) {
       case 'door': { // open / close a real door
         const d = this.level.idoors[m.i | 0];
-        if (d && this.alive(from)) this.broadcast({ t: 'doorSet', i: d.i, open: !d.open, by: from });
+        if (!d || !this.alive(from)) break;
+        if (d.jamUntil > this.t) { this.sendTo(from, { t: 'jammed' }); break; } // the traitor jammed it
+        this.broadcast({ t: 'doorSet', i: d.i, open: !d.open, by: from });
         break;
       }
       case 'trapped': if (this.alive(from)) this.hostCatch(from); break; // the fake locker had them
@@ -325,7 +330,7 @@ export class Game {
 
   // Everyone: what happened.
   onNet(m) {
-    if (this.obj.onNet(m) || this.ab.onNet(m)) return;
+    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m)) return;
     switch (m.t) {
       case 'doorSet': {
         const d = this.level.idoors[m.i | 0];
@@ -426,9 +431,15 @@ export class Game {
         break;
       }
       case 'fuses': {
-        for (let i = this.fusesIn; i < Math.min(4, m.ins); i++) {
-          this.world.fuseBox.slots[i].emissive.setHex(0x2bff5a);
-          this.world.fuseBox.slots[i].color.setHex(0x002200);
+        if (this.level.tasks.fuses) this.world.fuseBox.slots.forEach((sl, i) => {
+          sl.emissive.setHex(i < m.ins ? 0x2bff5a : 0xff1a1a);
+          sl.color.setHex(i < m.ins ? 0x002200 : 0x220000);
+        });
+        if (m.pulled) { // someone pulled a fuse back out
+          const fb = this.world.fuseBox, c = this.camera.position;
+          this.doorEm.setPos(fb.x, 1.3, fb.z);
+          this.doorEm.setOcclusion(!this.level.los(c.x, c.z, fb.x - this.level.fuseBox.dx * 0.3, fb.z - this.level.fuseBox.dz * 0.3));
+          this.sfx.clunk();
         }
         this.fusesIn = m.ins;
         if (m.by === this.me) {
@@ -471,7 +482,7 @@ export class Game {
     if ([...this.status.values()].some((s) => s === 'alive')) return;
     this.ended = true;
     if (!this.mp) return; // alone, the jumpscare / escape ends the run itself
-    this.broadcast({ t: 'end', st: Object.fromEntries(this.status), time: this.time });
+    this.broadcast({ t: 'end', st: Object.fromEntries(this.status), time: this.time, mode: this.traitor.on ? 'story' : 'normal', ...this.traitor.result() });
   }
 
   // Host: the mimic reached a player.
@@ -528,6 +539,7 @@ export class Game {
     this.updateDoor(dt);
     this.ab.update(dt);
     this.scares.update(dt);
+    this.traitor.update(dt);
     this.updateDoors(dt);
     this.applyHunger();
     if (this.isHost && this.mp) this.updateWear();
@@ -763,7 +775,7 @@ export class Game {
     const text = {
       fuse: 'Pick up fuse',
       battery: 'Take battery',
-      fusebox: this.fusesHeld && this.fusesIn < 4 ? `Insert fuse${this.fusesHeld > 1 ? 's' : ''} (${this.fusesHeld})` : this.obj.allDone() ? 'Restore power' : 'Power panel',
+      fusebox: (this.fusesHeld && this.fusesIn < 4 ? `Insert fuse${this.fusesHeld > 1 ? 's' : ''} (${this.fusesHeld})` : this.obj.allDone() ? 'Restore power' : 'Power panel') + this.traitor.panelHint(),
       hide: 'Hide',
       exit: 'Open exit',
     }[best?.type];
@@ -1200,7 +1212,8 @@ export class Game {
     this.sfx.stopAmbient();
     const st = m.st || {};
     this.onEnd({
-      mp: true, won: st[this.me] === 'out', time: num(m.time, this.time), fuses: this.fusesFound, lures: this.lures,
+      mp: true, won: m.traitor === this.me ? !!m.traitorWins : st[this.me] === 'out', time: num(m.time, this.time), fuses: this.fusesFound, lures: this.lures,
+      mode: m.mode, traitor: m.traitor || null, traitorName: m.traitor ? this.nameOf(m.traitor) : null, traitorWins: !!m.traitorWins,
       clips: this.mp.clips.size, place: this.level.name,
       results: this.order.map((id) => ({ id, name: this.nameOf(id), status: st[id] || 'left' })),
     });
