@@ -24,8 +24,8 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); c
 }
 #fear { opacity: 0; background: radial-gradient(ellipse at center, transparent 35%, rgba(120, 0, 10, .85) 100%); transition: opacity .25s; }
 #flash { opacity: 0; background: #fff; }
-#flash.hit { animation: hit 1.4s ease-out; }
-@keyframes hit { 0% { opacity: .9; background: #fff; } 8% { opacity: .8; background: #8a0010; } 100% { opacity: 0; background: #000; } }
+#flash.hit { animation: hit .35s ease-out; } /* a quick blink: never hide what's in front of you */
+@keyframes hit { 0% { opacity: .7; background: #fff; } 30% { opacity: .35; background: #8a0010; } 100% { opacity: 0; background: #000; } }
 /* Looking out through the slats of a locker / wardrobe door. */
 #locker { background: repeating-linear-gradient(180deg, rgba(3,3,3,.97) 0 24px, transparent 24px 36px); }
 #locker::before {

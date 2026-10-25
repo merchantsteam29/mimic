@@ -42,14 +42,14 @@ export class Game {
     scene.fog = new THREE.FogExp2(th.fog, th.fogDensity);
     this.world = buildLevelScene(level);
     scene.add(this.world.group);
-    scene.add(new THREE.HemisphereLight(th.id === 'house' ? 0x6a5a48 : 0x56687a, 0x0a0806, 0.05));
+    scene.add(new THREE.HemisphereLight(th.id === 'house' ? 0x6a5a48 : 0x56687a, 0x0a0806, 0.12));
 
     this.camera = new THREE.PerspectiveCamera(settings.fov, innerWidth / innerHeight, 0.05, 80);
     this.camera.rotation.order = 'YXZ';
     scene.add(this.camera);
 
     // Flashlight: the only shadow-casting light.
-    this.flash = new THREE.SpotLight(0xfff1d8, 0, 18, 0.34, 0.65, 1.8);
+    this.flash = new THREE.SpotLight(0xfff1d8, 0, 24, 0.4, 0.55, 1.5);
     this.flash.castShadow = true;
     this.flash.shadow.mapSize.set(1024, 1024);
     this.flash.shadow.bias = -0.0006;
@@ -745,7 +745,7 @@ export class Game {
     let on = (p.flashOn && p.battery > 0 && !p.hidden) || this.state === 'caught';
     if (this.state === 'spectate') on = !!this.specTarget()?.flash;
     if (on && this.state === 'playing') p.battery = Math.max(0, p.battery - (dt * 100) / BATTERY_LIFE);
-    let I = on ? (this.state === 'caught' ? 8 : 30) : 0; // dimmer in its face, so you can see it
+    let I = on ? (this.state === 'caught' ? 20 : 42) : 0; // a little dimmer in its face, so it isn't washed out
     if (this.blackout > 0 && this.state === 'playing') {
       const since = this.blackoutTotal - this.blackout;
       if (since < 1.8) I = 0;
@@ -1172,7 +1172,7 @@ export class Game {
     this.mimic.pose(p.x + fx * dist, p.z + fz * dist, Math.atan2(-fx, -fz), this.t, sc === 'above');
     if (sc === 'drag') {
       // Pulled off your feet and dragged backwards into the dark.
-      if (this.ct > 0.55 && !this.dragging) {
+      if (this.ct > 1.5 && !this.dragging) {
         this.dragging = true;
         this.renderer.domElement.style.filter = 'brightness(0.05)';
         this.sfx.drag(1.5);
@@ -1188,9 +1188,9 @@ export class Game {
     const k = Math.min(1, dt * (sc === 'behind' ? 22 : 14));
     p.yaw += angleDiff(Math.atan2(-dx, -dz), p.yaw) * k;
     p.pitch += (Math.atan2(dy, Math.hypot(dx, dz)) - p.pitch) * k;
-    const T = sc === 'drag' ? 2.4 : 1.9;
+    const T = sc === 'drag' ? 2.8 : 2.5;
     // First you see its face (the picture only shudders), then the tape tears apart.
-    this.distort = this.ct < 1.1 ? 0.12 + Math.random() * 0.12 : Math.min(1, 0.45 + (this.ct - 1.1) * 0.9);
+    this.distort = this.ct < 1.7 ? 0.06 + Math.random() * 0.08 : Math.min(1, 0.4 + (this.ct - 1.7) * 1.2);
     if (this.ct > T && !this.lost) { this.lost = true; this.hud.signal.hidden = false; this.sfx.static(1.2); }
     if (this.ct > T + 1.1 && this.state === 'caught') {
       this.renderer.domElement.style.filter = '';

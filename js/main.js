@@ -40,7 +40,7 @@ const renderer = new THREE.WebGLRenderer({ canvas: $('view'), antialias: true, p
 renderer.setPixelRatio(1); // the camcorder pass renders the scene at VHS resolution anyway
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;
+renderer.toneMappingExposure = 1.3;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const vhs = new VHS(renderer);

@@ -26,12 +26,12 @@ const frag = /* glsl */`
     col = linearToOutputTexel(vec4(col, 1.0)).rgb;
     float l = dot(col, vec3(0.299, 0.587, 0.114));
     col = mix(vec3(l), col, 0.55) * vec3(0.96, 1.02, 0.9);                    // washed-out tape colour
-    col = max(col - 0.025, 0.0) * 1.05;                                       // crushed blacks
+    col = max(col - 0.01, 0.0) * 1.02;                                        // slightly crushed blacks
     col += band * 0.035;
     col += (rand(uv * res + fract(time) * 91.0) - 0.5) * (0.07 + distort * 0.35); // grain
     col += step(0.9988 - distort * 0.02, rand(vec2(floor(time * 24.0), line))) * 0.45; // dropouts
     col *= 0.9 + 0.1 * sin(vUv.y * res.y * 3.14159);                          // scanlines
-    col *= 1.0 - smoothstep(0.3, 0.85, length(c)) * 0.85;                      // vignette
+    col *= 1.0 - smoothstep(0.35, 0.9, length(c)) * 0.6;                       // vignette
     if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) col = vec3(0.0);
     gl_FragColor = vec4(col, 1.0);
   }

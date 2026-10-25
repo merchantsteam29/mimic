@@ -737,7 +737,7 @@ export class Mimic {
   // Jumpscare pose: crouched right in front of the camera, or hanging upside down from above.
   pose(x, z, yaw, t, above = false) {
     this.frozen = true;
-    this.model.jaw.rotation.x = 1.25 + Math.sin(t * 30) * 0.08; // far too wide
+    this.model.jaw.rotation.x = 0.8 + Math.sin(t * 30) * 0.08; // hanging open
     this.x = x; this.z = z; this.yaw = yaw; this.speed = 0;
     this.wearId = null;
     const m = this.model;
