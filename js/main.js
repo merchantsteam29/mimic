@@ -343,6 +343,7 @@ function endRun(r) {
   const ended = game;
   setTimeout(() => {
     if (game !== ended) return; // already back in the lobby (timers can run late in background tabs)
+    hud.signal.hidden = true;
     show('end');
     // One last word from it, in your voice.
     const clip = !r.mp && !r.story && voice.started ? voice.pick() : null;

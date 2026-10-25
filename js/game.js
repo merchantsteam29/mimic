@@ -42,14 +42,14 @@ export class Game {
     scene.fog = new THREE.FogExp2(th.fog, th.fogDensity);
     this.world = buildLevelScene(level);
     scene.add(this.world.group);
-    scene.add(new THREE.HemisphereLight(th.id === 'house' ? 0x6a5a48 : 0x56687a, 0x0a0806, 0.15));
+    scene.add(new THREE.HemisphereLight(th.id === 'house' ? 0x6a5a48 : 0x56687a, 0x0a0806, 0.05));
 
     this.camera = new THREE.PerspectiveCamera(settings.fov, innerWidth / innerHeight, 0.05, 80);
     this.camera.rotation.order = 'YXZ';
     scene.add(this.camera);
 
     // Flashlight: the only shadow-casting light.
-    this.flash = new THREE.SpotLight(0xfff1d8, 0, 26, 0.42, 0.55, 1.4);
+    this.flash = new THREE.SpotLight(0xfff1d8, 0, 18, 0.34, 0.65, 1.8);
     this.flash.castShadow = true;
     this.flash.shadow.mapSize.set(1024, 1024);
     this.flash.shadow.bias = -0.0006;
@@ -96,7 +96,7 @@ export class Game {
     this.t = 0; this.time = 0;
     this.fear = 0; this.hbT = 0; this.pulseT = 0; this.breathT = 0; this.glitchT = 0; this.zoomT = 0;
     this.blackout = 0; this.blackoutTotal = 0;
-    this.ambientT = 15 + Math.random() * 20;
+    this.ambientT = 6 + Math.random() * 8;
     this.lures = 0;
     this.netT = 0; this.noiseT = 0;
     this.specIdx = 0;
@@ -408,7 +408,7 @@ export class Game {
         this.lures++;
         break;
       }
-      case 'sting': if (this.state === 'playing') this.sfx.sting(); break;
+      case 'sting': if (this.state === 'playing') this.sfx.sting(this.mimic.emitter); break;
       case 'took': {
         const it = this.items[m.i];
         if (!it) return;
@@ -745,7 +745,7 @@ export class Game {
     let on = (p.flashOn && p.battery > 0 && !p.hidden) || this.state === 'caught';
     if (this.state === 'spectate') on = !!this.specTarget()?.flash;
     if (on && this.state === 'playing') p.battery = Math.max(0, p.battery - (dt * 100) / BATTERY_LIFE);
-    let I = on ? 38 : 0;
+    let I = on ? (this.state === 'caught' ? 8 : 30) : 0; // dimmer in its face, so you can see it
     if (this.blackout > 0 && this.state === 'playing') {
       const since = this.blackoutTotal - this.blackout;
       if (since < 1.8) I = 0;
@@ -833,6 +833,7 @@ export class Game {
     p.eye = 1.5;
     this.hud.locker.hidden = false;
     this.sfx.creak(null, 0.25);
+    this.sfx.cloth();
     if (this.scares.trap(prop)) return; // it was it
     if (this.isHost) this.mimic.notifyHide(prop, this.playerInfo());
   }
@@ -1021,6 +1022,8 @@ export class Game {
     if (chasing) {
       this.pulseT -= dt;
       if (this.pulseT <= 0) { this.sfx.pulse(); this.pulseT = 0.43; }
+      this.snarlT = (this.snarlT ?? 2) - dt;
+      if (this.snarlT <= 0 && d < 25) { this.sfx.snarl(this.mimic.emitter); this.snarlT = 3 + Math.random() * 3; }
     }
     // Your own breathing: out of breath, or scared.
     const breath = Math.max(1 - p.stamina, this.fear * 1.2);
@@ -1029,17 +1032,11 @@ export class Game {
       if (this.breathT <= 0) { this.sfx.playerBreath(Math.min(1, breath)); this.breathT = 1.7 - Math.min(1, breath) * 0.6; }
     }
 
-    // The picture tears when it's close and in view.
-    const cv = this.renderer.domElement;
-    if (vis && d < 7 && Math.random() < dt * 7 * (1 - d / 7)) {
-      cv.style.transform = `translate(${(Math.random() - 0.5) * 16}px, ${(Math.random() - 0.5) * 6}px)`;
-      cv.style.filter = 'contrast(1.7) saturate(0.3)';
-      this.glitchT = 0.05 + Math.random() * 0.06;
-    }
-    if (this.glitchT > 0) {
-      this.glitchT -= dt;
-      if (this.glitchT <= 0) cv.style.transform = cv.style.filter = '';
-    }
+    // The camcorder picture breaks up when it's close: more the closer it is, with sudden tears.
+    if (vis && d < 8 && Math.random() < dt * 6 * (1 - d / 8)) this.glitchT = 0.06 + Math.random() * 0.1;
+    this.glitchT = Math.max(0, (this.glitchT || 0) - dt);
+    const want = this.fear * 0.12 + (vis && d < 8 ? (1 - d / 8) * 0.15 : 0) + (this.glitchT > 0 ? 0.5 : 0);
+    this.distort += (want - this.distort) * Math.min(1, dt * (this.glitchT > 0 ? 30 : 5));
 
     // Spotting it peeking: a quick dolly-zoom lurch toward it.
     if (this.zoomT > 0) {
@@ -1052,10 +1049,12 @@ export class Game {
   updateAmbient(dt) {
     this.ambientT -= dt;
     if (this.ambientT > 0) return;
-    this.ambientT = 18 + Math.random() * 30;
+    this.ambientT = 10 + Math.random() * 12;
     const p = this.level.randomFloor((q) => Math.hypot(q.x - this.p.x, q.z - this.p.z) > 10);
     if (!p) return;
     this.ambientEmitter.setPos(p.x, 1.5, p.z);
+    this.ambientEmitter.setOcclusion(!this.level.los(this.p.x, this.p.z, p.x, p.z));
+    if (Math.random() < 0.35 && this.sfx.moan(this.ambientEmitter)) return; // something, far off, moaning
     if (this.level.theme.id === 'facility') this.sfx.clank(this.ambientEmitter, 0.5);
     else this.sfx.creak(this.ambientEmitter, 0.5);
   }
@@ -1142,6 +1141,7 @@ export class Game {
     this.exitHide(true);
     this.state = 'caught';
     this.ct = 0;
+    this.lost = false;
     this.hud.locker.hidden = true;
     this.hud.root.hidden = true;
     this.hud.flash.classList.remove('hit');
@@ -1188,7 +1188,11 @@ export class Game {
     const k = Math.min(1, dt * (sc === 'behind' ? 22 : 14));
     p.yaw += angleDiff(Math.atan2(-dx, -dz), p.yaw) * k;
     p.pitch += (Math.atan2(dy, Math.hypot(dx, dz)) - p.pitch) * k;
-    if (this.ct > (sc === 'drag' ? 2.4 : 1.9) && this.state === 'caught') {
+    const T = sc === 'drag' ? 2.4 : 1.9;
+    // First you see its face (the picture only shudders), then the tape tears apart.
+    this.distort = this.ct < 1.1 ? 0.12 + Math.random() * 0.12 : Math.min(1, 0.45 + (this.ct - 1.1) * 0.9);
+    if (this.ct > T && !this.lost) { this.lost = true; this.hud.signal.hidden = false; this.sfx.static(1.2); }
+    if (this.ct > T + 1.1 && this.state === 'caught') {
       this.renderer.domElement.style.filter = '';
       this.dragging = false;
       if (!this.mp) { this.end(false); return; }
@@ -1199,6 +1203,8 @@ export class Game {
 
   startSpectate() {
     this.state = 'spectate';
+    this.hud.signal.hidden = true;
+    this.distort = 0;
     this.hud.root.hidden = true;
     this.hud.locker.hidden = true;
     this.hud.fear.style.opacity = 0;

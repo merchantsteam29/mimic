@@ -51,6 +51,9 @@ Guess wrong, and it gets hungrier.
   Online, it can walk around as a friend it took. Old tapes from people who came before tell you what happened to them.
 - **Random maps:** each run is either a research facility or an old house, with a new layout every time.
 
+It all plays out through a camcorder: grainy VHS footage that tears apart when it gets close.
+Hold `Tab` to see your objectives.
+
 Controls: `WASD` move, mouse look, `Shift` sprint, `C` crouch, `F` flashlight, `E` interact / hide (hold to
 repair), `G` class ability, `Space` skill checks and heartbeats, `Esc` pause.
 

@@ -24,7 +24,7 @@ const RADIUS = 0.35;
 
 export function buildModel() {
   const root = new THREE.Group();
-  const skin = new THREE.MeshStandardMaterial({ color: 0x5e5850, roughness: 0.7 }); // grey, sickly, almost human
+  const skin = new THREE.MeshStandardMaterial({ color: 0x3c3832, roughness: 0.85 }); // grey, sickly, almost human
   const pale = new THREE.MeshStandardMaterial({ color: 0x3e3832, roughness: 0.8 });
   const part = (geo, mat, x = 0, y = 0, z = 0) => {
     const m = new THREE.Mesh(geo, mat);
@@ -130,7 +130,7 @@ export function buildModel() {
   head.position.y = 0.32;
   head.rotation.x = -0.28; // level the face out of the hunch
   neck.add(head);
-  const hairMat = new THREE.MeshStandardMaterial({ color: 0x050403, roughness: 0.6 });
+  const hairMat = new THREE.MeshBasicMaterial({ color: 0x000000 }); // unlit: hair stays black however close the flashlight is
   const skull = new THREE.SphereGeometry(0.17, 14, 12);
   skull.scale(0.88, 1.32, 0.85);
   head.add(part(skull, hairMat)); // the back of its head is all hair
@@ -149,20 +149,22 @@ export function buildModel() {
   jg.translate(0, -0.075, 0);
   jaw.add(new THREE.Mesh(jg, new THREE.MeshStandardMaterial({ map: jawTexture(), transparent: true, roughness: 0.5, alphaTest: 0.04 })));
   head.add(jaw);
-  // Long black hair hanging over its face.
+  // Long black hair: down its back and either side of its face, a few strands across it.
   const hair = new THREE.Group();
   head.add(hair);
-  for (let i = 0; i < 46; i++) {
-    const a = (i / 46) * Math.PI * 2, len = 0.3 + Math.random() * 0.45;
-    const strand = new THREE.Mesh(new THREE.BoxGeometry(0.012 + Math.random() * 0.02, len, 0.01), hairMat);
-    strand.geometry.translate(0, -len / 2, 0);
-    const front = Math.cos(a) > 0.2;
-    // Over the face it parts in the middle, hanging down the sides; a few strands fall right across.
-    const x = Math.sin(a) * 0.15 * (front && Math.abs(Math.sin(a)) < 0.35 && Math.random() < 0.6 ? 2.2 : 1);
-    strand.position.set(Math.max(-0.17, Math.min(0.17, x)), 0.19, Math.cos(a) * 0.15 + (front ? 0.02 : 0));
-    strand.rotation.set((Math.random() - 0.5) * 0.15, 0, (Math.random() - 0.5) * 0.2);
-    hair.add(strand);
+  const strand = (x, z, len, w) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, len, 0.006), hairMat);
+    m.geometry.translate(0, -len / 2, 0);
+    m.position.set(x, 0.2, z);
+    m.rotation.set((Math.random() - 0.5) * 0.12, 0, (Math.random() - 0.5) * 0.15);
+    hair.add(m);
+  };
+  for (let i = 0; i < 34; i++) {
+    const a = Math.PI * (0.3 + (i / 34) * 1.4); // from one side, round the back, to the other
+    strand(Math.sin(a) * 0.15, Math.cos(a) * 0.14, 0.45 + Math.random() * 0.4, 0.014 + Math.random() * 0.012);
   }
+  for (const x of [-0.13, -0.11, 0.11, 0.13]) strand(x, 0.14, 0.4 + Math.random() * 0.2, 0.02); // framing the face
+  for (const x of [-0.05, 0.02, 0.06]) strand(x, 0.168, 0.22 + Math.random() * 0.12, 0.005); // a few across it
   // Eye shine: two pinpricks that catch the flashlight.
   const eyeMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xfff4e0, emissiveIntensity: 0.7, fog: false });
   const eyes = [[-0.044, 0.044], [0.049, 0.04]].map(([x, y]) => part(new THREE.SphereGeometry(0.004, 6, 4), eyeMat, x, y, 0.156));
@@ -192,7 +194,7 @@ export class Mimic {
     this.lostT = 0;
     this.lastSeen = null;
     this.hideTarget = null;
-    this.stalkCd = 22 + Math.random() * 15;  // first lure comes fairly soon
+    this.stalkCd = 12 + Math.random() * 8;   // the first lure comes soon
     this.speakCd = 10;
     this.screamCd = 0;
     this.speaking = 0;
@@ -209,7 +211,7 @@ export class Mimic {
     this.frozen = false;
     this.animAcc = 1;
     this.shyT = 0; // after fleeing it keeps its distance for a moment
-    this.graceT = 40; // it doesn't hunt you for the first stretch of a run
+    this.graceT = 25; // it doesn't hunt you for the first stretch of a run
     this.noticeT = 0; // how long it has been looking at you
     this.targetId = null; // which player it's after
     this.lureStyle = 'lure';

@@ -73,6 +73,15 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   than half of the rest got out and they weren't exposed).
 - **Message names:** a client intent and the host's broadcast must never share a `t` (`mp.js` routes every `HOST_TYPES` name to
   `hostHandle`), e.g. `jam` (intent) vs `jamDoor` (result).
+- `vhs.js`: the **camcorder look**. The scene renders into a 360-line half-float target, then a full-screen shader applies tone mapping
+  and sRGB itself, plus grain, bleed, scanlines, tracking, bulge and dropouts. `game.distort` (0..1) drives the tearing: proximity,
+  random tears when it's close, the death sequence. Overlay `#cam` (REC, timestamp from 2:13 a.m., tape counter, battery) and
+  `#signal` (SIGNAL LOST). The renderer's pixel ratio is 1. The HUD is hidden except while Tab is held, briefly after changes
+  (`peekHud`), and the mic only when it heard you.
+- `samples.js`: **recorded CC0 sounds** in `sounds/` (credits in `sounds/CREDITS.txt`). `sfx.rec(bank, emitter, opts)` plays one,
+  falling back to the synthesized sound. Banks: steps, creaks, doors, latch, click, cloth, bang, metal, glass, slam, snarl, attack, moan.
+- Mimic look: grey gaunt body, `faceTexture` (sunken eyes, upper teeth) plus `jawTexture` on a hinged `jaw` (opens when talking,
+  chasing, and in the jumpscare), unlit black hair, all fours when chasing.
 - `classes.js` / `abilities.js`: classes (all free, no unlocks; G = ability). Brute: 2 flares (`flare`: host stuns
   the mimic for 4 s if it's within 8 m and in sight). Runner: sprints 6.2 m/s for 13 s, recovers fast, louder steps. Medic: 1 rescue
   (`rescue` on the teammate in front, or self; the host's `hostSave` turns their next catch into a stun plus `saved`). Tracker:

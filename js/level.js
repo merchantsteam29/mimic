@@ -22,17 +22,17 @@ export const THEMES = {
   facility: {
     id: 'facility', kicker: 'Research facility',
     names: ['Site-9 · Sublevel 3', 'Kestrel Labs · Wing C', 'Pump Station 14', 'Archive Bunker 7'],
-    size: 34, roomSize: [4, 8], tries: 120, minRooms: 9,
-    light: 0xd8ecff, lightIntensity: 9, corridorLights: true, flicker: 0.35, broken: 0.25,
-    fog: 0x030405, fogDensity: 0.075, reverb: [2.8, 0.42],
+    size: 28, roomSize: [4, 7], tries: 120, minRooms: 8,
+    light: 0xd8ecff, lightIntensity: 6, corridorLights: true, flicker: 0.4, broken: 0.4,
+    fog: 0x020303, fogDensity: 0.095, reverb: [2.8, 0.42],
     props: ['crate', 'shelf', 'desk', 'barrel', 'cabinet', 'crate'], hideProp: 'locker', surface: 'hard',
   },
   house: {
     id: 'house', kicker: 'Abandoned house',
     names: ['The Holloway House', '14 Ashgrove Lane', 'The Marrow Estate', 'Grandmother\'s House'],
-    size: 26, roomSize: [3, 6], tries: 100, minRooms: 8,
-    light: 0xffb36b, lightIntensity: 7, corridorLights: false, flicker: 0.25, broken: 0.3,
-    fog: 0x050302, fogDensity: 0.08, reverb: [1.4, 0.28],
+    size: 24, roomSize: [3, 6], tries: 100, minRooms: 7,
+    light: 0xffb36b, lightIntensity: 5, corridorLights: false, flicker: 0.3, broken: 0.45,
+    fog: 0x030201, fogDensity: 0.1, reverb: [1.4, 0.28],
     props: ['bed', 'sofa', 'table', 'bookshelf', 'dresser'], hideProp: 'wardrobe', surface: 'wood',
   },
 };

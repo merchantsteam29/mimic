@@ -2,7 +2,7 @@
 // of the voices it stole), and the keycard for the locked room. When every job is done, someone pulls
 // the power lever at the panel. The host owns the progress; everyone mirrors it (see game.js send/broadcast).
 
-const REPAIR_TIME = 18;        // seconds of work for one player to repair a generator
+const REPAIR_TIME = 12;        // seconds of work for one player to repair a generator
 const SKILL_SPEED = 4.2;       // needle speed, radians per second
 const SKILL_ZONE = 0.55;       // radians
 

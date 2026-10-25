@@ -10,7 +10,7 @@ const rand = (a, b) => a + Math.random() * (b - a);
 export class Director {
   constructor(game) {
     this.g = game;
-    this.next = rand(35, 50);       // first scare
+    this.next = rand(18, 28);       // first scare
     this.last = null;
     this.far = game.sfx.emitter();               // fake sounds out in the level
     this.near = game.sfx.emitter({ dry: true }); // right next to your head
@@ -38,7 +38,7 @@ export class Director {
     const pool = options.filter(([n, w]) => w > 0 && (n !== this.last || options.length === 1));
     let r = Math.random() * pool.reduce((a, [, w]) => a + w, 0);
     const [name] = pool.find(([, w]) => (r -= w) <= 0) || pool[0];
-    if (this[name]()) { this.last = name; this.next = rand(28, 60); }
+    if (this[name]()) { this.last = name; this.next = rand(20, 40); }
     else this.next = 4; // couldn't set it up here; try again soon
   }
 
