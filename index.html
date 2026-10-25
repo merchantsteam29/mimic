@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mimic</title>
+<meta name="theme-color" content="#050505">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23050505'/><ellipse cx='22' cy='26' rx='7' ry='10' fill='%23c9c2b4'/><ellipse cx='42' cy='26' rx='7' ry='10' fill='%23c9c2b4'/><path d='M14 44 Q32 56 50 44' stroke='%23b3122a' stroke-width='4' fill='none'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+<!-- Fetch every game module in parallel (must come after the import map). Add new js files here too. -->
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js">
+<link rel="modulepreload" href="js/main.js">
+<link rel="modulepreload" href="js/game.js">
+<link rel="modulepreload" href="js/level.js">
+<link rel="modulepreload" href="js/mimic.js">
+<link rel="modulepreload" href="js/sfx.js">
+<link rel="modulepreload" href="js/voice.js">
+<link rel="modulepreload" href="js/textures.js">
+</head>
+<body>
+<canvas id="view"></canvas>
+
+<!-- Screen effects -->
+<div id="locker" hidden></div>
+<div id="fear"></div>
+<div id="vignette"></div>
+<div id="grain"></div>
+<div id="flash"></div>
+
+<!-- In-game HUD -->
+<div id="hud" hidden>
+  <div id="objective"></div>
+  <div id="crosshair"></div>
+  <div id="prompt"></div>
+  <div id="toast"></div>
+  <div id="mic" title="Your microphone. The mimic can hear you when the bar turns red.">
+    <svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11z"/></svg>
+    <div class="bar"><i></i><b></b></div>
+    <span id="micText"></span>
+  </div>
+  <div id="stamina"><i></i></div>
+  <div id="battery">
+    <svg viewBox="0 0 24 24"><path d="M7 2h10v4l-2 3v13H9V9L7 6z"/></svg>
+    <div class="bar"><i></i></div>
+  </div>
+</div>
+
+<!-- Title -->
+<section id="title" class="screen">
+  <div class="panel title-panel">
+    <h1 class="logo" data-text="MIMIC">MIMIC</h1>
+    <p class="tag">It learns your voice.</p>
+    <div class="buttons">
+      <button id="btnPlay" class="primary">Play</button>
+      <button id="btnHow">How to play</button>
+      <button id="btnSettings">Settings</button>
+    </div>
+    <p class="fine">🎧 Headphones strongly recommended. The game uses your microphone; recordings stay in this tab and are deleted when you close it.</p>
+  </div>
+</section>
+
+<!-- How to play -->
+<section id="how" class="screen" hidden>
+  <div class="panel">
+    <h2>How to play</h2>
+    <p>Something is in here with you. It doesn't have a voice of its own, so it <b>records yours</b>.</p>
+    <ul class="rules">
+      <li>Every time you talk, it keeps a recording. Later it plays your own words back from the dark to lure you in.</li>
+      <li>It can <b>hear you</b>. Talking, shouting and sprinting all bring it to you. Watch the mic bar: when it turns red, it heard you.</li>
+      <li>Find <b>4 fuses</b>, put them in the <b>fuse box</b> and escape through the exit.</li>
+      <li>Hide in lockers and wardrobes. It can't see you there, but it can still hear you.</li>
+      <li>The map is different every time: a research facility or an old house.</li>
+    </ul>
+    <div class="keys">
+      <span><kbd>W A S D</kbd> move</span>
+      <span><kbd>Shift</kbd> sprint</span>
+      <span><kbd>C</kbd> crouch (quieter)</span>
+      <span><kbd>F</kbd> flashlight</span>
+      <span><kbd>E</kbd> interact / hide</span>
+      <span><kbd>Esc</kbd> pause</span>
+    </div>
+    <div class="buttons"><button class="back">Back</button></div>
+  </div>
+</section>
+
+<!-- Settings -->
+<section id="settings" class="screen" hidden>
+  <div class="panel">
+    <h2>Settings</h2>
+    <label class="row">Mouse sensitivity <input type="range" id="setMouse" min="0.2" max="3" step="0.05"><output></output></label>
+    <label class="row">Volume <input type="range" id="setVolume" min="0" max="1" step="0.01"><output></output></label>
+    <label class="row">Field of view <input type="range" id="setFov" min="60" max="100" step="1"><output></output></label>
+    <label class="row">Mic sensitivity <input type="range" id="setMic" min="0" max="1" step="0.01"><output></output></label>
+    <div class="meter big"><i></i><b></b></div>
+    <p class="fine">Talk normally: the bar should pass the white line. If background noise passes it, lower the sensitivity.</p>
+    <div class="buttons"><button class="back">Back</button></div>
+  </div>
+</section>
+
+<!-- Voice check -->
+<section id="miccheck" class="screen" hidden>
+  <div class="panel">
+    <h2>Voice check</h2>
+    <p id="micStatus">Asking for your microphone…</p>
+    <ol id="micLines" class="lines">
+      <li>"Hello? Is anyone there?"</li>
+      <li>"I found something. Come here."</li>
+      <li>"Help me! Please!"</li>
+    </ol>
+    <div class="meter big"><i></i><b></b></div>
+    <p class="fine">Read each line out loud. <span class="whisper">It is already listening.</span></p>
+    <div class="buttons">
+      <button id="btnBegin" class="primary" disabled>Begin</button>
+      <button id="btnSkipMic">Skip</button>
+    </div>
+  </div>
+</section>
+
+<!-- Level intro -->
+<section id="intro" class="screen" hidden>
+  <div class="panel intro-panel">
+    <p class="kicker" id="introKicker"></p>
+    <h2 id="introName"></h2>
+    <p>The power is out. Find <b>4 fuses</b>, restore power at the <b>fuse box</b>, and get out.</p>
+    <p class="whisper">If you hear yourself, it isn't you.</p>
+    <div class="buttons"><button id="btnEnter" class="primary">Click to enter</button></div>
+  </div>
+</section>
+
+<!-- Pause -->
+<section id="pause" class="screen" hidden>
+  <div class="panel">
+    <h2>Paused</h2>
+    <p id="pauseClips" class="whisper"></p>
+    <div class="buttons">
+      <button id="btnResume" class="primary">Resume</button>
+      <button id="btnPauseSettings">Settings</button>
+      <button id="btnQuit">Quit to menu</button>
+    </div>
+  </div>
+</section>
+
+<!-- End -->
+<section id="end" class="screen" hidden>
+  <div class="panel">
+    <h2 id="endTitle"></h2>
+    <p id="endSub" class="whisper"></p>
+    <dl id="endStats" class="stats"></dl>
+    <div class="buttons">
+      <button id="btnAgain" class="primary">Play again</button>
+      <button id="btnMenu">Main menu</button>
+    </div>
+  </div>
+</section>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
