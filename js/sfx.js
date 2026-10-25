@@ -111,7 +111,10 @@ export class Sfx {
     g.gain.linearRampToValueAtTime(peak, t + attack);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     src.connect(f).connect(g).connect(dest);
-    src.start(t, Math.random() * (buffer.duration - dur - 0.1), dur + 0.05);
+    // Longer than the noise buffer: loop it.
+    const loop = dur + 0.15 > buffer.duration;
+    src.loop = loop;
+    src.start(t, loop ? 0 : Math.random() * (buffer.duration - dur - 0.1), dur + 0.05);
     return { f, g, src };
   }
 
@@ -341,6 +344,58 @@ export class Sfx {
       this._noise(dest, { t: t + i * 0.42, dur: 0.14, type: 'lowpass', freq: 220, q: 0.7, peak: 1.1 });
       this._tone(dest, { t: t + i * 0.42, freq: 95, to: 60, dur: 0.12, peak: 0.4 });
     }
+  }
+
+  // A road flare: strike, then a hissing burn for `seconds`.
+  flare(emitter = null, seconds = 7) {
+    const dest = emitter ? emitter.input : this.master, t = this.now;
+    this._noise(dest, { t, dur: 0.25, freq: 2500, q: 0.6, peak: 0.6 });
+    const { g } = this._noise(dest, { t: t + 0.1, dur: seconds, type: 'highpass', freq: 1800, q: 0.4, peak: 0.25, attack: 0.15 });
+    g.gain.setValueAtTime(0.25, t + seconds - 1);
+  }
+
+  // Motion tracker ping (pitch rises when something is close).
+  beep(close = 0) {
+    this._tone(this.master, { type: 'sine', freq: 1200 + close * 900, dur: 0.09, peak: 0.07 });
+  }
+
+  // A generator backfiring (failed skill check).
+  bang(emitter = null) {
+    const dest = emitter ? emitter.input : this.master, t = this.now;
+    this._noise(dest, { t, dur: 0.6, type: 'lowpass', freq: 900, q: 0.5, peak: 1.4, attack: 0.002 });
+    this._tone(dest, { t, type: 'square', freq: 70, to: 30, dur: 0.4, peak: 0.3 });
+    this.clank(emitter, 0.6);
+  }
+
+  skillTick() { this._tone(this.master, { type: 'triangle', freq: 880, dur: 0.06, peak: 0.06 }); }
+  skillGood() { this._tone(this.master, { type: 'triangle', freq: 1320, dur: 0.12, peak: 0.07 }); }
+
+  // Generator coughing into life.
+  engine(emitter = null) {
+    const dest = emitter ? emitter.input : this.master, t = this.now;
+    for (let i = 0; i < 6; i++) this._noise(dest, { t: t + i * 0.12, dur: 0.1, type: 'lowpass', freq: 300, q: 0.7, peak: 0.6 - i * 0.05 });
+    this._tone(dest, { t: t + 0.7, type: 'sawtooth', freq: 48, to: 60, dur: 2.5, peak: 0.12, attack: 0.3 });
+  }
+
+  // Smashing a tape recorder.
+  smash(emitter = null) {
+    const dest = emitter ? emitter.input : this.master, t = this.now;
+    this._noise(dest, { t, dur: 0.35, freq: 3000, q: 0.5, peak: 0.9 });
+    this._noise(dest, { t, dur: 0.2, type: 'lowpass', freq: 400, q: 0.5, peak: 0.8 });
+    for (let i = 0; i < 4; i++) this._noise(dest, { t: t + 0.08 + Math.random() * 0.3, dur: 0.05, freq: 5000 + Math.random() * 3000, q: 4, peak: 0.25 });
+  }
+
+  unlock() {
+    const t = this.now;
+    this._tone(this.master, { t, type: 'square', freq: 660, dur: 0.08, peak: 0.05 });
+    this._tone(this.master, { t: t + 0.1, type: 'square', freq: 990, dur: 0.12, peak: 0.05 });
+    this._noise(this.master, { t: t + 0.25, dur: 0.3, type: 'lowpass', freq: 250, q: 0.6, peak: 0.6 });
+  }
+
+  // It sniffing right outside your hiding spot.
+  sniff(emitter = null) {
+    const dest = emitter ? emitter.input : this.master, t = this.now;
+    for (let i = 0; i < 3; i++) this._noise(dest, { t: t + i * 0.16, dur: 0.12, freq: 1800 + Math.random() * 600, q: 2, peak: 0.35, attack: 0.03 });
   }
 
   // Tension: 0 = nothing near, 1 = it's right there / chasing you.

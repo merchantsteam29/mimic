@@ -8,8 +8,9 @@
 // broadcasts what happened. The Game handles both sides (hostHandle / onNet).
 import { Net } from './net.js';
 import { VoiceChat } from './vc.js';
+import { CLASSES } from './classes.js';
 
-const HOST_TYPES = new Set(['st', 'noise', 'take', 'insert', 'escaped']);
+const HOST_TYPES = new Set(['st', 'noise', 'take', 'insert', 'escaped', 'work', 'bang', 'smash', 'unlock', 'lever', 'flare', 'rescue', 'sniffRes']);
 const CLIP_RATE = 16000;
 
 function encodeClip(buffer) {
@@ -108,6 +109,11 @@ export class Session {
       return;
     }
     if (m.t === 'start') { this.net.locked = true; this.onStart(m); return; }
+    if (m.t === 'class') { // a player picked a class (host keeps it in the roster)
+      const r = this.isHost && this.roster.find((x) => x.id === from);
+      if (r && CLASSES[m.c]) { r.cls = m.c; this.net.sendRoster(); }
+      return;
+    }
     if (m.t === 'lobby') { this.net.locked = false; this.onLobby(); return; }
     if (this.isHost && HOST_TYPES.has(m.t)) this.game?.hostHandle(m, from);
     else if (this.isHost && m.t === 'quit') { if (from === 'h') this.game?.hostHandle(m, from); }
@@ -118,7 +124,14 @@ export class Session {
   broadcast(m) { this.net.broadcast(m); }
 
   start(theme, seed) {
-    this.net.broadcast({ t: 'start', theme, seed, order: this.roster.map((r) => r.id) });
+    const classes = Object.fromEntries(this.roster.map((r) => [r.id, CLASSES[r.cls] ? r.cls : 'runner']));
+    this.net.broadcast({ t: 'start', theme, seed, order: this.roster.map((r) => r.id), classes });
+  }
+
+  setClass(c) {
+    if (!CLASSES[c]) return;
+    if (this.isHost) { const r = this.roster.find((x) => x.id === this.id); if (r) { r.cls = c; this.net.sendRoster(); } }
+    else this.net.send({ t: 'class', c });
   }
   backToLobby() { this.net.broadcast({ t: 'lobby' }); }
 

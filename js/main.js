@@ -7,6 +7,7 @@ import { THEMES } from './level.js';
 import { grainDataUrl } from './textures.js';
 import { Session } from './mp.js';
 import { newCode, cleanCode, cleanName } from './net.js';
+import { CLASSES, CLASS_ORDER } from './classes.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -112,6 +113,27 @@ async function openSettings() {
   requestAnimationFrame(meters);
 })();
 
+// ---------- classes ----------
+let myClass = (() => { try { return localStorage.getItem('mimic.class'); } catch { return null; } })();
+if (!CLASSES[myClass]) myClass = 'runner';
+
+function renderClassPick() {
+  for (const box of document.querySelectorAll('.class-pick')) {
+    box.innerHTML = CLASS_ORDER.map((id) =>
+      `<button data-cls="${id}" class="${id === myClass ? 'on' : ''}"><b>${CLASSES[id].name}</b><span>${esc(CLASSES[id].blurb)}</span></button>`).join('');
+    box.querySelectorAll('button').forEach((b) => {
+      b.onclick = () => {
+        myClass = b.dataset.cls;
+        try { localStorage.setItem('mimic.class', myClass); } catch { /* ignore */ }
+        session?.setClass(myClass);
+        renderClassPick();
+      };
+    });
+  }
+}
+renderClassPick();
+$('btnClassGo').onclick = () => startRun();
+
 // ---------- voice check (before your first game, alone or online) ----------
 let lineIndex = 0;
 let afterMic = null;
@@ -158,7 +180,7 @@ function finishVoiceCheck() {
   next?.();
 }
 
-$('btnPlay').onclick = () => voiceCheck(() => startRun());
+$('btnPlay').onclick = () => voiceCheck(() => { renderClassPick(); show('classes'); });
 $('btnFriends').onclick = () => voiceCheck(() => openMp());
 $('btnBegin').onclick = () => finishVoiceCheck();
 $('btnSkipMic').onclick = () => finishVoiceCheck();
@@ -169,7 +191,7 @@ function startRun() {
   const themeId = params.get('theme') in THEMES ? params.get('theme') : Math.random() < 0.5 ? 'facility' : 'house';
   const seed = params.has('seed') ? Number(params.get('seed')) : Math.floor(Math.random() * 2 ** 31);
   game = new Game({
-    renderer, sfx, voice, settings, hud, themeId, seed,
+    renderer, sfx, voice, settings, hud, themeId, seed, classes: { h: params.get('class') in CLASSES ? params.get('class') : myClass },
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),
   });
@@ -316,6 +338,7 @@ $('btnHost').onclick = async () => {
     try {
       await s.host(newCode(), name);
       session = s;
+      s.setClass(myClass);
       mpBusy(false);
       show('lobby');
       renderLobby();
@@ -336,6 +359,7 @@ $('btnJoin').onclick = async () => {
   try {
     await s.join(code, name);
     session = s;
+    s.setClass(myClass);
     mpBusy(false);
     show('lobby');
     renderLobby();
@@ -350,7 +374,8 @@ function renderLobby() {
   if (!session) return;
   $('lobbyCode').textContent = session.code;
   $('lobbyList').innerHTML = session.roster.map((r) =>
-    `<li data-id="${esc(r.id)}"><span class="dot"></span>${esc(r.name)}${r.id === session.id ? ' (you)' : ''}<span class="ptag">${r.id === 'h' ? 'host' : ''}</span></li>`).join('');
+    `<li data-id="${esc(r.id)}"><span class="dot"></span>${esc(r.name)}${r.id === session.id ? ' (you)' : ''}<span class="ptag">${CLASSES[r.cls]?.name || ''}${r.id === 'h' ? ' · host' : ''}</span></li>`).join('');
+  renderClassPick();
   $('btnStart').hidden = !session.isHost;
   $('lobbyStatus').textContent = session.isHost
     ? (session.roster.length < 2 ? 'Send your friends the code or the invite link.' : `${session.roster.length} of 4 players.`)
@@ -382,7 +407,7 @@ function startMpRun(m) {
   game?.dispose();
   const themeId = m.theme in THEMES ? m.theme : 'facility';
   game = new Game({
-    renderer, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order,
+    renderer, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order, classes: m.classes || {},
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),
   });

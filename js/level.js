@@ -40,7 +40,7 @@ export const THEMES = {
 const PROP_DEFS = {
   crate: { w: 1.25, d: 1.25 }, shelf: { w: 1.8, d: 0.6 }, desk: { w: 1.6, d: 0.8 }, barrel: { w: 1.3, d: 0.75 },
   cabinet: { w: 0.9, d: 0.55 }, locker: { w: 1.0, d: 0.75 }, bed: { w: 1.4, d: 1.95 }, sofa: { w: 1.8, d: 0.85 },
-  table: { w: 1.4, d: 0.9 }, bookshelf: { w: 1.6, d: 0.45 }, dresser: { w: 1.2, d: 0.55 }, wardrobe: { w: 1.25, d: 0.75 },
+  table: { w: 1.4, d: 0.9 }, generator: { w: 1.5, d: 0.95 }, bookshelf: { w: 1.6, d: 0.45 }, dresser: { w: 1.2, d: 0.55 }, wardrobe: { w: 1.25, d: 0.75 },
 };
 
 export function generateLevel(seed, themeId) {
@@ -56,6 +56,9 @@ function tryGenerate(seed, th) {
   const rand = mulberry32(seed);
   const ri = (a, b) => a + Math.floor(rand() * (b - a + 1));
   const pick = (arr) => arr[Math.floor(rand() * arr.length)];
+  // Seeded Fisher-Yates. (Sorting with a random comparator is not deterministic across JS engine tiers,
+  // and every player must build the exact same level from the seed.)
+  const shuffle = (arr) => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
   const N = th.size;
   const grid = new Uint8Array(N * N); // all WALL
   const roomId = new Int16Array(N * N).fill(-1);
@@ -110,7 +113,7 @@ function tryGenerate(seed, th) {
         const nx = x + dx, nz = z + dz;
         if (nx < 0 || nz < 0 || nx >= N || nz >= N) continue;
         const j = nz * N + nx;
-        if (d[j] < 0 && passable(grid[j])) { d[j] = d[i] + 1; q.push(j); }
+        if (d[j] < 0 && passable(grid[j], j)) { d[j] = d[i] + 1; q.push(j); }
       }
     }
     return d;
@@ -154,9 +157,10 @@ function tryGenerate(seed, th) {
   let floorCount = 0;
   for (let i = 0; i < grid.length; i++) if (grid[i] === FLOOR) floorCount++;
   const props = [];
-  const roomOrder = rooms.slice().sort(() => rand() - 0.5);
+  const roomOrder = shuffle(rooms.slice());
   let hides = 0;
-  for (const room of roomOrder) {
+  // Cells against a wall of the room, away from its doorways.
+  const wallCells = (room) => {
     const cands = [];
     for (let z = room.z; z < room.z + room.h; z++) for (let x = room.x; x < room.x + room.w; x++) {
       if (reserved.has(key(x, z))) continue;
@@ -170,25 +174,34 @@ function tryGenerate(seed, th) {
       }
       if (!doorway) cands.push({ x, z, walls });
     }
-    cands.sort(() => rand() - 0.5);
+    return shuffle(cands);
+  };
+  // Put a prop in a wall cell, unless it would cut the map in two. keepFront: nothing may block its front.
+  const placeAt = (c, room, type, keepFront) => {
+    if (grid[key(c.x, c.z)] !== FLOOR || reserved.has(key(c.x, c.z))) return null;
+    const [dx, dz] = c.walls[Math.floor(rand() * c.walls.length)];
+    const front = key(c.x - dx, c.z - dz);
+    if (grid[front] !== FLOOR || reserved.has(front)) return null;
+    set(c.x, c.z, PROP);
+    const reach = bfs(spawnRoom.cx, spawnRoom.cz);
+    let n = 0;
+    for (let i = 0; i < grid.length; i++) if (reach[i] >= 0) n++;
+    if (n !== floorCount - 1) { set(c.x, c.z, FLOOR); return null; }
+    floorCount--;
+    if (keepFront) reserved.add(front);
+    const p = { cx: c.x, cz: c.z, dx, dz, room: room.id, type, hide: type === th.hideProp };
+    props.push(p);
+    return p;
+  };
+  for (const room of roomOrder) {
     let want = Math.floor((room.w * room.h) / 7) + (rand() < 0.5 ? 1 : 0);
     let wantHide = room === spawnRoom || rand() < 0.45 || hides < rooms.length / 3;
-    for (const c of cands) {
+    for (const c of wallCells(room)) {
       if (want <= 0) break;
-      if (grid[key(c.x, c.z)] !== FLOOR || reserved.has(key(c.x, c.z))) continue;
-      const [dx, dz] = c.walls[Math.floor(rand() * c.walls.length)];
-      const front = key(c.x - dx, c.z - dz);
-      if (grid[front] !== FLOOR || reserved.has(front)) continue;
-      set(c.x, c.z, PROP);
-      const reach = bfs(spawnRoom.cx, spawnRoom.cz);
-      let n = 0;
-      for (let i = 0; i < grid.length; i++) if (reach[i] >= 0) n++;
-      if (n !== floorCount - 1) { set(c.x, c.z, FLOOR); continue; }
-      floorCount--;
-      const hide = wantHide;
+      const p = placeAt(c, room, wantHide ? th.hideProp : pick(th.props), wantHide);
+      if (!p) continue;
+      if (wantHide) hides++;
       wantHide = false;
-      if (hide) { hides++; reserved.add(front); }
-      props.push({ cx: c.x, cz: c.z, dx, dz, room: room.id, type: hide ? th.hideProp : pick(th.props), hide });
       want--;
     }
   }
@@ -217,6 +230,52 @@ function tryGenerate(seed, th) {
     if (c) batteries.push(c);
   }
 
+  // ---------- objectives for this run (from the seed, so every player gets the same) ----------
+  const tasks = { fuses: false, gens: 0, tapes: 0, keycard: false };
+  for (const t of shuffle(['fuses', 'gens', 'tapes']).slice(0, rand() < 0.5 ? 2 : 3)) {
+    if (t === 'fuses') tasks.fuses = true;
+    if (t === 'gens') tasks.gens = 2;
+    if (t === 'tapes') tasks.tapes = 3;
+  }
+  // Generators: big machines against a wall, in two different rooms.
+  const gens = [];
+  for (const room of shuffle(middle.slice())) {
+    if (gens.length >= tasks.gens) break;
+    for (const c of wallCells(room)) {
+      const p = placeAt(c, room, 'generator', true);
+      if (p) { gens.push(p); break; }
+    }
+  }
+  tasks.gens = gens.length;
+  // Tape recorders: on the floor, in different rooms.
+  const tapes = [];
+  for (const room of shuffle(middle.slice())) {
+    if (tapes.length >= tasks.tapes) break;
+    const c = freeCell(room);
+    if (c) tapes.push(c);
+  }
+  tasks.tapes = tapes.length;
+  if ((tasks.fuses ? 1 : 0) + (tasks.gens ? 1 : 0) + (tasks.tapes ? 1 : 0) < 2) return null;
+
+  // Keycard: half the time the exit room is locked (only if it has few doorways and locking it
+  // doesn't cut off any other part of the map).
+  let doors = [], keycard = null;
+  if (rand() < 0.5) {
+    const ins = new Set();
+    const ent = [];
+    for (let z = exitRoom.z; z < exitRoom.z + exitRoom.h; z++) for (let x = exitRoom.x; x < exitRoom.x + exitRoom.w; x++) {
+      for (const [dx, dz] of DIRS) {
+        const ox = x + dx, oz = z + dz, k = key(ox, oz);
+        if (at(ox, oz) === FLOOR && roomId[k] !== exitRoom.id && !ins.has(k)) { ins.add(k); ent.push({ cx: ox, cz: oz, dx: -dx, dz: -dz }); }
+      }
+    }
+    const reach = bfs(spawnRoom.cx, spawnRoom.cz, (v, i) => v === FLOOR && !ins.has(i));
+    let cut = false;
+    for (let i = 0; i < grid.length; i++) if (grid[i] === FLOOR && roomId[i] !== exitRoom.id && !ins.has(i) && reach[i] < 0) cut = true;
+    const kc = !cut && ent.length && ent.length <= 3 ? freeCell(pick(middle)) : null;
+    if (kc) { doors = ent; keycard = kc; tasks.keycard = true; }
+  }
+
   // Ceiling lights: one per room, plus some in corridors.
   const lights = rooms.map((r) => ({
     cx: r.cx + (r.w % 2 ? 0.5 : 0), cz: r.cz + (r.h % 2 ? 0.5 : 0), room: r.id,
@@ -225,20 +284,21 @@ function tryGenerate(seed, th) {
   }));
   const corridor = [];
   for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) if (grid[key(x, z)] === FLOOR && roomId[key(x, z)] < 0) corridor.push({ x, z });
-  corridor.sort(() => rand() - 0.5);
+  shuffle(corridor);
   for (const c of corridor) {
     if (rand() > (th.corridorLights ? 0.5 : 0.12)) continue;
     if (lights.some((l) => Math.hypot(l.cx - (c.x + 0.5), l.cz - (c.z + 0.5)) < 4)) continue;
     lights.push({ cx: c.x + 0.5, cz: c.z + 0.5, room: -1, broken: rand() < th.broken, flicker: rand() < th.flicker });
   }
 
-  const far = byDist.filter((r) => roomDist(r) >= roomDist(exitRoom) * 0.55 && r !== spawnRoom);
-  const mimicRoom = pick(far.length > 1 ? far.filter((r) => r !== exitRoom) : far);
+  const far = byDist.filter((r) => roomDist(r) >= roomDist(exitRoom) * 0.55 && r !== spawnRoom && r !== exitRoom);
+  const mimicRoom = pick(far.length ? far : middle);
 
   return {
     seed, theme: th, name: pick(th.names), N, grid, roomId, rooms, props, fuses, batteries, lights,
     spawn: { cx: spawnRoom.cx, cz: spawnRoom.cz }, mimicSpawn: { cx: mimicRoom.cx, cz: mimicRoom.cz },
     exit, fuseBox: box, spawnRoom: spawnRoom.id, exitRoom: exitRoom.id,
+    tasks, gens, tapes, doors, keycard,
   };
 }
 
@@ -260,6 +320,15 @@ export class Level {
       p.box = { minx: p.x - hx, maxx: p.x + hx, minz: p.z - hz, maxz: p.z + hz };
       p.front = { x: p.x - p.dx * (def.d / 2 + 0.5), z: p.z - p.dz * (def.d / 2 + 0.5) };
     }
+    this.doorsLocked = this.doors.length > 0;
+    this.doorCells = new Set(this.doors.map((d) => d.cz * this.N + d.cx));
+    for (const d of this.doors) {
+      // The door sits on the edge of the corridor cell, where it meets the room.
+      const off = CELL / 2 - 0.08;
+      d.x = center(d.cx) + d.dx * off; d.z = center(d.cz) + d.dz * off;
+      const hx = d.dx ? 0.1 : CELL / 2, hz = d.dx ? CELL / 2 : 0.1;
+      d.box = { minx: d.x - hx, maxx: d.x + hx, minz: d.z - hz, maxz: d.z + hz };
+    }
     this.spawnPos = { x: center(this.spawn.cx), z: center(this.spawn.cz) };
     this.mimicPos = { x: center(this.mimicSpawn.cx), z: center(this.mimicSpawn.cz) };
   }
@@ -267,13 +336,15 @@ export class Level {
   cellOf(v) { return Math.floor(v / CELL); }
   get(cx, cz) { return cx < 0 || cz < 0 || cx >= this.N || cz >= this.N ? WALL : this.grid[cz * this.N + cx]; }
   blocksMove(cx, cz) { const v = this.get(cx, cz); return v === WALL || (v === EXIT && !this.exitOpen); }
-  passable(cx, cz) { const v = this.get(cx, cz); return v === FLOOR || (v === EXIT && this.exitOpen); }
+  passable(cx, cz) { const v = this.get(cx, cz); return (v === FLOOR && !this.lockedDoor(cx, cz)) || (v === EXIT && this.exitOpen); }
+  lockedDoor(cx, cz) { return this.doorsLocked && this.doorCells.has(cz * this.N + cx); }
 
   // Walls block sight; furniture doesn't.
   los(x1, z1, x2, z2) {
     const dx = x2 - x1, dz = z2 - z1, n = Math.ceil(Math.hypot(dx, dz) / 0.25);
     for (let i = 1; i < n; i++) {
-      if (this.blocksMove(this.cellOf(x1 + (dx * i) / n), this.cellOf(z1 + (dz * i) / n))) return false;
+      const cx = this.cellOf(x1 + (dx * i) / n), cz = this.cellOf(z1 + (dz * i) / n);
+      if (this.blocksMove(cx, cz) || this.lockedDoor(cx, cz)) return false;
     }
     return true;
   }
@@ -299,7 +370,8 @@ export class Level {
       for (let cz = z0; cz <= z1; cz++) for (let cx = x0; cx <= x1; cx++) {
         if (this.blocksMove(cx, cz)) push(cx * CELL, (cx + 1) * CELL, cz * CELL, (cz + 1) * CELL);
       }
-      for (const pr of this.props) {
+      const boxes = this.doorsLocked ? this.props.concat(this.doors) : this.props;
+      for (const pr of boxes) {
         const b = pr.box;
         if (p.x + r > b.minx && p.x - r < b.maxx && p.z + r > b.minz && p.z - r < b.maxz) push(b.minx, b.maxx, b.minz, b.maxz);
       }
@@ -449,6 +521,20 @@ function buildProp(type, M) {
       for (const y of [0.25, 0.5, 0.75]) g.add(box(1.1, 0.015, 0.01, M.black, 0, y, 0.28));
       if (r() < 0.5) g.add(box(0.35, 0.45, 0.04, M.mirror, 0, 1.15, -0.2));
       break;
+    case 'generator': {
+      g.add(box(1.4, 0.95, 0.8, M.genPaint, 0, 0.55, 0));
+      g.add(box(1.5, 0.08, 0.9, M.metal, 0, 0.04, 0));
+      const tank = cyl(0.22, 0.22, 0.9, M.metal, -0.2, 0.62, 0.42, 12);
+      tank.rotation.z = Math.PI / 2;
+      g.add(tank);
+      for (let i = 0; i < 5; i++) g.add(box(0.02, 0.5, 0.01, M.black, 0.25 + i * 0.07, 0.6, 0.405)); // vents
+      g.add(cyl(0.05, 0.05, 0.7, M.rust, 0.55, 1.25, -0.2, 8));
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), new THREE.MeshStandardMaterial({ color: 0x220000, emissive: 0xff2010, emissiveIntensity: 1.2 }));
+      lamp.position.set(-0.55, 1.08, 0.3);
+      g.add(lamp);
+      g.userData.lamp = lamp.material;
+      break;
+    }
     case 'wardrobe':
       g.add(box(1.25, 2.2, 0.75, M.darkWood, 0, 1.1, 0));
       g.add(box(0.015, 2.0, 0.01, M.black, 0, 1.1, 0.376));
@@ -483,6 +569,7 @@ export function buildLevelScene(level) {
     fabric: mat(tex.fabric), sheet: mat(tex.sheet), black: new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.8 }),
     paper: new THREE.MeshStandardMaterial({ color: 0xb8b2a2, roughness: 1 }), cardboard: new THREE.MeshStandardMaterial({ color: 0x7a5e3c, roughness: 1 }),
     mirror: new THREE.MeshStandardMaterial({ color: 0x9aa4a8, roughness: 0.08, metalness: 1 }),
+    genPaint: new THREE.MeshStandardMaterial({ color: th.id === 'house' ? 0x5a4a2a : 0x6a6a2a, roughness: 0.6, metalness: 0.3 }),
     books: [0x4a1c1c, 0x1c2f4a, 0x2f3a1c, 0x4a3b1c, 0x2a2a2a, 0x5a4a3a].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.9 })),
   };
 
@@ -560,6 +647,51 @@ export function buildLevelScene(level) {
     return { x, z, mesh: g };
   });
 
+  // Tape recorders: reels and a blinking red light.
+  const tapes = level.tapes.map((t) => {
+    const g = new THREE.Group();
+    g.add(box(0.38, 0.12, 0.24, M.black, 0, 0.06, 0));
+    for (const x of [-0.09, 0.09]) g.add(cyl(0.06, 0.06, 0.02, M.paper, x, 0.13, -0.02, 14));
+    const led = new THREE.MeshStandardMaterial({ color: 0x220000, emissive: 0xff0a0a, emissiveIntensity: 2 });
+    const l = new THREE.Mesh(new THREE.SphereGeometry(0.012, 6, 4), led);
+    l.position.set(0.15, 0.12, 0.1);
+    g.add(l);
+    const x = center(t.x) + (rand() - 0.5) * 0.6, z = center(t.z) + (rand() - 0.5) * 0.6;
+    g.position.set(x, 0, z);
+    g.rotation.y = rand() * Math.PI * 2;
+    group.add(g);
+    return { x, z, mesh: g, led };
+  });
+
+  // Keycard (a brass key in the house), glinting on the floor.
+  let keycard = null;
+  if (level.keycard) {
+    const g = new THREE.Group();
+    if (th.id === 'house') {
+      const brass = new THREE.MeshStandardMaterial({ color: 0xb08a3a, emissive: 0x3a2a08, roughness: 0.3, metalness: 0.9 });
+      g.add(box(0.12, 0.012, 0.012, brass, 0, 0.01, 0), cyl(0.025, 0.025, 0.012, brass, -0.07, 0.01, 0, 12), box(0.012, 0.012, 0.03, brass, 0.05, 0.01, 0.012));
+    } else {
+      g.add(box(0.09, 0.006, 0.055, new THREE.MeshStandardMaterial({ color: 0xdfe6ea, emissive: 0x203040, roughness: 0.4 }), 0, 0.005, 0));
+      g.add(box(0.09, 0.007, 0.012, new THREE.MeshStandardMaterial({ color: 0x103050, emissive: 0x2a7aff, emissiveIntensity: 1.2 }), 0, 0.006, 0.012));
+    }
+    const x = center(level.keycard.x) + (rand() - 0.5) * 0.6, z = center(level.keycard.z) + (rand() - 0.5) * 0.6;
+    g.position.set(x, 0, z);
+    g.rotation.y = rand() * Math.PI;
+    group.add(g);
+    keycard = { x, z, mesh: g };
+  }
+  const doors = level.doors.map((d) => {
+    const g = new THREE.Group();
+    const along = d.dx ? [0.12, WALL_H, CELL] : [CELL, WALL_H, 0.12];
+    g.add(box(...along, th.id === 'house' ? M.darkWood : M.locker, 0, WALL_H / 2, 0));
+    const pad = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.16, 0.12), new THREE.MeshStandardMaterial({ color: 0x110000, emissive: 0xff1020, emissiveIntensity: 1.5 }));
+    pad.position.set(-d.dx * 0.1 + (d.dx ? 0 : 0.6), 1.3, -d.dz * 0.1 + (d.dz ? 0 : 0.6));
+    g.add(pad);
+    g.position.set(d.x, 0, d.z);
+    group.add(g);
+    return { mesh: g, pad: pad.material };
+  });
+
   // Fuse box on the wall: four slots that light up green as fuses go in.
   const fb = level.fuseBox;
   const fbOff = CELL / 2 - 0.14;
@@ -599,5 +731,5 @@ export function buildLevelScene(level) {
   outside.rotation.y = dYaw;
   group.add(outside);
 
-  return { group, fixtures, fuses, batteries, fuseBox: { mesh: fuseBox, slots, x: fbx, z: fbz }, door, sign, textures: tex };
+  return { group, fixtures, fuses, batteries, tapes, keycard, doors, fuseBox: { mesh: fuseBox, slots, x: fbx, z: fbz }, door, sign, textures: tex };
 }

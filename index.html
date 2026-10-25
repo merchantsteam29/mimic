@@ -14,35 +14,43 @@
 {
   "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-    "./js/director.js": "./js/director.js?v=20261025132149",
-    "./js/game.js": "./js/game.js?v=20261025132149",
-    "./js/level.js": "./js/level.js?v=20261025132149",
-    "./js/main.js": "./js/main.js?v=20261025132149",
-    "./js/mimic.js": "./js/mimic.js?v=20261025132149",
-    "./js/mp.js": "./js/mp.js?v=20261025132149",
-    "./js/net.js": "./js/net.js?v=20261025132149",
-    "./js/remote.js": "./js/remote.js?v=20261025132149",
-    "./js/sfx.js": "./js/sfx.js?v=20261025132149",
-    "./js/textures.js": "./js/textures.js?v=20261025132149",
-    "./js/vc.js": "./js/vc.js?v=20261025132149",
-    "./js/voice.js": "./js/voice.js?v=20261025132149"
+    "./js/abilities.js": "./js/abilities.js?v=20261025135617",
+    "./js/classes.js": "./js/classes.js?v=20261025135617",
+    "./js/director.js": "./js/director.js?v=20261025135617",
+    "./js/game.js": "./js/game.js?v=20261025135617",
+    "./js/heartbeat.js": "./js/heartbeat.js?v=20261025135617",
+    "./js/level.js": "./js/level.js?v=20261025135617",
+    "./js/main.js": "./js/main.js?v=20261025135617",
+    "./js/mimic.js": "./js/mimic.js?v=20261025135617",
+    "./js/mp.js": "./js/mp.js?v=20261025135617",
+    "./js/net.js": "./js/net.js?v=20261025135617",
+    "./js/objectives.js": "./js/objectives.js?v=20261025135617",
+    "./js/remote.js": "./js/remote.js?v=20261025135617",
+    "./js/sfx.js": "./js/sfx.js?v=20261025135617",
+    "./js/textures.js": "./js/textures.js?v=20261025135617",
+    "./js/vc.js": "./js/vc.js?v=20261025135617",
+    "./js/voice.js": "./js/voice.js?v=20261025135617"
   }
 }
 </script>
 <!-- Fetch every game module in parallel (must come after the import map). Add new js files here too. -->
 <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js">
-<link rel="modulepreload" href="js/main.js?v=20261025132149">
-<link rel="modulepreload" href="js/game.js?v=20261025132149">
-<link rel="modulepreload" href="js/level.js?v=20261025132149">
-<link rel="modulepreload" href="js/mimic.js?v=20261025132149">
-<link rel="modulepreload" href="js/director.js?v=20261025132149">
-<link rel="modulepreload" href="js/sfx.js?v=20261025132149">
-<link rel="modulepreload" href="js/voice.js?v=20261025132149">
-<link rel="modulepreload" href="js/textures.js?v=20261025132149">
-<link rel="modulepreload" href="js/net.js?v=20261025132149">
-<link rel="modulepreload" href="js/vc.js?v=20261025132149">
-<link rel="modulepreload" href="js/mp.js?v=20261025132149">
-<link rel="modulepreload" href="js/remote.js?v=20261025132149">
+<link rel="modulepreload" href="js/main.js?v=20261025135617">
+<link rel="modulepreload" href="js/game.js?v=20261025135617">
+<link rel="modulepreload" href="js/level.js?v=20261025135617">
+<link rel="modulepreload" href="js/mimic.js?v=20261025135617">
+<link rel="modulepreload" href="js/director.js?v=20261025135617">
+<link rel="modulepreload" href="js/sfx.js?v=20261025135617">
+<link rel="modulepreload" href="js/voice.js?v=20261025135617">
+<link rel="modulepreload" href="js/textures.js?v=20261025135617">
+<link rel="modulepreload" href="js/net.js?v=20261025135617">
+<link rel="modulepreload" href="js/vc.js?v=20261025135617">
+<link rel="modulepreload" href="js/mp.js?v=20261025135617">
+<link rel="modulepreload" href="js/remote.js?v=20261025135617">
+<link rel="modulepreload" href="js/classes.js?v=20261025135617">
+<link rel="modulepreload" href="js/objectives.js?v=20261025135617">
+<link rel="modulepreload" href="js/abilities.js?v=20261025135617">
+<link rel="modulepreload" href="js/heartbeat.js?v=20261025135617">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -67,6 +75,20 @@
     <span id="micText"></span>
   </div>
   <div id="stamina"><i></i></div>
+  <div id="ability"></div>
+  <canvas id="tracker" width="200" height="120" hidden></canvas>
+  <!-- Generator skill check: press Space when the needle is in the bright zone. -->
+  <div id="skill" hidden>
+    <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" class="ring"/><path id="skillZone" class="zone"/><line id="skillNeedle" x1="50" y1="50" x2="50" y2="8" class="needle"/></svg>
+    <span><kbd>Space</kbd></span>
+  </div>
+  <!-- Hiding-spot heartbeat game: press Space as each beat reaches your heart. -->
+  <div id="heart" hidden>
+    <p class="whisper" id="heartText">It's right outside. Keep your heart steady.</p>
+    <div class="track"><span class="core">♥</span><div id="heartBeats"></div></div>
+    <p class="lives" id="heartLives"></p>
+    <p class="fine"><kbd>Space</kbd> on each beat · don't make a sound</p>
+  </div>
   <div id="battery">
     <svg viewBox="0 0 24 24"><path d="M7 2h10v4l-2 3v13H9V9L7 6z"/></svg>
     <div class="bar"><i></i></div>
@@ -96,7 +118,9 @@
     <ul class="rules">
       <li>Every time you talk, it keeps a recording. Later it plays your own words back from the dark to lure you in.</li>
       <li>It can <b>hear you</b>. Talking, shouting and sprinting all bring it to you. Watch the mic bar: when it turns red, it heard you.</li>
-      <li>Find <b>4 fuses</b>, put them in the <b>fuse box</b> and escape through the exit.</li>
+      <li>Every run has 2–3 jobs before you can restore the power: find <b>fuses</b> for the panel, repair <b>generators</b> (hit the skill checks or they bang), smash its <b>tapes</b> (each one erases some of the voices it stole), and sometimes find a <b>keycard</b> for a locked room. Then pull the power lever and get out.</li>
+      <li><b>Classes</b> (all free): Brute has 2 flares that stun it. Runner is fast. Medic can save one person from a catch. Tracker has a motion tracker.</li>
+      <li>If it follows you to your hiding spot, it stops at the door and listens. Keep your heart steady (<kbd>Space</kbd> on the beat) and stay silent.</li>
       <li>Hide in lockers and wardrobes. It can't see you there, but it can still hear you.</li>
       <li>The map is different every time: a research facility or an old house.</li>
       <li><b>With friends</b> (up to 4): voice chat is proximity-based. If a friend goes quiet, they might just be lost. Or it might be using their voice now.</li>
@@ -106,7 +130,8 @@
       <span><kbd>Shift</kbd> sprint</span>
       <span><kbd>C</kbd> crouch (quieter)</span>
       <span><kbd>F</kbd> flashlight</span>
-      <span><kbd>E</kbd> interact / hide</span>
+      <span><kbd>E</kbd> interact / hide (hold to repair)</span>
+      <span><kbd>G</kbd> class ability</span>
       <span><kbd>Esc</kbd> pause</span>
     </div>
     <div class="buttons"><button class="back">Back</button></div>
@@ -171,12 +196,23 @@
     <h2 id="lobbyCode" class="code"></h2>
     <button id="btnInvite" class="small">Copy invite link</button>
     <ul id="lobbyList" class="players"></ul>
+    <p class="kicker pick-title">Your class</p>
+    <div class="class-pick" data-for="lobby"></div>
     <p class="fine">Voice chat is on. In the lobby everyone hears everyone; in the game, only players near you can. Dead players can only talk to each other.</p>
     <p id="lobbyStatus" class="whisper"></p>
     <div class="buttons">
       <button id="btnStart" class="primary">Start game</button>
       <button id="btnLeave">Leave</button>
     </div>
+  </div>
+</section>
+
+<!-- Class choice (solo) -->
+<section id="classes" class="screen" hidden>
+  <div class="panel wide-panel">
+    <h2>Choose your class</h2>
+    <div class="class-pick" data-for="solo"></div>
+    <div class="buttons"><button id="btnClassGo" class="primary">Continue</button></div>
   </div>
 </section>
 
@@ -219,6 +255,6 @@
   </div>
 </section>
 
-<script type="module" src="js/main.js?v=20261025132149"></script>
+<script type="module" src="js/main.js?v=20261025135617"></script>
 </body>
 </html>

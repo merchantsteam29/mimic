@@ -8,6 +8,9 @@ import { generateLevel, buildLevelScene, makeFuse, CELL, WALL_H } from './level.
 import { Mimic } from './mimic.js';
 import { Director } from './director.js';
 import { RemotePlayer } from './remote.js';
+import { Objectives } from './objectives.js';
+import { Abilities } from './abilities.js';
+import { Heartbeat } from './heartbeat.js';
 
 const POOL = 6;              // real point lights, moved to the nearest fixtures
 const EYE = 1.62, EYE_CROUCH = 1.0;
@@ -19,9 +22,10 @@ const angleDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 const num = (v, d = 0) => (Number.isFinite(v) ? v : d);
 
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null }) {
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null }) {
     Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp });
     this.me = mp ? mp.id : 'h';
+    this.classes = classes || { [this.me]: 'runner' }; // player id -> class
     this.isHost = !mp || mp.isHost;
     this.order = order || [this.me];
     const level = this.level = generateLevel(seed, themeId);
@@ -68,7 +72,6 @@ export class Game {
       })),
       { type: 'exit', x: (ex.wx + 0.5) * CELL - ex.dx * (CELL / 2 + 0.15), y: 1.4, z: (ex.wz + 0.5) * CELL - ex.dz * (CELL / 2 + 0.15), range: 2.6, active: true },
     ];
-    this.nextItem = this.items.length; // host: index for fuses dropped by the dead
     this.focus = null;
 
     // Everyone starts in the same room, a step apart.
@@ -99,11 +102,21 @@ export class Game {
       speak: (style, emitter) => this.mimicSpeaks(style, emitter),
       onCatch: (id) => this.hostCatch(id),
       onSpotted: (id) => this.sendTo(id, { t: 'sting' }),
+      onSniff: (id) => { this.sniffing = id; this.sendTo(id, { t: 'sniff' }); },
       onPeekSeen: () => {}, // each player notices a peek themselves (see watchPeek)
     });
     if (mp) { this.mimic.lureStyle = 'distant'; this.mimic.stalkRange = [9, 16]; }
     this.ambientEmitter = sfx.emitter();
     this.director = new Director(this);
+    this.obj = new Objectives(this);           // generators, tapes, keycard (adds their items)
+    this.ab = new Abilities(this, this.classes[this.me] || 'runner');
+    this.hb = new Heartbeat(this);
+    this.nextItem = this.items.length;         // host: index for things dropped by the dead
+    if (!level.tasks.fuses) { // no fuses this run: the panel's fuse slots stay dark
+      for (const it of this.items) if (it.type === 'fuse') { it.active = false; it.mesh.removeFromParent(); }
+      for (const sl of this.world.fuseBox.slots) { sl.emissive.setHex(0x000000); sl.color.setHex(0x111111); }
+      this.fusesIn = 4;
+    }
     sfx.setReverb(...th.reverb);
     sfx.startAmbient(th.id);
 
@@ -113,10 +126,13 @@ export class Game {
       if (this.menuOpen) return;
       if (this.state === 'spectate' && !e.repeat && (e.code === 'Space' || e.code === 'KeyE')) { this.specIdx++; return; }
       if (this.state !== 'playing') return;
+      if (e.code === 'Space') e.preventDefault();
+      if (!e.repeat && (this.hb.onKey(e.code) || this.obj.onKey(e.code))) return;
       this.keys.add(e.code);
       if (e.repeat) return;
       if (e.code === 'KeyF') this.toggleFlash();
       if (e.code === 'KeyE') this.interact();
+      if (e.code === 'KeyG') this.ab.use();
     };
     this.onKeyUp = (e) => this.keys.delete(e.code);
     this.onBlur = () => this.keys.clear();
@@ -190,6 +206,9 @@ export class Game {
     this.mimic.dispose();
     this.ambientEmitter.dispose();
     this.director.dispose();
+    this.obj.dispose();
+    this.ab.dispose();
+    this.hb.stop();
     for (const r of this.remotes.values()) r.dispose();
     this.renderer.domElement.style.transform = this.renderer.domElement.style.filter = '';
     this.sfx.stopAmbient();
@@ -216,7 +235,14 @@ export class Game {
   // Host: a player's intent.
   hostHandle(m, from) {
     const r = this.remotes.get(from);
+    if (this.obj.hostHandle(m, from) || this.ab.hostHandle(m, from)) return;
     switch (m.t) {
+      case 'sniffRes': // the hidden player's heartbeat game is over
+        if (this.mimic.state === 'sniff' && this.mimic.targetId === from) {
+          this.sniffing = null;
+          this.mimic.endSniff(!!m.ok, this.infoOf(from));
+        }
+        break;
       case 'st': {
         if (!r || !this.alive(from) || !Array.isArray(m.s)) return;
         const s = m.s.map((v) => num(v));
@@ -237,7 +263,7 @@ export class Game {
       }
       case 'take': {
         const it = this.items[m.i];
-        if (!it || !it.active || (it.type !== 'fuse' && it.type !== 'battery') || !this.alive(from)) return;
+        if (!it || !it.active || !['fuse', 'battery', 'keycard'].includes(it.type) || !this.alive(from)) return;
         it.active = false;
         if (it.type === 'fuse') { this.held.set(from, (this.held.get(from) || 0) + 1); this.mimic.aggro += 0.03; }
         this.broadcast({ t: 'took', i: m.i, by: from });
@@ -249,7 +275,6 @@ export class Game {
         this.held.set(from, 0);
         this.hostFusesIn = Math.min(4, this.hostFusesIn + n);
         this.broadcast({ t: 'fuses', ins: this.hostFusesIn, by: from });
-        if (this.hostFusesIn >= 4) this.broadcast({ t: 'power', by: from });
         break;
       }
       case 'escaped': {
@@ -269,7 +294,10 @@ export class Game {
 
   // Everyone: what happened.
   onNet(m) {
+    if (this.obj.onNet(m) || this.ab.onNet(m)) return;
     switch (m.t) {
+      case 'sniff': this.hb.start(); break;
+      case 'sniffEnd': if (this.hb.on) { this.hb.stop(); this.toast('It went away… for now.'); } break;
       case 'snap': {
         if (this.isHost) return;
         if (Array.isArray(m.m) && !(this.state === 'caught')) this.mimic.applySnap(m.m);
@@ -294,7 +322,8 @@ export class Game {
         it.active = false;
         it.mesh?.removeFromParent();
         const mine = m.by === this.me;
-        if (it.type === 'fuse') {
+        if (it.type === 'keycard') this.obj.tookKey(m.by);
+        else if (it.type === 'fuse') {
           this.fusesFound++;
           if (mine) { this.fusesHeld++; this.sfx.pickup(); this.toast(`Fuse ${this.fusesFound}/4`); }
         } else if (mine) {
@@ -305,12 +334,14 @@ export class Game {
         this.updateObjective();
         break;
       }
-      case 'drop': { // fuses a player was carrying when they were taken
-        const mesh = makeFuse();
-        mesh.position.set(m.x, 0.06, m.z);
+      case 'drop': { // what a player was carrying when they were taken
+        const key = m.kind === 'keycard';
+        const mesh = key ? new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.006, 0.055), new THREE.MeshStandardMaterial({ color: 0xdfe6ea, emissive: 0x2a4a7a })) : makeFuse();
+        mesh.position.set(m.x, key ? 0.005 : 0.06, m.z);
         this.world.group.add(mesh);
-        this.items[m.i] = { type: 'fuse', x: m.x, y: 0.1, z: m.z, mesh, range: 2.1, active: true };
-        this.fusesFound = Math.max(0, this.fusesFound - 1);
+        this.items[m.i] = { type: key ? 'keycard' : 'fuse', x: m.x, y: 0.1, z: m.z, mesh, range: 2.1, active: true };
+        if (key) this.obj.droppedKey();
+        else this.fusesFound = Math.max(0, this.fusesFound - 1);
         this.updateObjective();
         break;
       }
@@ -366,6 +397,7 @@ export class Game {
   // Host: the mimic reached a player.
   hostCatch(id) {
     if (!this.alive(id)) return;
+    if (this.ab.hostSave(id)) return; // a medic's rescue: they tear free
     this.dropFuses(id);
     this.mimic.shyT = 8; // it lets the others breathe for a moment
     this.mimic.state = 'wander';
@@ -378,6 +410,11 @@ export class Game {
     this.held.set(id, 0);
     const at = id === this.me ? this.p : this.remotes.get(id);
     if (!at) return;
+    if (this.obj.keyHolder === id) {
+      this.obj.keyHolder = null;
+      const pos = this.level.collide({ x: at.x, z: at.z }, 0.2);
+      this.broadcast({ t: 'drop', kind: 'keycard', i: this.nextItem++, x: +pos.x.toFixed(2), z: +pos.z.toFixed(2) });
+    }
     for (let k = 0; k < n; k++) {
       const pos = this.level.collide({ x: at.x + (Math.random() - 0.5) * 0.8, z: at.z + (Math.random() - 0.5) * 0.8 }, 0.2);
       this.broadcast({ t: 'drop', i: this.nextItem++, x: +pos.x.toFixed(2), z: +pos.z.toFixed(2) });
@@ -404,8 +441,13 @@ export class Game {
       this.updateAmbient(dt);
       this.director.update(dt);
       this.watchPeek();
+      this.obj.update(dt);
+      this.hb.update(dt);
     } else if (this.state === 'caught') this.updateCaught(dt);
     this.updateDoor(dt);
+    this.ab.update(dt);
+    // The mimic left a hiding spot without a verdict (a flare, say): end that player's heartbeat game.
+    if (this.isHost && this.sniffing && this.mimic.state !== 'sniff') { this.sendTo(this.sniffing, { t: 'sniffEnd' }); this.sniffing = null; }
 
     if (!this.isHost) this.mimic.puppet(dt, this.t);
     else if (this.mp || this.state === 'playing') this.mimic.update(dt, this.targets(), this.t);
@@ -506,14 +548,14 @@ export class Game {
     const sprint = (k.has('ShiftLeft') || k.has('ShiftRight')) && (f || s) && f >= 0 && !p.crouch && !p.tired;
 
     if (sprint) {
-      p.stamina -= dt / 8;
+      p.stamina -= dt / this.ab.staminaTime;
       if (p.stamina <= 0) { p.stamina = 0; p.tired = true; }
     } else {
-      p.stamina = Math.min(1, p.stamina + dt / (p.tired ? 5 : 3.5));
+      p.stamina = Math.min(1, p.stamina + dt / (p.tired ? this.ab.recover * 1.4 : this.ab.recover));
       if (p.tired && p.stamina > 0.25) p.tired = false;
     }
 
-    const speed = p.crouch ? 1.4 : sprint ? 5.0 : 2.7;
+    const speed = p.crouch ? 1.4 : sprint ? this.ab.sprint : 2.7 * (this.ab.boostT > 0 ? 1.25 : 1);
     const sin = Math.sin(p.yaw), cos = Math.cos(p.yaw);
     let wx = -sin * f + cos * s, wz = -cos * f - sin * s;
     const wl = Math.hypot(wx, wz);
@@ -547,7 +589,7 @@ export class Game {
     const p = this.p;
     const run = p.speed > 4;
     this.sfx.footstep(null, { vol: p.crouch ? 0.3 : run ? 1.1 : 0.65, surface: this.level.theme.surface });
-    this.noise(p.crouch ? 1 : run ? 9 : 3, 'step');
+    this.noise(p.crouch ? 1 : run ? this.ab.sprintNoise : 3, 'step');
   }
 
   // Something the mimic might hear, at my position.
@@ -621,10 +663,12 @@ export class Game {
       best = it; bestDot = dot;
     }
     this.focus = best;
+    const custom = best && this.obj.prompt(best);
+    if (custom !== undefined) { this.setPrompt(custom); return; }
     const text = {
       fuse: 'Pick up fuse',
       battery: 'Take battery',
-      fusebox: this.fusesHeld ? `Insert fuse${this.fusesHeld > 1 ? 's' : ''} (${this.fusesHeld})` : `Fuse box (${this.fusesIn}/4)`,
+      fusebox: this.fusesHeld && this.fusesIn < 4 ? `Insert fuse${this.fusesHeld > 1 ? 's' : ''} (${this.fusesHeld})` : this.obj.allDone() ? 'Restore power' : 'Power panel',
       hide: 'Hide',
       exit: 'Open exit',
     }[best?.type];
@@ -638,7 +682,7 @@ export class Game {
 
   interact() {
     const f = this.focus;
-    if (!f) return;
+    if (!f || this.obj.interact(f)) return;
     switch (f.type) {
       case 'unhide': this.exitHide(); break;
       case 'fuse':
@@ -647,12 +691,10 @@ export class Game {
         this.send({ t: 'take', i: this.items.indexOf(f) });
         break;
       case 'fusebox':
-        if (!this.fusesHeld) {
-          this.sfx.denied();
-          this.toast(`It needs ${4 - this.fusesIn} more fuse${4 - this.fusesIn > 1 ? 's' : ''}`);
-          return;
-        }
-        this.send({ t: 'insert' });
+        if (this.fusesHeld && this.fusesIn < 4) { this.send({ t: 'insert' }); break; }
+        if (this.obj.allDone()) { this.send({ t: 'lever' }); break; }
+        this.sfx.denied();
+        this.toast(this.missing());
         break;
       case 'hide': this.enterHide(f.prop); break;
       case 'exit':
@@ -715,10 +757,23 @@ export class Game {
     const o = this.hud.objective;
     o.classList.toggle('alarm', this.power);
     if (this.power) { o.textContent = 'THE EXIT IS OPEN. RUN.'; return; }
-    const lines = [`Fuses found  ${this.fusesFound}/4`];
-    if (this.mp && this.fusesHeld) lines.push(`Carrying  ${this.fusesHeld}`);
-    lines.push(this.fusesIn ? `Fuse box  ${this.fusesIn}/4` : 'Restore power at the fuse box');
+    if (!this.obj) return;
+    const lines = [];
+    if (this.level.tasks.fuses) {
+      lines.push(`Fuses found  ${this.fusesFound}/4  ·  in the panel  ${this.fusesIn}/4`);
+      if (this.mp && this.fusesHeld) lines.push(`Carrying  ${this.fusesHeld}`);
+    }
+    lines.push(...this.obj.lines());
+    if (this.obj.allDone()) lines.push('Restore power at the panel');
     o.textContent = lines.join('\n');
+  }
+
+  // Why the power won't come on yet.
+  missing() {
+    if (this.level.tasks.fuses && this.fusesIn < 4) return `The panel needs ${4 - this.fusesIn} more fuse${4 - this.fusesIn > 1 ? 's' : ''}`;
+    if (this.obj.gen.some((p) => p < 1)) return 'The generators are still dead';
+    if (this.obj.tapesLeft) return 'Its tapes are still recording';
+    return 'The power won\'t come on yet';
   }
 
   toast(text) {
@@ -883,6 +938,9 @@ export class Game {
   // ---------- death, escape, spectating ----------
   caught() {
     if (this.state !== 'playing') return;
+    this.hb.stop();
+    this.obj.repairing = null;
+    this.obj.endSkill();
     this.exitHide(true);
     this.state = 'caught';
     this.ct = 0;

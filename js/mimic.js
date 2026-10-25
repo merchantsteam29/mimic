@@ -7,12 +7,14 @@
 //   chase        saw the player
 //   hunt         knows which locker/wardrobe the player is hiding in and goes to drag them out
 //   peek         (set up by the director) stands still at the end of a corridor, staring
-//   flee         was looked at while peeking: darts out of sight
+//   flee         was looked at while peeking (or stunned): darts out of sight
+//   stunned      hit by a flare / a medic's rescue: blinded for a few seconds, then flees
+//   sniff        at the door of a hiding spot, listening (the hidden player plays the heartbeat game)
 import * as THREE from 'three';
 import { faceTexture } from './textures.js';
 
 const TURN = 7;          // rad/s
-const STATES = ['wander', 'investigate', 'stalk', 'chase', 'hunt', 'peek', 'flee'];
+const STATES = ['wander', 'investigate', 'stalk', 'chase', 'hunt', 'peek', 'flee', 'stunned', 'sniff'];
 const RADIUS = 0.35;
 
 function buildModel() {
@@ -129,7 +131,7 @@ export class Mimic {
   constructor(level, scene, sfx, hooks) {
     this.level = level;
     this.sfx = sfx;
-    this.hooks = hooks; // { speak(style, emitter) -> seconds, onCatch(playerId), onSpotted(playerId) }
+    this.hooks = hooks; // { speak(style, emitter) -> seconds, onCatch(playerId), onSpotted(playerId), onSniff(playerId) }
     this.model = buildModel();
     scene.add(this.model.root);
     this.emitter = sfx.emitter();
@@ -172,6 +174,7 @@ export class Mimic {
 
   // ---------- senses ----------
   canSee(P, d) {
+    if (this.state === 'stunned' || this.state === 'sniff') return false;
     if (P.hidden) return false;
     if (this.graceT > 0) return false;
     let range = P.flashOn ? 16 : 9;
@@ -189,7 +192,7 @@ export class Mimic {
 
   // A noise at (x, z) audible within `radius` metres.
   hear(x, z, radius, kind) {
-    if (this.state === 'chase' || this.state === 'hunt' || this.state === 'peek' || this.state === 'flee' || this.frozen) return;
+    if (['chase', 'hunt', 'peek', 'flee', 'stunned', 'sniff'].includes(this.state) || this.frozen) return;
     if (Math.hypot(x - this.x, z - this.z) > radius) return;
     this.investigate(x, z, kind === 'voice' ? 2.2 : 1.9);
   }
@@ -301,6 +304,23 @@ export class Mimic {
     this.path = path;
   }
 
+  // A flare or a rescue: blinded for a while, then it runs.
+  stun(seconds) {
+    this.state = 'stunned';
+    this.stunT = seconds;
+    this.path = [];
+    this.speak('scream');
+  }
+
+  // The heartbeat game at a hiding spot is over: it heard them (rip them out) or it gives up.
+  endSniff(heard, P) {
+    if (this.state !== 'sniff') return;
+    if (heard === false) { this.hooks.onCatch(P.id); return; }
+    this.shyT = 10;
+    this.hideTarget = null;
+    this.flee(P);
+  }
+
   speak(style) {
     const d = this.hooks.speak(style, this.emitter);
     this.speaking = d;
@@ -370,7 +390,7 @@ export class Mimic {
       this.lastSeen = { x: P.x, z: P.z };
       this.lostT = 0;
       this.noticeT += dt;
-      const calm = this.state !== 'chase' && this.state !== 'hunt' && this.state !== 'peek' && this.state !== 'flee';
+      const calm = !['chase', 'hunt', 'peek', 'flee', 'stunned', 'sniff'].includes(this.state);
       if (calm && (this.noticeT > 0.6 || d < 4)) this.startChase();
       else if (calm) this.turnTo(Math.atan2(dx, dz), dt); // it stops and turns toward you...
     }
@@ -403,7 +423,28 @@ export class Mimic {
         this.repath -= dt;
         if (this.repath <= 0 && !this.path.length) { this.path = this.level.findPath(this.x, this.z, f.x, f.z); this.repath = 0.5; }
         this.follow(dt, 2.8 * this.aggro);
-        if (Math.hypot(f.x - this.x, f.z - this.z) < 1.2) this.hooks.onCatch(P.id);
+        if (Math.hypot(f.x - this.x, f.z - this.z) < 1.2) {
+          this.state = 'sniff';
+          this.sniffT = 0;
+          this.path = [];
+          this.hooks.onSniff(P.id);
+        }
+        break;
+      }
+      case 'stunned': {
+        this.speed = 0;
+        this.stunT -= dt;
+        if (this.stunT <= 0) { this.shyT = 10; this.flee(P); }
+        break;
+      }
+      case 'sniff': {
+        this.speed = 0;
+        const prop = this.hideTarget;
+        if (prop) this.turnTo(Math.atan2(prop.x - this.x, prop.z - this.z), dt);
+        this.sniffT += dt;
+        // They came out of hiding: chase. Nobody answered in time: give up.
+        if (!P.hidden || P.id !== this.targetId) this.startChase(true);
+        else if (this.sniffT > 20) this.endSniff(true, P);
         break;
       }
       case 'peek': {
@@ -469,7 +510,7 @@ export class Mimic {
     m.eyes.forEach((e) => e.scale.setScalar(peeking ? 4.5 : 1));
     // Outside a chase it moves like stop-motion: the pose only updates ~9 times a second.
     this.animAcc += dt;
-    const fast = this.state === 'chase' || this.state === 'hunt' || this.state === 'flee';
+    const fast = ['chase', 'hunt', 'flee', 'stunned'].includes(this.state);
     if (!fast && this.animAcc < 0.11) { this.emitter.setPos(this.x, 2.2, this.z); return; }
     dt = this.animAcc;
     this.animAcc = 0;
@@ -490,6 +531,13 @@ export class Mimic {
     m.arms[1].elbow.rotation.x = -0.15 - k * 0.2;
     m.body.position.y = Math.abs(Math.cos(this.phase)) * 0.06 * k;
     m.torso.rotation.x = 0.28 + k * 0.15 + (this.state === 'chase' ? 0.12 : 0);
+    if (this.state === 'stunned') { // arms over its face, shaking
+      m.arms.forEach((a, i) => { a.shoulder.rotation.x = -2.0 + Math.sin(t * 40 + i) * 0.12; a.elbow.rotation.x = -2.1; });
+      m.torso.rotation.x = 0.6;
+    } else if (this.state === 'sniff') { // bent toward the door, listening
+      m.torso.rotation.x = 0.75;
+      m.arms.forEach((a) => { a.shoulder.rotation.x = -0.6; a.elbow.rotation.x = -0.4; });
+    }
 
     // Head: jerky twitches; tilts while it talks; scans when standing still.
     this.twitchT -= dt;

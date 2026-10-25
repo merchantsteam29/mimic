@@ -42,11 +42,26 @@ buttons for a player. A new `js/*.js` file also needs a `<link rel="modulepreloa
   rises as it gets close) and `setAmbient` (ducks to near-silence when it's near) are driven from `game.updateFear`. `emitter()` is a positional source (occlusion lowpass + HRTF panner).
   `playVoice(buffer, emitter, style)` plays the mimic's voice: `lure`, `scream` or `echo` (end screen).
 - `textures.js`: canvas textures, including the mimic's face.
+- `objectives.js`: each run's jobs, picked from the seed in `level.js` (`level.tasks`): 2–3 of fuses (4, into the panel),
+  generators (2: hold E, with skill checks on Space; a miss bangs and the mimic hears it from 24 m) and tapes (3: smashing one
+  erases an equal share of the remaining clips), plus a keycard (key in the house) for the locked exit room about half the time.
+  When everything is done, the panel's lever (`lever`) restores power. The host owns the progress (`work`, `bang`, `smash`,
+  `unlock`, `lever` -> `gen`, `smashed`, `unlocked`, `power`).
+- `classes.js` / `abilities.js`: classes (all free, no unlocks; G = ability). Brute: 2 flares (`flare`: host stuns
+  the mimic for 4 s if it's within 8 m and in sight). Runner: sprints 6.2 m/s for 13 s, recovers fast, louder steps. Medic: 1 rescue
+  (`rescue` on the teammate in front, or self; the host's `hostSave` turns their next catch into a stun plus `saved`). Tracker:
+  a local motion tracker (90 s of battery) whose beeps make noise. The host caps uses per player.
+- `heartbeat.js`: the hiding-spot minigame. When the mimic hunts you to a locker, it stops at the door (`sniff` state), and
+  the hidden player gets `sniff`: press Space on 10–13 beats. Miss 3, or make a sound on the mic, and `sniffRes` false means
+  caught. Success means it flees. If the mimic leaves without a verdict (a teammate's flare), the host sends `sniffEnd`.
 
 ## Decisions
 
 - Raw clips only (no speech-to-text) for now. Clips persist across runs within a tab, but are never saved to disk.
 - Ctrl is not used for crouching, because Ctrl+W closes the tab.
+- **Never add tokens, currency, shops or unlock grinds** (the owner's rule: it must not become "a roblox horror game").
+- Level generation must be deterministic from the seed (every player builds the level locally). Use the seeded `shuffle`
+  in `tryGenerate`, never `sort(() => rand() - 0.5)`. That gave different layouts from the same seed once the engine optimized it.
 - Only the flashlight casts shadows. Six point lights move to the nearest working fixtures.
 
 ## Multiplayer (up to 4, peer-to-peer)
