@@ -1,13 +1,16 @@
-// Menus, settings, the voice check, and starting / ending runs.
+// Menus, settings, the voice check, rooms and lobbies, and starting / ending runs.
 import * as THREE from 'three';
 import { Game } from './game.js';
 import { Sfx } from './sfx.js';
 import { Voice } from './voice.js';
 import { THEMES } from './level.js';
 import { grainDataUrl } from './textures.js';
+import { Session } from './mp.js';
+import { newCode, cleanCode, cleanName } from './net.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 // ---------- settings ----------
 const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75 };
@@ -32,7 +35,7 @@ const hud = {
   mic: $('mic'), micBar: document.querySelector('#mic .bar i'), micLine: document.querySelector('#mic .bar b'), micText: $('micText'),
   stamina: $('stamina'), staminaBar: document.querySelector('#stamina i'),
   battery: $('battery'), batteryBar: document.querySelector('#battery .bar i'),
-  fear: $('fear'), flash: $('flash'), locker: $('locker'), grain: $('grain'),
+  fear: $('fear'), flash: $('flash'), locker: $('locker'), grain: $('grain'), spec: $('spec'),
 };
 
 // ---------- audio ----------
@@ -51,6 +54,7 @@ function ensureAudio() {
 
 // ---------- screens ----------
 let game = null;
+let session = null; // multiplayer room, while in one
 let screenBeforeSettings = 'title';
 
 function show(id) {
@@ -91,7 +95,7 @@ async function openSettings() {
   if (!voice.started && !voice.denied) await voice.start(ctx);
 }
 
-// Live mic meters on menu screens.
+// Live mic meters on menu screens, and who's talking in the lobby.
 (function meters() {
   for (const m of document.querySelectorAll('.meter')) {
     if (m.closest('[hidden]')) continue;
@@ -99,11 +103,18 @@ async function openSettings() {
     m.querySelector('b').style.left = `${voice.thresholdPos * 100}%`;
     m.querySelector('i').style.background = voice.talking ? '#c41a32' : '';
   }
+  if (session && current() === 'lobby') {
+    for (const li of document.querySelectorAll('#lobbyList li')) {
+      const id = li.dataset.id;
+      li.classList.toggle('talking', id === session.id ? voice.talking : !!session.vc?.talking(id));
+    }
+  }
   requestAnimationFrame(meters);
 })();
 
-// ---------- voice check ----------
+// ---------- voice check (before your first game, alone or online) ----------
 let lineIndex = 0;
+let afterMic = null;
 const lines = [...document.querySelectorAll('#micLines li')];
 
 function markLines() {
@@ -113,9 +124,10 @@ function markLines() {
   });
 }
 
-$('btnPlay').onclick = async () => {
+async function voiceCheck(next) {
   ensureAudio();
-  if (voice.clips.some((c) => c.tag === 'seed') || voice.denied) { startRun(); return; }
+  afterMic = next;
+  if (voice.clips.some((c) => c.tag === 'seed') || voice.denied) { finishVoiceCheck(); return; }
   show('miccheck');
   lineIndex = 0;
   markLines();
@@ -136,15 +148,23 @@ $('btnPlay').onclick = async () => {
     $('btnBegin').disabled = false;
     if (lineIndex >= lines.length) $('micStatus').textContent = 'Got it. Thank you.';
   };
-};
+}
 
-$('btnBegin').onclick = () => startRun();
-$('btnSkipMic').onclick = () => startRun();
-
-// ---------- runs ----------
-function startRun() {
+function finishVoiceCheck() {
   voice.tag = null;
   voice.onClip = null;
+  const next = afterMic;
+  afterMic = null;
+  next?.();
+}
+
+$('btnPlay').onclick = () => voiceCheck(() => startRun());
+$('btnFriends').onclick = () => voiceCheck(() => openMp());
+$('btnBegin').onclick = () => finishVoiceCheck();
+$('btnSkipMic').onclick = () => finishVoiceCheck();
+
+// ---------- solo runs ----------
+function startRun() {
   game?.dispose();
   const themeId = params.get('theme') in THEMES ? params.get('theme') : Math.random() < 0.5 ? 'facility' : 'house';
   const seed = params.has('seed') ? Number(params.get('seed')) : Math.floor(Math.random() * 2 ** 31);
@@ -153,8 +173,11 @@ function startRun() {
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),
   });
-  const th = THEMES[themeId];
-  $('introKicker').textContent = th.kicker;
+  showIntro(themeId);
+}
+
+function showIntro(themeId) {
+  $('introKicker').textContent = THEMES[themeId].kicker;
   $('introName').textContent = game.level.name;
   show('intro');
 }
@@ -174,13 +197,15 @@ $('btnEnter').onclick = () => {
 
 document.addEventListener('pointerlockchange', () => {
   if (!game) return;
-  if (!document.pointerLockElement && game.state === 'playing') {
+  const live = game.state === 'playing' || game.state === 'spectate';
+  if (!document.pointerLockElement && live && !game.paused) {
     game.pause();
-    $('pauseClips').textContent = voice.clips.length
-      ? `It has ${voice.clips.length} recording${voice.clips.length > 1 ? 's' : ''} of your voice.`
-      : '';
+    $('pauseClips').textContent = session
+      ? 'The game keeps going while this menu is open.'
+      : voice.clips.length ? `It has ${voice.clips.length} recording${voice.clips.length > 1 ? 's' : ''} of your voice.` : '';
+    $('btnQuit').textContent = session ? 'Leave game' : 'Quit to menu';
     show('pause');
-  } else if (document.pointerLockElement && game.state === 'paused') {
+  } else if (document.pointerLockElement && game.paused) {
     show(null);
     game.resume();
   }
@@ -188,9 +213,12 @@ document.addEventListener('pointerlockchange', () => {
 
 $('btnResume').onclick = () => lock();
 // Clicking the game view while paused also resumes (handy after the browser's Esc cooldown).
-renderer.domElement.addEventListener('click', () => { if (game?.state === 'playing' && !document.pointerLockElement && !game.noLock) lock(); });
+renderer.domElement.addEventListener('click', () => {
+  if (game && (game.state === 'playing' || game.state === 'spectate') && !document.pointerLockElement && !game.noLock) lock();
+});
 
 $('btnQuit').onclick = () => {
+  if (session) leaveSession();
   game?.dispose();
   game = null;
   ctx?.resume();
@@ -203,27 +231,179 @@ function endRun(r) {
   document.exitPointerLock?.();
   ctx?.resume();
   $('endTitle').textContent = r.won ? 'You got out.' : 'It got you.';
-  $('endSub').textContent = r.won
-    ? (r.clips ? 'But it still has your voice.' : 'It never learned your voice.')
-    : (r.clips ? 'It sounds just like you now.' : 'It will learn your voice next time.');
-  const stats = [
-    ['Location', r.place],
-    ['Time', fmtTime(r.time)],
-    ['Fuses found', `${r.fuses}/4`],
-    ['Times it used your voice', r.lures],
-    ['Recordings of you', r.clips],
-  ];
-  $('endStats').innerHTML = stats.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  const stats = [['Location', r.place], ['Time', fmtTime(r.time)], ['Fuses found', `${r.fuses}/4`], ['Times it used a voice', r.lures]];
+  if (r.mp) {
+    const out = r.results.filter((p) => p.status === 'out').length;
+    $('endSub').textContent = out === r.results.length ? 'Everyone got out. Are you sure it was everyone?'
+      : out ? 'Not everyone made it out.' : 'Nobody made it out. It has all of your voices now.';
+    const label = { out: 'Got out', dead: 'Taken', left: 'Left', alive: 'Taken' };
+    $('endPlayers').innerHTML = r.results.map((p) =>
+      `<li class="${p.status}"><span class="dot"></span>${esc(p.name)}${p.id === session?.id ? ' (you)' : ''}<span class="ptag">${label[p.status] || 'Taken'}</span></li>`).join('');
+    $('endPlayers').hidden = false;
+    $('btnAgain').hidden = true;
+    $('btnToLobby').hidden = !session?.isHost;
+    $('btnMenu').textContent = 'Leave';
+    if (session && !session.isHost) $('endSub').textContent += ' Waiting for the host…';
+  } else {
+    stats.push(['Recordings of you', r.clips]);
+    $('endSub').textContent = r.won
+      ? (r.clips ? 'But it still has your voice.' : 'It never learned your voice.')
+      : (r.clips ? 'It sounds just like you now.' : 'It will learn your voice next time.');
+    $('endPlayers').hidden = true;
+    $('btnAgain').hidden = false;
+    $('btnToLobby').hidden = true;
+    $('btnMenu').textContent = 'Main menu';
+  }
+  $('endStats').innerHTML = stats.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
+  const ended = game;
   setTimeout(() => {
+    if (game !== ended) return; // already back in the lobby (timers can run late in background tabs)
     show('end');
     // One last word from it, in your voice.
-    const clip = voice.started ? voice.pick() : null;
+    const clip = !r.mp && voice.started ? voice.pick() : null;
     if (clip) setTimeout(() => sfx.playVoice(clip.buffer, null, 'echo'), 900);
-  }, r.won ? 200 : 300);
+  }, 300);
 }
 
 $('btnAgain').onclick = () => startRun();
-$('btnMenu').onclick = () => { game?.dispose(); game = null; show('title'); };
+$('btnMenu').onclick = () => {
+  if (session) leaveSession();
+  game?.dispose();
+  game = null;
+  show('title');
+};
+
+// ---------- playing with friends ----------
+function savedName() {
+  try { return localStorage.getItem('mimic.name') || ''; } catch { return ''; }
+}
+
+function openMp(status = '') {
+  show('mp');
+  $('mpName').value = savedName() || `Player ${Math.floor(Math.random() * 900 + 100)}`;
+  if (params.get('join') && !$('mpCode').value) $('mpCode').value = cleanCode(params.get('join'));
+  $('mpStatus').textContent = status;
+}
+
+function mpBusy(on, text = '') {
+  $('btnHost').disabled = $('btnJoin').disabled = on;
+  $('mpStatus').textContent = text;
+}
+
+function newSession() {
+  const name = cleanName($('mpName').value);
+  try { localStorage.setItem('mimic.name', name); } catch { /* ignore */ }
+  const s = new Session({ sfx, voice });
+  s.onRoster = () => renderLobby();
+  s.onStart = (m) => startMpRun(m);
+  s.onLobby = () => backToLobby();
+  s.onClose = (why) => {
+    if (session !== s) return;
+    session = null;
+    game?.dispose();
+    game = null;
+    document.exitPointerLock?.();
+    openMp(why);
+  };
+  return { s, name };
+}
+
+$('btnHost').onclick = async () => {
+  ensureAudio();
+  mpBusy(true, 'Creating a room…');
+  for (let tries = 0; tries < 3; tries++) {
+    const { s, name } = newSession();
+    try {
+      await s.host(newCode(), name);
+      session = s;
+      mpBusy(false);
+      show('lobby');
+      renderLobby();
+      return;
+    } catch (e) {
+      s.dispose();
+      if (tries === 2 || !/taken/.test(e.message)) { mpBusy(false, e.message); return; }
+    }
+  }
+};
+
+$('btnJoin').onclick = async () => {
+  ensureAudio();
+  const code = cleanCode($('mpCode').value);
+  if (code.length !== 4) { $('mpStatus').textContent = 'Room codes have 4 letters.'; return; }
+  mpBusy(true, 'Joining…');
+  const { s, name } = newSession();
+  try {
+    await s.join(code, name);
+    session = s;
+    mpBusy(false);
+    show('lobby');
+    renderLobby();
+  } catch (e) {
+    s.dispose();
+    mpBusy(false, e.message);
+  }
+};
+$('mpCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btnJoin').click(); });
+
+function renderLobby() {
+  if (!session) return;
+  $('lobbyCode').textContent = session.code;
+  $('lobbyList').innerHTML = session.roster.map((r) =>
+    `<li data-id="${esc(r.id)}"><span class="dot"></span>${esc(r.name)}${r.id === session.id ? ' (you)' : ''}<span class="ptag">${r.id === 'h' ? 'host' : ''}</span></li>`).join('');
+  $('btnStart').hidden = !session.isHost;
+  $('lobbyStatus').textContent = session.isHost
+    ? (session.roster.length < 2 ? 'Send your friends the code or the invite link.' : `${session.roster.length} of 4 players.`)
+    : 'Waiting for the host to start…';
+}
+
+$('btnInvite').onclick = async () => {
+  const link = `${location.origin}${location.pathname}?join=${session?.code}`;
+  try { await navigator.clipboard.writeText(link); $('btnInvite').textContent = 'Copied!'; }
+  catch { prompt('Copy this invite link:', link); }
+  setTimeout(() => { $('btnInvite').textContent = 'Copy invite link'; }, 1500);
+};
+
+$('btnStart').onclick = () => {
+  if (!session?.isHost) return;
+  const theme = params.get('theme') in THEMES ? params.get('theme') : Math.random() < 0.5 ? 'facility' : 'house';
+  session.start(theme, Math.floor(Math.random() * 2 ** 31));
+};
+
+$('btnLeave').onclick = () => { leaveSession(); show('title'); };
+
+function leaveSession() {
+  const s = session;
+  session = null;
+  s?.dispose();
+}
+
+function startMpRun(m) {
+  game?.dispose();
+  const themeId = m.theme in THEMES ? m.theme : 'facility';
+  game = new Game({
+    renderer, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order,
+    noLock: params.has('autostart'),
+    onEnd: (r) => endRun(r),
+  });
+  session.game = game;
+  showIntro(themeId);
+}
+
+function backToLobby() {
+  game?.dispose();
+  game = null;
+  if (session) session.game = null;
+  document.exitPointerLock?.();
+  show('lobby');
+  renderLobby();
+}
+$('btnToLobby').onclick = () => session?.backToLobby();
+
+// An invite link (?join=CODE) goes straight to "Play with friends" after the voice check.
+if (params.has('join') && !params.has('autostart')) {
+  $('btnFriends').textContent = `Join room ${cleanCode(params.get('join'))}`;
+}
 
 // ---------- debug: ?autostart skips the menus (used for automated screenshots) ----------
 if (params.has('autostart')) {
@@ -236,3 +416,5 @@ if (params.has('autostart')) {
     window.__game = game;
   })();
 }
+// For automated multiplayer tests.
+window.__mimic = { get game() { return game; }, get session() { return session; } };

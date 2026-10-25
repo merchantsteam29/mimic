@@ -45,12 +45,25 @@ renders at a few FPS, and dt is capped at 0.05, so game time runs slow in headle
 - Ctrl is not used for crouching, because Ctrl+W closes the tab.
 - Only the flashlight casts shadows. Six point lights move to the nearest working fixtures.
 
-## Multiplayer plan
+## Multiplayer (up to 4, peer-to-peer)
 
-- PeerJS (WebRTC) like Trigger Happy: the host runs the mimic AI and the level seed, and clients send their state.
-- Proximity voice: each player's mic `MediaStream` goes over a PeerJS media call. On the receiving side
-  it plays through `sfx.emitter()` at that player's position, using the same occlusion and HRTF as the mimic.
-- Clips: each client sends its own clips to the host (as compressed PCM or Opus via MediaRecorder).
-  The host's mimic picks *any* player's clip and broadcasts "play clip X at position P". Every client
-  plays it through an emitter, so friends hear the mimic using your voice from where the mimic is.
-- Hearing: each client sends its `voice.hear` level, and the host feeds it into `mimic.hear()`.
+- `net.js`: PeerJS rooms. The host's PeerJS id is `mimic-v1-<CODE>`; data is a star through the host. Player
+  ids: `h` (host), `p1`, `p2`... Invite links are `?join=CODE`. A dropped connection reaches the game as `quit`.
+- `vc.js`: voice is a direct call between every pair (the lower peer id calls). Every incoming voice goes through
+  Web Audio (with a muted <audio> element, which Chrome needs). `route(id, {on, pos, volume, occluded})` is decided by the
+  listener every frame in `game.routeVoices`: the living hear the living (positional, fading out by ~30 m), the dead hear everyone.
+  When someone is caught, the living cut their voice instantly, with **no death message** (the owner wants friends to think they're just lost).
+- `mp.js` `Session`: room + voice + **clips**. Every clip is sent as 16 kHz Int16 to the host, which relays it, so every
+  browser holds all clips. `pickKey` prefers dead players' clips (6x) when anyone is dead. Lures online use style `distant`
+  and stalk from 9-16 m.
+- `game.js`: the same code runs alone and online. Intents go through `send` -> `hostHandle` (host), results through
+  `broadcast` -> `onNet` (everyone). Alone, this browser is the host. Client -> host: `st`, `noise`, `take`, `insert`,
+  `escaped`. Host -> all: `snap` (15 Hz: mimic + players), `say` (the mimic speaks clip X), `took`, `drop` (a dead player's
+  fuses), `fuses`, `power`, `caught`, `out`, `left`, `end`, plus `sting` to one player. The host runs the mimic AI
+  (`mimic.update(dt, targets)`, chasing the nearest player it sees); others run `mimic.puppet`. Host simulation keeps going
+  in a background tab through a Worker timer. Online, Esc opens the menu but the game doesn't pause.
+- Director: local tricks (behind, blackout, rush, distant, knock) run on every player's own browser, for them alone
+  (`game.localSpeak`). Peeks move the real mimic, so only the host stages them, at any living player.
+- Dead or escaped players spectate a living player's view (`startSpectate` / `specTarget`, Space for the next one).
+- `remote.js`: other players' avatars (with working flashlights and footsteps).
+- Test with two tabs: `window.__mimic.game` / `.session`. Headless Chrome throttles background tabs, so timers run late there.

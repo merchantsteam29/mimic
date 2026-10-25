@@ -250,7 +250,7 @@ export class Sfx {
 
   // The mimic speaks with the player's voice. Returns how long it lasts (seconds).
   // style: 'lure' (almost right), 'scream' (fast, distorted, with a demonic octave below), 'echo' (slow, for the end screen),
-  //        'whisper' (thin and close, as if breathed into your ear)
+  //        'whisper' (thin and close, as if breathed into your ear), 'distant' (muffled, from far off: multiplayer lures)
   playVoice(buffer, emitter, style = 'lure') {
     const ctx = this.ctx, t0 = this.now + 0.03;
     const dest = emitter ? emitter.input : this.master;
@@ -265,6 +265,7 @@ export class Sfx {
 
     let rate, vol;
     if (style === 'scream') { rate = rand(1.12, 1.28); vol = 1.5; ws.curve = distortionCurve(30); }
+    else if (style === 'distant') { rate = rand(0.955, 1.0); vol = 0.95; ws.curve = distortionCurve(3); lp.frequency.value = 2300; wet.gain.value = 0.9; }
     else if (style === 'whisper') { rate = rand(0.96, 0.99); vol = 0.6; ws.curve = distortionCurve(1); hp.frequency.value = 380; lp.frequency.value = 4200; wet.gain.value = 0; }
     else if (style === 'echo') { rate = 0.78; vol = 1.2; ws.curve = distortionCurve(2); lp.frequency.value = 2600; wet.gain.value = 1; }
     else { rate = rand(0.955, 1.01); vol = 1.15; ws.curve = distortionCurve(3); }

@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script type="importmap">
 {
   "imports": {
@@ -26,6 +27,10 @@
 <link rel="modulepreload" href="js/sfx.js">
 <link rel="modulepreload" href="js/voice.js">
 <link rel="modulepreload" href="js/textures.js">
+<link rel="modulepreload" href="js/net.js">
+<link rel="modulepreload" href="js/vc.js">
+<link rel="modulepreload" href="js/mp.js">
+<link rel="modulepreload" href="js/remote.js">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -36,6 +41,7 @@
 <div id="vignette"></div>
 <div id="grain"></div>
 <div id="flash"></div>
+<div id="spec" hidden></div>
 
 <!-- In-game HUD -->
 <div id="hud" hidden>
@@ -61,7 +67,8 @@
     <h1 class="logo" data-text="MIMIC">MIMIC</h1>
     <p class="tag">It learns your voice.</p>
     <div class="buttons">
-      <button id="btnPlay" class="primary">Play</button>
+      <button id="btnPlay" class="primary">Play alone</button>
+      <button id="btnFriends" class="primary">Play with friends</button>
       <button id="btnHow">How to play</button>
       <button id="btnSettings">Settings</button>
     </div>
@@ -80,6 +87,7 @@
       <li>Find <b>4 fuses</b>, put them in the <b>fuse box</b> and escape through the exit.</li>
       <li>Hide in lockers and wardrobes. It can't see you there, but it can still hear you.</li>
       <li>The map is different every time: a research facility or an old house.</li>
+      <li><b>With friends</b> (up to 4): voice chat is proximity-based. If a friend goes quiet, they might just be lost. Or it might be using their voice now.</li>
     </ul>
     <div class="keys">
       <span><kbd>W A S D</kbd> move</span>
@@ -126,6 +134,40 @@
   </div>
 </section>
 
+<!-- Play with friends -->
+<section id="mp" class="screen" hidden>
+  <div class="panel">
+    <h2>Play with friends</h2>
+    <label class="field">Your name <input id="mpName" maxlength="16" autocomplete="off" spellcheck="false"></label>
+    <div class="buttons wide">
+      <button id="btnHost" class="primary">Host a game</button>
+    </div>
+    <p class="or">or join a friend's game</p>
+    <div class="join-row">
+      <input id="mpCode" maxlength="4" placeholder="CODE" autocomplete="off" spellcheck="false">
+      <button id="btnJoin">Join</button>
+    </div>
+    <p id="mpStatus" class="fine"></p>
+    <div class="buttons"><button class="back">Back</button></div>
+  </div>
+</section>
+
+<!-- Lobby -->
+<section id="lobby" class="screen" hidden>
+  <div class="panel">
+    <p class="kicker">Room code</p>
+    <h2 id="lobbyCode" class="code"></h2>
+    <button id="btnInvite" class="small">Copy invite link</button>
+    <ul id="lobbyList" class="players"></ul>
+    <p class="fine">Voice chat is on. In the lobby everyone hears everyone; in the game, only players near you can. Dead players can only talk to each other.</p>
+    <p id="lobbyStatus" class="whisper"></p>
+    <div class="buttons">
+      <button id="btnStart" class="primary">Start game</button>
+      <button id="btnLeave">Leave</button>
+    </div>
+  </div>
+</section>
+
 <!-- Level intro -->
 <section id="intro" class="screen" hidden>
   <div class="panel intro-panel">
@@ -156,8 +198,10 @@
     <h2 id="endTitle"></h2>
     <p id="endSub" class="whisper"></p>
     <dl id="endStats" class="stats"></dl>
+    <ul id="endPlayers" class="players"></ul>
     <div class="buttons">
       <button id="btnAgain" class="primary">Play again</button>
+      <button id="btnToLobby" class="primary" hidden>Back to lobby</button>
       <button id="btnMenu">Main menu</button>
     </div>
   </div>

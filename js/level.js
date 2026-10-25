@@ -459,6 +459,19 @@ function buildProp(type, M) {
   return g;
 }
 
+// Fuses: small amber glass cartridges that glow faintly so a flashlight catches them.
+const fuseGlass = () => new THREE.MeshStandardMaterial({ color: 0xffb040, emissive: 0xff8a1a, emissiveIntensity: 1.4, roughness: 0.2, transparent: true, opacity: 0.9 });
+export function makeFuse(metal = new THREE.MeshStandardMaterial({ color: 0x8a9096, roughness: 0.5, metalness: 0.6 })) {
+  const g = new THREE.Group();
+  const glass = fuseGlass();
+  g.add(cyl(0.045, 0.045, 0.2, glass, 0, 0, 0), cyl(0.05, 0.05, 0.05, metal, 0, 0.12, 0), cyl(0.05, 0.05, 0.05, metal, 0, -0.12, 0));
+  g.rotation.z = Math.PI / 2;
+  g.rotation.y = Math.random() * Math.PI;
+  const holder = new THREE.Group();
+  holder.add(g);
+  return holder;
+}
+
 export function buildLevelScene(level) {
   const th = level.theme, N = level.N, S = N * CELL;
   const tex = makeTextures(th.id);
@@ -527,28 +540,21 @@ export function buildLevelScene(level) {
     return { ...l, x, z, y: th.id === 'facility' ? WALL_H - 0.35 : WALL_H - 0.9, mat: fm, burst: 0, seed: Math.random() * 100 };
   });
 
-  // Fuses: small amber glass cartridges that glow faintly so a flashlight catches them.
-  const glass = new THREE.MeshStandardMaterial({ color: 0xffb040, emissive: 0xff8a1a, emissiveIntensity: 1.4, roughness: 0.2, transparent: true, opacity: 0.9 });
+  // Pickup spots come from the seed, so every player's copy of the level has them in the same place.
+  const rand = mulberry32(level.seed ^ 0x5eed);
   const fuses = level.fuses.map((f) => {
-    const g = new THREE.Group();
-    const body = cyl(0.045, 0.045, 0.2, glass, 0, 0, 0);
-    const c1 = cyl(0.05, 0.05, 0.05, M.metal, 0, 0.12, 0), c2 = cyl(0.05, 0.05, 0.05, M.metal, 0, -0.12, 0);
-    g.add(body, c1, c2);
-    g.rotation.z = Math.PI / 2;
-    g.rotation.y = Math.random() * Math.PI;
-    const x = center(f.x) + (Math.random() - 0.5) * 0.8, z = center(f.z) + (Math.random() - 0.5) * 0.8;
-    const holder = new THREE.Group();
-    holder.position.set(x, 0.06, z);
-    holder.add(g);
-    group.add(holder);
-    return { x, z, mesh: holder };
+    const x = center(f.x) + (rand() - 0.5) * 0.8, z = center(f.z) + (rand() - 0.5) * 0.8;
+    const mesh = makeFuse(M.metal);
+    mesh.position.set(x, 0.06, z);
+    group.add(mesh);
+    return { x, z, mesh };
   });
 
   const cellGreen = new THREE.MeshStandardMaterial({ color: 0x1d3a22, emissive: 0x3cff6a, emissiveIntensity: 0.35, roughness: 0.4 });
   const batteries = level.batteries.map((b) => {
     const g = new THREE.Group();
     g.add(cyl(0.05, 0.05, 0.18, cellGreen, 0, 0.09, 0), cyl(0.02, 0.02, 0.02, M.metal, 0, 0.19, 0));
-    const x = center(b.x) + (Math.random() - 0.5) * 0.8, z = center(b.z) + (Math.random() - 0.5) * 0.8;
+    const x = center(b.x) + (rand() - 0.5) * 0.8, z = center(b.z) + (rand() - 0.5) * 0.8;
     g.position.set(x, 0, z);
     group.add(g);
     return { x, z, mesh: g };

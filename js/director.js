@@ -34,7 +34,7 @@ export class Director {
     const md = Math.hypot(m.x - p.x, m.z - p.z);
     const options = p.hidden
       ? [['knock', 1]]
-      : [['behind', md > 10 ? 3 : 0], ['peek', md > 14 ? 4 : 0], ['blackout', 2], ['rush', 2], ['distant', md > 12 ? 1 : 0]];
+      : [['behind', md > 10 ? 3 : 0], ['peek', g.isHost ? 4 : 0], ['blackout', 2], ['rush', 2], ['distant', md > 12 ? 1 : 0]];
     const pool = options.filter(([n, w]) => w > 0 && (n !== this.last || options.length === 1));
     let r = Math.random() * pool.reduce((a, [, w]) => a + w, 0);
     const [name] = pool.find(([, w]) => (r -= w) <= 0) || pool[0];
@@ -46,14 +46,19 @@ export class Director {
   behind() {
     const p = this.g.p;
     this.near.setPos(p.x + Math.sin(p.yaw) * 0.55, p.eye, p.z + Math.cos(p.yaw) * 0.55);
-    this.g.mimicSpeaks('whisper', this.near);
+    this.g.localSpeak('whisper', this.near);
     return true;
   }
 
   peek() {
-    const spot = this.peekSpot();
+    const g = this.g, m = g.mimic;
+    if (!g.isHost) return false; // the host moves the mimic; online, it can peek at anyone
+    const ts = g.targets().filter((q) => !q.hidden && Math.hypot(q.x - m.x, q.z - m.z) > 12);
+    if (!ts.length) return false;
+    const P = ts[Math.floor(Math.random() * ts.length)];
+    const spot = this.peekSpot(P);
     if (!spot) return false;
-    this.g.mimic.peek(spot, this.g.playerInfo());
+    m.peek(spot, P);
     return true;
   }
 
@@ -84,7 +89,7 @@ export class Director {
     if (!q) return false;
     this.fx = q.x; this.fz = q.z;
     this.far.setPos(q.x, 1.7, q.z);
-    g.mimicSpeaks('scream', this.far);
+    g.localSpeak('scream', this.far);
     return true;
   }
 
@@ -94,14 +99,14 @@ export class Director {
     this.fx = prop.front.x; this.fz = prop.front.z;
     this.far.setPos(prop.front.x, 1.4, prop.front.z);
     g.sfx.knock(this.far);
-    setTimeout(() => { if (g.state === 'playing' && g.p.hidden === prop) g.mimicSpeaks('whisper', this.far); }, 1900);
+    setTimeout(() => { if (g.state === 'playing' && g.p.hidden === prop) g.localSpeak('whisper', this.far); }, 1900);
     return true;
   }
 
   // ---------- helpers ----------
   // Somewhere 8-13 m ahead of the player, in plain view down a corridor or across a room.
-  peekSpot() {
-    const g = this.g, p = g.p, lv = g.level;
+  peekSpot(p) {
+    const lv = this.g.level;
     let best = null;
     for (let i = 0; i < 60; i++) {
       const a = p.yaw + rand(-0.3, 0.3), d = rand(8, 13);
@@ -145,8 +150,8 @@ export class Director {
     }
     // When the lights come back, sometimes it's standing down the hall.
     if (g.blackout <= 0) {
-      const m = g.mimic, md = Math.hypot(m.x - g.p.x, m.z - g.p.z);
-      if (Math.random() < 0.6 && md > 12 && !['chase', 'hunt'].includes(m.state)) this.peek();
+      const m = g.mimic;
+      if (Math.random() < 0.6 && !['chase', 'hunt'].includes(m.state)) this.peek();
     }
   }
 }

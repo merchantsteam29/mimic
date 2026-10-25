@@ -26,6 +26,10 @@ The microphone only works on `localhost` or `https`, not on `file://`. Use headp
 - **It plays with you:** you may hear your own voice whispered right behind you, footsteps sprinting
   toward you that stop dead, or the lights dying around you. Sometimes it just stands at the end of a
   hallway and stares. Listen for its breathing, and for the quiet when everything else stops.
+- **Play with friends (up to 4):** host a room and share the 4-letter code or invite link. Voice chat is
+  proximity-based: you only hear friends near you, muffled through walls. When the mimic takes someone, their voice
+  just stops. Nobody is told. The mimic prefers the voices of the people it took, so the friend calling you from the next
+  room might not be your friend anymore. Dead players watch through the eyes of the living and can only talk to each other.
 - **Random maps:** each run is either a research facility or an old house, with a new layout every time.
 
 Controls: `WASD` move, mouse look, `Shift` sprint, `C` crouch, `F` flashlight, `E` interact / hide,

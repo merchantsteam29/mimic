@@ -119,3 +119,25 @@ input[type=range] { accent-color: var(--red); width: 100%; }
   .panel { padding: 22px 18px; }
   .row { grid-template-columns: 1fr; gap: 4px; }
 }
+
+/* ---------- multiplayer ---------- */
+#spec { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); font: 15px "Special Elite", monospace; letter-spacing: .05em; color: var(--ink); opacity: .8; text-shadow: 0 0 8px #000; pointer-events: none; text-align: center; padding: 0 16px; }
+.field { display: grid; gap: 6px; font-size: 13px; color: var(--dim); margin: 14px 0; }
+.field input, .join-row input {
+  font: 600 17px Inter, sans-serif; color: var(--ink); background: rgba(255,255,255,.04); border: 1px solid var(--line);
+  padding: 11px 14px; outline: none; width: 100%;
+}
+.field input:focus, .join-row input:focus { border-color: var(--ink); }
+.buttons.wide { max-width: none; margin-top: 8px; }
+.or { text-align: center; color: var(--dim); font-size: 13px; margin: 18px 0 10px; }
+.join-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+.join-row input { text-transform: uppercase; letter-spacing: .4em; text-align: center; font-family: "Special Elite", monospace; font-size: 22px; }
+.code { font-size: 54px; letter-spacing: .3em; margin: 0 0 6px; color: #ff5468; }
+button.small { padding: 7px 12px; font-size: 12px; }
+.players { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 8px; }
+.players li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); background: rgba(255,255,255,.02); }
+.players li .dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.15); flex: none; }
+.players li.talking .dot { background: #7fbf8a; box-shadow: 0 0 8px #7fbf8a; }
+.players li .ptag { margin-left: auto; font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: .1em; }
+.players li.out .ptag { color: #7fbf8a; }
+.players li.dead .ptag { color: #ff5468; }
