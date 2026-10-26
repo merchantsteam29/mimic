@@ -1,7 +1,7 @@
 // Stamp every game module URL in index.html with a new version, so browsers never mix a new page
 // with old cached scripts (GitHub Pages lets browsers cache files for 10 minutes).
 // Run before every push:  node tools/stamp.mjs
-import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -37,3 +37,16 @@ for (const m of modules) {
 }
 writeFileSync(file, html);
 console.log(`index.html stamped v=${stamp} (${modules.length} modules)`);
+
+// Recorded voices for the tapes (js/voices.js): list what's in voices/ so the game knows which tapes have one.
+const vdir = join(root, 'voices'), vindex = {};
+for (const book of existsSync(vdir) ? readdirSync(vdir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name) : []) {
+  for (const f of readdirSync(join(vdir, book))) {
+    const m = /^([\w-]+)\.(mp3|m4a|ogg|opus|webm|wav|aac)$/i.exec(f);
+    if (m) vindex[`${book}/${m[1]}`] = `${book}/${f}`;
+  }
+}
+if (existsSync(vdir)) {
+  writeFileSync(join(vdir, 'index.json'), JSON.stringify(vindex, null, 1) + '\n');
+  console.log(`voices/index.json: ${Object.keys(vindex).length} recorded tape(s)`);
+}

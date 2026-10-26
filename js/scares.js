@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { RemotePlayer } from './remote.js';
 import { buildModel } from './mimic.js';
 import { LORE } from './lore.js';
+import { tapeId, preload, recording } from './voices.js';
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -31,6 +32,8 @@ export class Scares {
     }
     // Cassettes are only ever played locally, but their items share the list (same order for everyone).
     game.world.lore.forEach((l, i) => game.items.push({ type: 'lore', i, n: l.n, x: l.x, y: 0.05, z: l.z, mesh: l.mesh, range: 2, active: true }));
+    // Recorded voices for this level's tapes, if anyone has recorded them (voices.js).
+    game.world.lore.forEach((l, i) => preload(tapeId(game.story, i, l.n), sfx.ctx));
     this.el = {
       lore: document.getElementById('lore'), loreWho: document.getElementById('loreWho'), loreLine: document.getElementById('loreLine'),
       qte: document.getElementById('qte'), qteBar: document.querySelector('#qte i'),
@@ -69,13 +72,20 @@ export class Scares {
       const text = typeof l === 'string' ? l : l.text;
       return { text, own: typeof l === 'object' && l.playerClip, dur: Math.max(2.4, text.length * 0.065) };
     });
+    // A real recording: the subtitles share its length out by how long each line is (your own voice comes after it).
+    const rec = recording(tapeId(g.story, it.i, it.n));
+    if (rec) {
+      const spoken = lines.filter((l) => !l.own), chars = spoken.reduce((a, l) => a + l.text.length, 0) || 1;
+      for (const l of spoken) l.dur = (rec.duration * l.text.length) / chars;
+    }
     const total = lines.reduce((a, l) => a + l.dur, 0);
     this.tape = { lines, i: -1, t: 0, next: 0.6 };
     this.el.loreWho.textContent = entry.who;
     this.el.loreLine.textContent = '';
     this.el.lore.hidden = false;
     g.sfx.click();
-    g.sfx.tapeVoice(total + 0.6);
+    if (rec) { g.sfx.tapeHiss(rec.duration + 1); setTimeout(() => { const d = g.sfx.playVoice(rec, null, 'tape'); g.voice.suppress(d + 0.5); }, 600); }
+    else g.sfx.tapeVoice(total + 0.6);
     g.noise(6, 'step'); // a tape player isn't quiet
   }
 

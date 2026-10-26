@@ -306,6 +306,8 @@ export class Sfx {
       if (!this.stranger || Math.random() < 0.2) this.stranger = [0.8, 0.86, 1.17, 1.24][Math.floor(Math.random() * 4)];
       rate = this.stranger; vol = 1.3; ws.curve = distortionCurve(5);
       hp.frequency.value = 350; lp.frequency.value = 3200; pk.frequency.value = 1500; pk.gain.value = 7;
+    } else if (style === 'tape') { // a real recording, on an old cassette (voices.js)
+      rate = 1; vol = 1.6; ws.curve = distortionCurve(2); hp.frequency.value = 160; lp.frequency.value = 5200; pk.frequency.value = 2000; pk.gain.value = 3; wet.gain.value = 0.2;
     } else if (style === 'phone') { // your own voice, down a telephone line
       rate = rand(0.98, 1.0); vol = 1.5; ws.curve = distortionCurve(8); hp.frequency.value = 320; lp.frequency.value = 3300; pk.frequency.value = 1200; pk.gain.value = 6; wet.gain.value = 0.15;
     } else if (style === 'ellie') { rate = 1.2; vol = 1.2; ws.curve = distortionCurve(2); lp.frequency.value = 6000; wet.gain.value = 0.4; }
@@ -324,7 +326,7 @@ export class Sfx {
 
     let at = t0;
     // The tell: sometimes it stutters on the first syllable, like a skipping recording.
-    if (style !== 'echo' && style !== 'whisper' && Math.random() < 0.35 && buffer.duration > 0.6) {
+    if (style !== 'echo' && style !== 'whisper' && style !== 'tape' && Math.random() < 0.35 && buffer.duration > 0.6) {
       const seg = Math.min(buffer.duration * 0.3, rand(0.12, 0.22));
       const reps = Math.random() < 0.3 ? 2 : 1;
       for (let i = 0; i < reps; i++) { play(at, 0, seg, rate); at += seg / rate + 0.02; }
@@ -487,6 +489,11 @@ export class Sfx {
   }
 
   // An old tape: hiss, and a voice too damaged to make out (the words come as subtitles).
+  // Cassette hiss under a recorded tape.
+  tapeHiss(seconds) {
+    this._noise(this.master, { t: this.now, dur: seconds, type: 'highpass', freq: 3000, q: 0.4, peak: 0.08, attack: 0.1 });
+  }
+
   tapeVoice(seconds) {
     const t = this.now;
     this._noise(this.master, { t, dur: seconds, type: 'highpass', freq: 3000, q: 0.4, peak: 0.1, attack: 0.1 });

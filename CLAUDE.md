@@ -219,6 +219,11 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   (`OPERATOR`, 5: a 911 dispatcher; hospital, facility, school, hotel, mall). The story screen has a tab per story; progress is per
   story (`storyProgress(book)` / `finishChapter(i, book)`, localStorage `book.key`). A story's lures use `book.voice` (`ellie`, or
   `phone`: your voice down a telephone line).
+- `voices.js`: **recorded voices for the tapes** (story tapes and the victims' tapes). One file per tape in `voices/<book>/`, named by
+  the tape id (`ellie/3-2`, `operator/1-1`, `lore/4`; mp3 / m4a / ogg / opus / webm / wav). `tools/stamp.mjs` writes `voices/index.json` from
+  what's there; `scares.js` preloads this level's tapes and, when one has a recording, plays it (`playVoice(..., 'tape')` + `sfx.tapeHiss`)
+  with the subtitles timed by line length; otherwise the old murmur. `node tools/script.mjs` regenerates `voices/SCRIPT.md` (every line
+  to record, from story.js and lore.js; run it after changing either).
 - `radio.js`: **walkie-talkies** (online). Hold B (pad D-pad down, touch Radio): intent `radio` {on} -> broadcast `radioOn`; listeners route
   that voice through `vc.route(id, { radio: true })` (a band-limited, distorted chain in `vc.js`) at full volume, anywhere. While anyone
   transmits, the host makes noise at every OTHER living player's position (the mimic / listener can hear the radios). Max 12 s a press.
