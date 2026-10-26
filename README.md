@@ -85,6 +85,8 @@ Guess wrong, and it gets hungrier.
 - **Field guide** (title screen): case files on every creature, hiding spot, item and event: what it does, its tells, how to survive it.
 - **Building codes:** the end screen and the pause menu show a code like `H-4F2K9A`. Enter it (class screen, or the lobby's Settings tab)
   to play that exact building again, or send it to a friend.
+- **Quick Play:** no friends online? It finds you a public room with strangers, or opens one they can find.
+- **Dead, but not done:** press R to drift around the building on your own instead of watching through a friend's eyes.
 - **New here?** The first time you play alone, a short tutorial walks you through it (it's also under How to play).
 - **What happened:** after every round, the end screen replays it on a map: everyone's route, its route, where people
   were taken, and whose voice it used most.

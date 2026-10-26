@@ -83,7 +83,8 @@ export const PlayerPart = {
     const c = this.camera;
     if (this.state === 'spectate') {
       const r = this.specTarget();
-      if (r) { c.position.set(r.x, r.eye, r.z); c.rotation.set(r.pitch, r.yaw, 0); }
+      if (this.freeCam) { const f = this.freeCam; c.position.set(f.x, f.y, f.z); c.rotation.set(f.pitch, f.yaw, 0); }
+      else if (r) { c.position.set(r.x, r.eye, r.z); c.rotation.set(r.pitch, r.yaw, 0); }
       return;
     }
     const p = this.p;

@@ -70,6 +70,7 @@ const NOTES = [
   ['You can hear each other properly now. So can it.', 'Voice chat is much clearer and louder.'],
   ['The dead are watching. Some of them are trying to help.', 'The dead see where it is and can leave marks for you.'],
   ['We wrote down everything we know.', 'A field guide is on the title screen.'],
+  ['Strangers found the building too.', 'Quick Play finds you a public room. The dead can drift around on their own (R).'],
 ];
 
 // Show the note if this release is new to someone who has played before. Returns true if shown.

@@ -8,7 +8,7 @@ import { Voice } from './voice.js';
 import { THEMES } from './level.js';
 import { grainDataUrl, preloadPhotos } from './textures.js';
 import { Session } from './mp.js';
-import { newCode, cleanCode, cleanName } from './net.js';
+import { newCode, cleanCode, cleanName, QUICK_CODES, probe } from './net.js';
 import { CLASSES, CLASS_ORDER } from './classes.js';
 import { VERSION } from './version.js';
 import { CHAPTERS, SIGNAL, storyProgress, finishChapter } from './story.js';
@@ -796,6 +796,42 @@ $('btnJoin').onclick = async () => {
     mpBusy(false, e.message);
   }
 };
+// Quick Play: join an open public room with space, or open one for strangers to find.
+$('btnQuick').onclick = async () => {
+  ensureAudio();
+  $('btnQuick').disabled = true;
+  mpBusy(true, 'Looking for an open room…');
+  const order = QUICK_CODES.slice().sort(() => Math.random() - 0.5);
+  const { open, free } = await probe(order);
+  for (const code of open) { // a public room: try to get in (it may be full, or already playing)
+    mpBusy(true, 'Found a room. Joining…');
+    const { s, name } = newSession();
+    try {
+      await s.join(code, name);
+      session = s; s.public = true;
+      s.setClass(myClass);
+      mpBusy(false); $('btnQuick').disabled = false;
+      openRoom(); show('lobby'); renderLobby();
+      return;
+    } catch { s.dispose(); }
+  }
+  // Nobody to join: open a public room.
+  for (const code of free.length ? free : order) {
+    mpBusy(true, 'No open rooms. Opening one: strangers can find you.');
+    const { s, name } = newSession();
+    try {
+      await s.host(code, name);
+      session = s; s.public = true;
+      s.setClass(myClass);
+      mpBusy(false); $('btnQuick').disabled = false;
+      openRoom(); show('lobby'); renderLobby();
+      return;
+    } catch { s.dispose(); }
+  }
+  mpBusy(false, 'Couldn\'t find or open a public room. Try again in a moment.');
+  $('btnQuick').disabled = false;
+};
+
 $('mpCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btnJoin').click(); });
 
 function renderLobby() {
@@ -808,9 +844,9 @@ function renderLobby() {
   renderDiff();
   renderCustom();
   $('btnStart').hidden = !session.isHost;
-  $('lobbyStatus').textContent = session.isHost
-    ? (session.roster.length < 2 ? 'Send your friends the code or the invite link.' : `${session.roster.length} of 4 players.`)
-    : 'Waiting for the host to start…';
+  $('lobbyStatus').textContent = (session.public ? 'Public room: strangers can join. ' : '') + (session.isHost
+    ? (session.roster.length < 2 ? (session.public ? 'Waiting for someone to find you…' : 'Send your friends the code or the invite link.') : `${session.roster.length} of 4 players.`)
+    : 'Waiting for the host to start…');
   document.querySelectorAll('.mode-pick button').forEach((b) => {
     b.classList.toggle('on', b.dataset.mode === session.mode);
     b.disabled = !session.isHost;

@@ -2,7 +2,7 @@
 // Part of Game (game.js): these methods are mixed into Game.prototype.
 import * as THREE from 'three';
 import { keyLabel, rumble } from './controls.js';
-import { EYE, angleDiff, num } from './game-shared.js';
+import { EYE, angleDiff, num, clamp } from './game-shared.js';
 
 export const DeathPart = {
   // by: where the skinwalker got me (null = the mimic).
@@ -118,13 +118,50 @@ export const DeathPart = {
     this.hud.spec.hidden = false;
   },
 
+  // Dead: R lets go of whoever you're watching and lets you drift around the building on your own (walls still stop you).
+  toggleFreeCam() {
+    const c = this.camera;
+    if (this.freeCam) { this.freeCam = null; this.keys.clear(); return; }
+    const pos = this.level.collide({ x: c.position.x, z: c.position.z }, 0.2);
+    this.freeCam = { x: pos.x, z: pos.z, y: 1.6, yaw: c.rotation.y, pitch: c.rotation.x };
+  },
+
+  updateFreeCam(dt) {
+    const f = this.freeCam, k = this.keys;
+    if (!f) return;
+    let fw = (k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 1 : 0);
+    let sd = (k.has('KeyD') || k.has('ArrowRight') ? 1 : 0) - (k.has('KeyA') || k.has('ArrowLeft') ? 1 : 0);
+    if (this.stick) { fw = clamp(fw - this.stick.y, -1, 1); sd = clamp(sd + this.stick.x, -1, 1); }
+    const speed = k.has('ShiftLeft') || k.has('ShiftRight') ? 8 : 4;
+    const sin = Math.sin(f.yaw), cos = Math.cos(f.yaw);
+    const pos = this.level.collide({ x: f.x + (-sin * fw + cos * sd) * speed * dt, z: f.z + (-cos * fw - sin * sd) * speed * dt }, 0.2);
+    f.x = pos.x; f.z = pos.z;
+  },
+
+  // The living player nearest the free camera (haunting reaches them), or null.
+  nearestLiving(range = 12) {
+    const f = this.freeCam;
+    let best = null, bd = range;
+    for (const [id, r] of this.remotes) {
+      if (!this.alive(id) || !r.seen) continue;
+      const d = Math.hypot(r.x - f.x, r.z - f.z);
+      if (d < bd) { bd = d; best = id; }
+    }
+    return best;
+  },
+
   // The living player I'm watching (cycles with Space / click).
   specTarget() {
+    if (this.freeCam) {
+      this.specId = this.nearestLiving();
+      this.hud.spec.textContent = `Drifting  ·  ${keyLabel('R')} to watch someone again  ·  ${this.specId ? `near ${this.nameOf(this.specId)}` : 'nobody near'}${this.haunt.hint()}`;
+      return null;
+    }
     const living = [...this.remotes.entries()].filter(([id, r]) => this.alive(id) && r.seen);
     if (!living.length) { this.hud.spec.textContent = 'No one is left to watch.'; return null; }
     const [id, r] = living[this.specIdx % living.length];
     this.specId = id;
-    this.hud.spec.textContent = `Watching ${this.nameOf(id)}  ·  ${keyLabel('Next')} for next  ·  ${this.status.get(this.me) === 'dead' ? 'Only the dead can hear you' : 'You got out'}${this.haunt.hint()}`;
+    this.hud.spec.textContent = `Watching ${this.nameOf(id)}  ·  ${keyLabel('Next')} for next  ·  ${keyLabel('R')} to drift  ·  ${this.status.get(this.me) === 'dead' ? 'Only the dead can hear you' : 'You got out'}${this.haunt.hint()}`;
     return r;
   },
 
@@ -132,6 +169,7 @@ export const DeathPart = {
   revive(x, z) {
     const p = this.p;
     this.state = 'playing';
+    this.freeCam = null;
     p.x = x; p.z = z; p.vx = p.vz = 0; p.hidden = null; p.eye = EYE; p.stamina = 1; p.tired = false;
     p.battery = Math.max(p.battery, 50); p.flashOn = true;
     this.escapeSent = false;

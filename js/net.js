@@ -11,7 +11,40 @@ const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export function newCode() {
   let s = '';
   for (let i = 0; i < 4; i++) s += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
-  return s;
+  return s.startsWith('QQ') ? newCode() : s; // QQ.. codes are the public (Quick Play) rooms
+}
+
+// Quick Play: there's no server to list games, so public rooms use a fixed set of codes everyone knows.
+export const QUICK_CODES = 'ABCDEFGHJKMN'.split('').map((c) => `QQ${c}2`);
+
+// Which of these rooms exist right now? One throwaway peer tries them all at once. -> { open: [codes], free: [codes] }
+export function probe(codes, ms = 6000) {
+  return new Promise((resolve) => {
+    const peer = new Peer();
+    const open = [], free = [], conns = [];
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      for (const c of conns) try { c.close(); } catch { /* ignore */ }
+      setTimeout(() => { try { peer.destroy(); } catch { /* ignore */ } }, 300);
+      resolve({ open, free: codes.filter((c) => !open.includes(c)) });
+    };
+    setTimeout(finish, ms);
+    peer.on('error', (e) => {
+      // "Could not connect to peer mimic-v1-QQA2": nobody is hosting that one.
+      const m = /mimic-v1-([A-Z0-9]{4})/.exec(e.message || '');
+      if (e.type === 'peer-unavailable' && m) { free.push(m[1]); if (open.length + free.length >= codes.length) finish(); }
+      else if (e.type !== 'peer-unavailable') finish();
+    });
+    peer.on('open', () => {
+      for (const code of codes) {
+        const conn = peer.connect(PREFIX + code, { reliable: true });
+        conns.push(conn);
+        conn.on('open', () => { open.push(code); if (open.length + free.length >= codes.length) finish(); });
+      }
+    });
+  });
 }
 export const cleanCode = (c) => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
 export const cleanName = (n) => String(n || '').replace(/[^\p{L}\p{N} _.\-']/gu, '').trim().slice(0, 16) || 'Player';

@@ -206,6 +206,11 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   else the team with more out, else it wins. Walkie-talkies reach your own team only (`vs.same`). Remote players get a team armband.
 - Haunting also has V: **a mark** (a red handprint on the floor where the watched player is looking, 25 s; `aim()`, `haunted` k `mark`),
   and the dead see **where it is** (`haunt.marker`, a red sprite over the mimic, through walls).
+- **Quick Play** (Play with friends > Quick Play): no server, so public rooms use fixed codes (`QUICK_CODES` in net.js, `QQ?2`;
+  `newCode` never makes a QQ code). `probe(codes)` tries them all from one throwaway peer: the ones that connect are open rooms (join
+  them in turn; full or started ones refuse), and if none take you, you host a free one (`session.public`, shown in the lobby).
+- **Drifting** (the dead): R in spectate toggles `game.freeCam` ({x, z, y, yaw, pitch}; `updateFreeCam`, walls still stop you; Space / E
+  goes back to watching). Haunting then reaches the living player nearest the camera (`nearestLiving`), and a mark goes where you look.
 - `radio.js`: **walkie-talkies** (online). Hold B (pad D-pad down, touch Radio): intent `radio` {on} -> broadcast `radioOn`; listeners route
   that voice through `vc.route(id, { radio: true })` (a band-limited, distorted chain in `vc.js`) at full volume, anywhere. While anyone
   transmits, the host makes noise at every OTHER living player's position (the mimic / listener can hear the radios). Max 12 s a press.

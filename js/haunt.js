@@ -64,7 +64,7 @@ export class Haunt {
     if (!kind || !this.can()) return false;
     if (this.cdT > 0) return true;
     const to = g.specId;
-    if (!to) return true;
+    if (!to) { if (g.freeCam) this.note = { text: 'Nobody alive is near enough', until: g.t + 2 }; return true; }
     this.cdT = CD;
     const msg = { t: 'haunt', kind, to };
     if (kind === 'mark') Object.assign(msg, this.aim(to));
@@ -75,7 +75,8 @@ export class Haunt {
 
   // Where the one I'm watching is looking: the floor a few metres ahead, short of any wall.
   aim(id) {
-    const g = this.g, r = g.remotes.get(id);
+    const g = this.g, f = g.freeCam;
+    const r = f ? { x: f.x, z: f.z, yaw: f.yaw, pitch: f.pitch, eye: f.y } : g.remotes.get(id); // drifting: where I'm looking
     if (!r) return {};
     const fx = -Math.sin(r.yaw), fz = -Math.cos(r.yaw);
     const reach = r.pitch < -0.05 ? Math.min(6, r.eye / Math.tan(-r.pitch)) : 3;

@@ -196,7 +196,9 @@ export class Game {
       const live = this.state === 'playing' || this.state === 'spectate';
       if (!e.repeat && this.radio.onKey(e.code, true)) return;
       if (live && !e.repeat && (this.sig.onKey(e.code) || this.chat.onKey(e.code) || this.haunt.onKey(e.code))) { if (e.code === 'Tab') e.preventDefault(); return; }
-      if (this.state === 'spectate' && !e.repeat && (e.code === 'Space' || e.code === 'KeyE')) { this.specIdx++; return; }
+      if (this.state === 'spectate' && !e.repeat && e.code === 'KeyR') { this.toggleFreeCam(); return; }
+      if (this.state === 'spectate' && !e.repeat && (e.code === 'Space' || e.code === 'KeyE')) { if (this.freeCam) this.toggleFreeCam(); else this.specIdx++; return; }
+      if (this.state === 'spectate' && this.freeCam) { this.keys.add(e.code); return; } // flying about
       if (e.code === 'Tab') { e.preventDefault(); this.tabDown = true; return; } // hold Tab to see the HUD
       if (this.state !== 'playing') return;
       if (e.code === 'Space') e.preventDefault();
@@ -211,7 +213,7 @@ export class Game {
     this.onKeyUp = (e) => { this.keys.delete(e.code); if (e.code === 'Tab') this.tabDown = false; this.radio.onKey(e.code, false); };
     this.onBlur = () => this.keys.clear();
     this.onMouse = (e) => {
-      if (this.state !== 'playing' || this.menuOpen || (!document.pointerLockElement && !this.noLock)) return;
+      if ((this.state !== 'playing' && !this.freeCam) || this.menuOpen || (!document.pointerLockElement && !this.noLock)) return;
       const s = 0.0022 * this.settings.mouse;
       this.look(e.movementX * s, e.movementY * s);
     };
@@ -257,6 +259,11 @@ export class Game {
 
   // Turn the view (radians). The mouse, a controller's right stick and touch drags all come here.
   look(dx, dy) {
+    if (this.freeCam && this.state === 'spectate' && !this.menuOpen) { // the dead, looking around on their own
+      this.freeCam.yaw -= dx;
+      this.freeCam.pitch = clamp(this.freeCam.pitch - dy, -1.45, 1.45);
+      return;
+    }
     if (this.state !== 'playing' || this.menuOpen) return;
     this.p.yaw -= dx;
     this.p.pitch = clamp(this.p.pitch - dy, -1.45, 1.45);
@@ -375,6 +382,7 @@ export class Game {
       this.hb.update(dt);
       if (this.isHost && !this.power && !this.tut.on) this.updateHunger(dt);
     } else if (this.state === 'caught') this.updateCaught(dt);
+    else if (this.state === 'spectate') this.updateFreeCam(dt);
     this.updateDoor(dt);
     this.chat.update(dt);
     this.haunt.update(dt);
