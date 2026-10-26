@@ -274,7 +274,7 @@ body.input-touch #prompt { top: calc(50% + 26px); font-size: 14px; }
 .sw-pick { grid-template-columns: 1fr; }
 
 /* ---------- title screen: found footage (title.js) ---------- */
-#title { overflow: hidden; }
+#title { overflow-x: hidden; overflow-y: auto; place-items: safe center; } /* scrolls on short screens instead of cutting buttons off */
 #title::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,.3) 0 1px, transparent 1px 3px); }
 #title .title-panel { position: relative; z-index: 2; }
 .title-grain { position: absolute; inset: 0; opacity: .1; background-size: 256px 256px; animation: grain .5s steps(6) infinite; mix-blend-mode: screen; pointer-events: none; }
@@ -445,3 +445,7 @@ body.calm #flash.pop { animation: popCalm .5s ease-out; }
 button.feedback { font-size: 11px; opacity: .8; }
 #menuToast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 50; padding: 8px 14px; background: rgba(0,0,0,.85); border: 1px solid var(--line); font: 13px Inter, sans-serif; color: var(--ink); }
 #menuToast[hidden] { display: none; }
+
+/* The title's small buttons, on one row. */
+#title .small-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 14px auto 0; max-width: 420px; }
+#title .small-row button { flex: 1 1 auto; }
