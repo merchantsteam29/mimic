@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mimic · Record the tapes</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Sans+Condensed:wght@400;600&display=swap">
+<style>
+/* The voice-recording page for the game's tapes: pick a part, press record by each line, download a zip. */
+:root {
+  --bg: #0c0a09; --paper: #15110f; --line: #2c2420; --ink: #f1e9dc; --dim: #8f857a; --faint: #5c544c; --red: #d23a4c; --tape: #d6c592; --ok: #7fbf7a;
+  --display: "Special Elite", "Courier New", monospace;
+  --script: "Courier Prime", "Courier New", monospace;
+  --label: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); }
+body { margin: 0; color: var(--ink); font: 16px/1.5 var(--label);
+  padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 120px max(16px, env(safe-area-inset-left)); }
+.wrap { max-width: 760px; margin: 0 auto; display: grid; gap: 16px; }
+.kicker { font: 600 12px var(--label); letter-spacing: .22em; text-transform: uppercase; color: var(--red); margin: 0; }
+h1 { font: 400 clamp(30px, 7vw, 46px)/1.05 var(--display); margin: 0; }
+.steps { margin: 0; padding: 14px 18px 14px 36px; border: 1px solid var(--line); background: var(--paper); display: grid; gap: 6px; }
+.steps b { color: var(--ink); }
+.steps li { color: #c9c0b3; }
+button { font: 600 14px var(--label); color: var(--ink); background: #1d1814; border: 1px solid var(--line); padding: 8px 12px; cursor: pointer; border-radius: 0; }
+button:hover:not(:disabled) { border-color: var(--dim); }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible { outline: 2px solid var(--tape); outline-offset: 2px; }
+.mic { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border: 1px solid var(--line); }
+.mic.on { border-color: #3a5a38; }
+.meter { flex: 1; min-width: 120px; height: 8px; background: #221c18; position: relative; overflow: hidden; }
+.meter i { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--ok); transition: width .05s linear; }
+.mic p { margin: 0; color: var(--dim); font-size: 14px; }
+.bar { position: sticky; top: 0; z-index: 5; background: var(--bg); padding-block: 10px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
+.label { font: 600 11px var(--label); letter-spacing: .18em; text-transform: uppercase; color: var(--dim); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip span { color: var(--dim); font-weight: 400; margin-left: 4px; }
+.chip[aria-pressed="true"] { border-color: var(--red); background: rgba(210,58,76,.16); }
+.partinfo, .progress { margin: 0; font-size: 14px; color: var(--dim); }
+.progress { font-variant-numeric: tabular-nums; }
+#tapes { display: grid; gap: 14px; }
+.tape { border: 1px solid var(--line); background: var(--paper); }
+.tape h3 { margin: 0; padding: 10px 14px; border-bottom: 1px dashed var(--line); font: 700 15px var(--script); display: grid; gap: 2px; }
+.tape h3 span { font: 12px var(--label); color: var(--dim); }
+.rows { list-style: none; margin: 0; padding: 6px 0; }
+.row { padding: 12px 14px; display: grid; gap: 6px; }
+.row + .row { border-top: 1px solid #1e1916; }
+.row.active { background: #1b1512; box-shadow: inset 3px 0 0 var(--red); }
+.who { font: 600 12px var(--label); letter-spacing: .08em; text-transform: uppercase; color: var(--red); }
+.how { margin: 0; font: italic 14px var(--script); color: var(--dim); }
+.how span { font: 600 10px var(--label); letter-spacing: .16em; text-transform: uppercase; font-style: normal; border: 1px solid var(--faint); padding: 1px 5px; margin-right: 8px; }
+.say { margin: 0; font: 700 21px/1.4 var(--script); max-width: 60ch; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rec { border-color: var(--red); color: #ffb3bc; }
+.rec.live { background: var(--red); color: #fff; animation: pulse 1s infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(210,58,76,.25); } }
+@media (prefers-reduced-motion: reduce) { .rec.live { animation: none; } }
+.state { font-size: 13px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.state.done { color: var(--ok); }
+.file { font: 13px var(--script); color: var(--tape); }
+.other .say { font-size: 15px; font-weight: 400; color: var(--dim); }
+.other { opacity: .6; }
+.dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: rgba(12,10,9,.96); border-top: 1px solid var(--line);
+  padding: 12px max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+.dock .in { max-width: 760px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between; }
+.dock p { margin: 0; font-size: 14px; color: var(--dim); }
+.primary { border-color: var(--red); background: rgba(210,58,76,.2); }
+kbd { font: 600 12px var(--label); border: 1px solid var(--faint); padding: 0 5px; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <p class="kicker">● REC &nbsp;Mimic · voice recording</p>
+  <h1>Record the tapes</h1>
+  <ol class="steps">
+    <li><b>Turn on your microphone</b> below, and pick who you're recording.</li>
+    <li>Press <b>● Record</b>, say the <b>big words</b>, press <b>■ Stop</b>. The grey <i>how</i> notes are directions: don't say them.</li>
+    <li>Not happy? Press <b>Redo</b>. Your takes are kept in this browser until you download them.</li>
+    <li>When you're done, press <b>Download my recordings</b> at the bottom and send the zip over.</li>
+  </ol>
+  <p class="partinfo">Tip: <kbd>Space</kbd> starts and stops recording the highlighted line, and it moves on to your next line by itself.</p>
+
+  <div class="mic" id="mic">
+    <button type="button" id="micBtn" class="primary">Turn on microphone</button>
+    <div class="meter" aria-hidden="true"><i id="meter"></i></div>
+    <p id="micText">Use headphones or a quiet room. No effects: the game adds the tape crackle.</p>
+  </div>
+
+  <div class="bar">
+    <span class="label">Who are you recording?</span>
+    <div class="chips" id="chips"></div>
+    <p class="partinfo" id="partinfo"></p>
+    <span class="progress" id="progress"></span>
+  </div>
+
+  <section id="tapes"></section>
+</main>
+
+<div class="dock">
+  <div class="in">
+    <p id="dockText">Nothing recorded yet.</p>
+    <button type="button" id="zipBtn" class="primary" disabled>Download my recordings (.zip)</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script type="module" src="record.js"></script>
+</body>
+</html>

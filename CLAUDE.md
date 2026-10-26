@@ -226,6 +226,10 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   what's there; `scares.js` preloads this level's tapes and, when one has a recording, plays it (`playVoice(..., 'tape')` + `sfx.tapeHiss`)
   with the subtitles timed by line length; otherwise the old murmur. `node tools/script.mjs` regenerates `voices/SCRIPT.md` (every line
   to record, from story.js and lore.js; run it after changing either).
+- **Recording page** (`record/`, https://merchantsteam29.github.io/mimic/record/, not linked from the game): friends pick a part and record
+  each line in the browser (MediaRecorder); takes are trimmed, levelled and saved as 24 kHz mono WAV in IndexedDB, then downloaded as a
+  zip laid out as `voices/<book>/<id>.wav` (unzip it into the repo, run `tools/stamp.mjs`). `record/lines.js` (parts and lines from
+  story.js / lore.js) is shared with `tools/script.mjs`.
 - `radio.js`: **walkie-talkies** (online). Hold B (pad D-pad down, touch Radio): intent `radio` {on} -> broadcast `radioOn`; listeners route
   that voice through `vc.route(id, { radio: true })` (a band-limited, distorted chain in `vc.js`) at full volume, anywhere. While anyone
   transmits, the host makes noise at every OTHER living player's position (the mimic / listener can hear the radios). Max 12 s a press.
