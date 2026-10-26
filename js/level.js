@@ -1,4 +1,4 @@
-// Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house, a hospital, a mall or a school.
+// Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house, a hospital, a mall, a school or a hotel.
 // Also holds the collision, line-of-sight and path-finding the player and the mimic use.
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
@@ -63,6 +63,15 @@ export const THEMES = {
     fog: 0x020203, fogDensity: 0.08, reverb: [2.6, 0.44],
     props: ['schooldesk', 'schooldesk', 'chalkboard', 'teacherdesk', 'bookshelf', 'cubbies', 'trophycase', 'schooldesk'], hideProp: 'locker', surface: 'hard',
   },
+  // An old hotel: lots of small rooms off long carpeted halls. Built like the house (lamps, wooden doors, a key).
+  hotel: {
+    id: 'hotel', look: 'house', kicker: 'Closed hotel',
+    names: ['The Overlook Inn · Floor 3', 'Hotel Marlowe', 'The Grand Ashby', 'Pinewood Lodge · East Wing'],
+    size: 30, roomSize: [3, 5], tries: 160, minRooms: 11,
+    light: 0xffc27a, lightIntensity: 6.5, corridorLights: true, flicker: 0.35, broken: 0.35,
+    fog: 0x030201, fogDensity: 0.085, reverb: [1.2, 0.24],
+    props: ['bed', 'bed', 'armchair', 'tvstand', 'dresser', 'luggagecart', 'table'], hideProp: 'wardrobe', surface: 'wood',
+  },
 };
 
 // Footprint (w across the front, d front-to-back) of each prop, in metres. Front faces +z.
@@ -72,7 +81,8 @@ const PROP_DEFS = {
   table: { w: 1.4, d: 0.9 }, generator: { w: 1.5, d: 0.95 }, bookshelf: { w: 1.6, d: 0.45 }, dresser: { w: 1.2, d: 0.55 }, wardrobe: { w: 1.25, d: 0.75 },
   gurney: { w: 0.9, d: 2.0 }, wheelchair: { w: 0.7, d: 0.8 }, ivstand: { w: 0.5, d: 0.5 }, curtain: { w: 1.9, d: 0.3 }, medcabinet: { w: 1.0, d: 0.45 },
   mannequin: { w: 0.6, d: 0.5 }, clothesrack: { w: 1.6, d: 0.6 }, counter: { w: 1.8, d: 0.8 }, bench: { w: 1.6, d: 0.6 }, planter: { w: 1.0, d: 1.0 },
-  shoerack: { w: 1.6, d: 0.45 }, fittingroom: { w: 1.2, d: 1.0 },
+  shoerack: { w: 1.6, d: 0.45 }, fittingroom: { w: 1.2, d: 1.0 }, vent: { w: 0.8, d: 0.12 },
+  armchair: { w: 0.9, d: 0.85 }, tvstand: { w: 1.1, d: 0.5 }, luggagecart: { w: 1.1, d: 0.6 },
   schooldesk: { w: 1.2, d: 1.1 }, teacherdesk: { w: 1.6, d: 0.8 }, chalkboard: { w: 1.9, d: 0.2 }, cubbies: { w: 1.6, d: 0.45 }, trophycase: { w: 1.4, d: 0.5 },
 };
 
@@ -382,10 +392,31 @@ function tryGenerate(seed, th, opts = {}) {
 
 const center = (c) => (c + 0.5) * CELL;
 
+// Where you can hide, and what each costs you:
+//   box     lockers, wardrobes, fitting rooms: it sniffs at the door (the heartbeat game)
+//   bed     under a bed: half the time it doesn't think to look; if it does, the heartbeat game
+//   vent    in the wall: it can't follow you in, but getting in and out is loud
+//   curtain behind a curtain: quick, but your feet show: if it comes close, it has you
+export const HIDE_KIND = { bed: 'bed', curtain: 'curtain', vent: 'vent' };
+
 export class Level {
   constructor(data) {
     Object.assign(this, data);
     this.exitOpen = false;
+    // Vents (facility-built places): a few low grates in room walls, from the seed. Added after the layout, so maps don't change.
+    if (this.theme.look === 'facility') {
+      const rand = mulberry32(this.seed ^ 0x7e47), N = this.N, cells = [];
+      const taken = new Set(this.props.map((q) => q.cz * N + q.cx));
+      for (let z = 1; z < N - 1; z++) for (let x = 1; x < N - 1; x++) {
+        if (this.grid[z * N + x] !== FLOOR || this.roomId[z * N + x] < 0 || this.roomId[z * N + x] === this.spawnRoom || taken.has(z * N + x)) continue;
+        const walls = DIRS.filter(([dx, dz]) => this.grid[(z + dz) * N + (x + dx)] === WALL);
+        if (walls.length === 1) cells.push([x, z, walls[0]]);
+      }
+      for (let k = 0; k < 3 && cells.length; k++) {
+        const [cx, cz, [dx, dz]] = cells.splice(Math.floor(rand() * cells.length), 1)[0];
+        this.props.push({ cx, cz, dx, dz, room: this.roomId[cz * N + cx], type: 'vent', hide: true });
+      }
+    }
     // World-space boxes for props (the grid cell is bigger than the furniture in it).
     for (const p of this.props) {
       const def = PROP_DEFS[p.type];
@@ -397,6 +428,9 @@ export class Level {
       const hx = p.dx ? def.d / 2 : def.w / 2, hz = p.dx ? def.w / 2 : def.d / 2;
       p.box = { minx: p.x - hx, maxx: p.x + hx, minz: p.z - hz, maxz: p.z + hz };
       p.front = { x: p.x - p.dx * (def.d / 2 + 0.5), z: p.z - p.dz * (def.d / 2 + 0.5) };
+      p.kind = HIDE_KIND[p.type] || 'box';
+      if (p.kind !== 'box') p.hide = true; // beds and curtains were always there; now you can use them
+      if (p.type === 'vent') p.box = { minx: 1, maxx: 0, minz: 1, maxz: 0 }; // in the wall: nothing to bump into
     }
     this.doorsLocked = this.doors.length > 0;
     this.doorCells = new Set(this.doors.map((d) => d.cz * this.N + d.cx));
@@ -583,12 +617,40 @@ function buildProp(type, M) {
       g.add(box(0.02, 2.0, 0.01, M.black, 0, 1.05, 0.376));
       for (let i = 0; i < 6; i++) for (const x of [-0.25, 0.25]) g.add(box(0.3, 0.025, 0.01, M.black, x, 1.6 + i * 0.06, 0.377));
       break;
-    case 'bed':
-      g.add(box(1.4, 0.35, 1.95, M.darkWood, 0, 0.2, 0));
-      g.add(box(1.3, 0.2, 1.8, M.sheet, 0, 0.47, 0.05));
-      g.add(box(0.5, 0.12, 0.35, M.sheet, -0.3, 0.63, -0.7));
+    case 'bed': // on legs, with room underneath for someone lying flat
+      g.add(box(1.4, 0.12, 1.95, M.darkWood, 0, 0.36, 0));
+      for (const x of [-0.65, 0.65]) for (const z of [-0.9, 0.9]) g.add(box(0.07, 0.3, 0.07, M.darkWood, x, 0.15, z));
+      g.add(box(1.3, 0.2, 1.8, M.sheet, 0, 0.52, 0.05));
+      g.add(box(1.36, 0.28, 0.02, M.sheet, 0, 0.3, 0.97)); // the sheet hanging down over the side
+      g.add(box(0.5, 0.12, 0.35, M.sheet, -0.3, 0.68, -0.7));
       g.add(box(1.4, 1.0, 0.08, M.darkWood, 0, 0.5, -0.95));
       break;
+    case 'armchair':
+      g.add(box(0.85, 0.42, 0.8, M.fabric, 0, 0.21, 0), box(0.85, 0.6, 0.18, M.fabric, 0, 0.72, -0.31));
+      for (const x of [-0.37, 0.37]) g.add(box(0.13, 0.25, 0.8, M.fabric, x, 0.53, 0));
+      g.rotation.y = (r() - 0.5) * 0.5;
+      break;
+    case 'tvstand': { // an old TV, still faintly on
+      g.add(box(1.1, 0.5, 0.48, M.darkWood, 0, 0.25, 0), box(0.62, 0.48, 0.45, M.black, 0, 0.75, -0.02));
+      const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.48, 0.36), new THREE.MeshStandardMaterial({ color: 0x0a0c0c, emissive: 0x3a4a48, emissiveIntensity: 0.5 }));
+      screen.position.set(0, 0.76, 0.205);
+      g.add(screen);
+      break;
+    }
+    case 'luggagecart':
+      g.add(box(1.0, 0.05, 0.55, M.brass, 0, 0.18, 0));
+      for (const x of [-0.48, 0.48]) g.add(box(0.03, 1.6, 0.03, M.brass, x, 0.98, 0));
+      g.add(box(1.0, 0.03, 0.03, M.brass, 0, 1.78, 0));
+      for (let i = 0; i < 3; i++) if (r() < 0.75) g.add(box(0.5 + r() * 0.3, 0.3, 0.42, M.clothes[Math.floor(r() * M.clothes.length)], (r() - 0.5) * 0.3, 0.36 + i * 0.32, 0));
+      for (const x of [-0.42, 0.42]) for (const z of [-0.22, 0.22]) g.add(cyl(0.05, 0.05, 0.04, M.black, x, 0.05, z, 8));
+      break;
+    case 'vent': { // a low grate in the wall
+      g.add(box(0.75, 0.48, 0.05, M.metal, 0, 0.3, -0.02));
+      const dark = new THREE.MeshBasicMaterial({ color: 0x020202 });
+      g.add(box(0.66, 0.4, 0.02, dark, 0, 0.3, -0.03));
+      for (let i = 0; i < 6; i++) g.add(box(0.68, 0.025, 0.03, M.metal, 0, 0.12 + i * 0.07, 0.005));
+      break;
+    }
     case 'sofa':
       g.add(box(1.8, 0.45, 0.85, M.fabric, 0, 0.225, 0));
       g.add(box(1.8, 0.55, 0.22, M.fabric, 0, 0.72, -0.31));

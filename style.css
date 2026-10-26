@@ -425,3 +425,18 @@ body.input-touch #signals li { pointer-events: auto; padding: 8px 6px; }
 @keyframes loadbar { from { background-position: -100% 0; } to { background-position: 200% 0; } }
 body.ready #loading { display: none; }
 body:not(.ready) #title .buttons { opacity: .35; pointer-events: none; }
+
+/* ---------- other hiding spots ---------- */
+#locker[data-kind="bed"] { background: linear-gradient(180deg, #040302 0 58%, rgba(4,3,2,.9) 58% 62%, transparent 66%); }
+#locker[data-kind="bed"]::before { background: linear-gradient(90deg, #040302 0 6%, transparent 12% 88%, #040302 94%); }
+#locker[data-kind="vent"] { background: repeating-linear-gradient(180deg, rgba(3,3,3,.96) 0 14px, transparent 14px 26px); }
+#locker[data-kind="vent"]::before { background: radial-gradient(ellipse at center, transparent 30%, #030303 72%); }
+#locker[data-kind="curtain"] { background: linear-gradient(90deg, rgba(40,10,12,.97) 0 44%, transparent 47% 53%, rgba(40,10,12,.97) 56%); }
+#locker[data-kind="curtain"]::before { background: linear-gradient(180deg, transparent 0 86%, rgba(40,10,12,.6) 92%); }
+
+/* ---------- throwables ---------- */
+#flash.pop { animation: pop .45s ease-out; }
+@keyframes pop { 0% { opacity: .95; background: #fff; } 100% { opacity: 0; background: #fff; } }
+body.calm #flash.pop { animation: popCalm .5s ease-out; }
+@keyframes popCalm { 0% { opacity: .35; background: #ddd; } 100% { opacity: 0; } }
+.t-throw { right: calc(14px + env(safe-area-inset-right)); top: 112px; width: 64px; height: 44px; border-radius: 22px; }

@@ -40,6 +40,7 @@ export class Scares {
   dispose() {
     this.replyEm.dispose();
     this.fakeBreath?.stop();
+    this.phoneEm?.dispose();
     this.fakeEm?.dispose();
     this.body?.dispose();
     this.ghost?.removeFromParent();
@@ -292,6 +293,24 @@ export class Scares {
     this.updateDecoys(dt);
     this.updateMannequins(dt);
     this.updatePA(dt);
+    this.updatePhone(dt);
+  }
+
+  // The hotel: a phone rings in a room nearby. It stops before you get there. Mostly.
+  updatePhone(dt) {
+    const g = this.g;
+    if (g.level.theme.id !== 'hotel' || g.power) return;
+    this.phoneT = (this.phoneT ?? 60 + Math.random() * 40) - dt;
+    if (this.phoneT > 0) return;
+    this.phoneT = 100 + Math.random() * 80;
+    const at = g.level.randomFloor((q) => { const d = Math.hypot(q.x - g.p.x, q.z - g.p.z); return d > 7 && d < 15; });
+    if (!at) return;
+    this.phoneEm ||= g.sfx.emitter();
+    this.phoneEm.setPos(at.x, 0.8, at.z);
+    this.phoneEm.setOcclusion(!g.level.los(g.p.x, g.p.z, at.x, at.z));
+    const d = g.sfx.phone(this.phoneEm);
+    // Someone picks it up. It's you, saying hello.
+    setTimeout(() => { if (g.state === 'playing' && Math.random() < 0.6) g.localSpeak('distant', this.phoneEm); }, (d + 0.5) * 1000);
   }
 
   // The school's PA: a chime, then your own voice over the speakers, far away.

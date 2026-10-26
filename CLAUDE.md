@@ -183,6 +183,17 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - `revive.js`: **bringing a friend back** (online, once per game). A catch drops the victim's tape (`lifeTape`, item `lifetape`).
   Carry it (one at a time; it drops again if the carrier is taken) to the power panel: intent `revive` -> `revived` puts them back in
   the game at the panel (`game.revive`), or carry it out of the exit and they get out too. Not after power-on at the panel.
+- **Hiding spots** (`prop.kind`, `HIDE_KIND` in level.js): `box` (lockers, wardrobes, fitting rooms: the heartbeat game), `bed` (under
+  any bed: half the time it doesn't look; eye 0.17), `vent` (facility-built maps: 3 grates per map added from the seed in the Level
+  constructor after the layout, so maps don't change; it can't follow you in, `huntHide` turns into an investigate; getting in or out
+  is a noise of 12), `curtain` (hospital screens: `checkCurtains` (host) sees your feet within 3 m, and a hunt there is an instant catch).
+  `#locker[data-kind]` draws each view. `mimic.toDoor` adds the last step to a hiding spot's door (it's inside the furniture's own grid
+  cell, which `findPath` won't enter; before this the heartbeat game never started).
+- `throwables.js`: bottles, cans and a disposable camera, 4 per map at seeded spots (item `throwable`). Carry one; H / click / RT
+  (when holding) uses it. Bottles and cans: intent `throw` -> `thrown` (flies, smashes / clatters; host `hear` at 22). Camera (3 shots):
+  `camFlash` -> `camFlashed`; the host stuns the mimic (or the hunter) if it's in front within 8 m and in sight.
+- **Hotel** theme (`hotel`, look `house`): small rooms off long halls, beds (hide under), armchairs, old TVs, luggage carts; damask
+  walls and the hex carpet; a lift hum; a phone that rings in a nearby room (`scares.updatePhone`), and sometimes you answer.
 - `radio.js`: **walkie-talkies** (online). Hold B (pad D-pad down, touch Radio): intent `radio` {on} -> broadcast `radioOn`; listeners route
   that voice through `vc.route(id, { radio: true })` (a band-limited, distorted chain in `vc.js`) at full volume, anywhere. While anyone
   transmits, the host makes noise at every OTHER living player's position (the mimic / listener can hear the radios). Max 12 s a press.

@@ -584,6 +584,14 @@ export class Sfx {
       const mg = ctx.createGain(); mg.gain.value = 0.012;
       const mlp = ctx.createBiquadFilter(); mlp.type = 'lowpass'; mlp.frequency.value = 1800; // through a wall or two
       mon.connect(mlp).connect(mg).connect(bus); mon.start(); nodes.push(mon);
+    } else if (theme === 'hotel') {
+      // The lift, somewhere, going up and down with nobody in it.
+      const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = 62;
+      const g = ctx.createGain(); g.gain.value = 0.014;
+      const lfo2 = ctx.createOscillator(); lfo2.frequency.value = 0.05;
+      const lg = ctx.createGain(); lg.gain.value = 0.01;
+      lfo2.connect(lg).connect(g.gain);
+      o.connect(g).connect(bus); o.start(); lfo2.start(); nodes.push(o, lfo2);
     } else if (theme === 'school') {
       // A classroom clock, ticking, somewhere close. Nothing else.
       const sr = ctx.sampleRate, b = ctx.createBuffer(1, sr, sr), d = b.getChannelData(0);
@@ -653,11 +661,36 @@ export class Sfx {
     this.ambient = { nodes, bus, theme, dread, dreadLp, high };
   }
 
+  // A tin can bouncing on a hard floor.
+  clatter(emitter = null) {
+    const dest = emitter ? emitter.input : this.master, t = this.now;
+    if (this.rec('metal', emitter, { vol: 1.1, rate: 1.4 })) return;
+    [0, 0.14, 0.24, 0.31, 0.36].forEach((d, i) => this._noise(dest, { t: t + d, dur: 0.06, freq: 2600 + Math.random() * 1500, q: 6, peak: 0.6 - i * 0.1 }));
+  }
+
+  // A disposable camera: the shutter, and the flash whining back up.
+  camFlash(emitter = null) {
+    const dest = emitter ? emitter.input : this.master, t = this.now;
+    this._noise(dest, { t, dur: 0.05, freq: 3000, q: 2, peak: 0.5 });
+    this._tone(dest, { t: t + 0.08, type: 'sine', freq: 2400, to: 5200, dur: 1.2, peak: 0.03, attack: 0.3 });
+  }
+
   // Stone dragging on stone: the stalker moving.
   scrape(emitter) {
     const dest = emitter ? emitter.input : this.master, t = this.now;
     this._noise(dest, { t, dur: 0.4, type: 'lowpass', freq: 380, q: 0.8, peak: 0.6, attack: 0.05, buffer: this.brown });
     this._noise(dest, { t: t + 0.05, dur: 0.3, freq: 1800 + Math.random() * 600, q: 3, peak: 0.12, attack: 0.04 });
+  }
+
+  // An old phone ringing (four rings).
+  phone(emitter = null) {
+    const dest = emitter ? emitter.input : this.master, t = this.now;
+    for (let r = 0; r < 4; r++) for (let i = 0; i < 20; i++) {
+      const at = t + r * 3 + i * 0.05;
+      this._tone(dest, { t: at, type: 'square', freq: i % 2 ? 440 : 480, dur: 0.05, peak: 0.07 });
+      this._tone(dest, { t: at + 1, type: 'square', freq: i % 2 ? 440 : 480, dur: 0.05, peak: 0.07 });
+    }
+    return 11;
   }
 
   // The school PA: two notes before an announcement.

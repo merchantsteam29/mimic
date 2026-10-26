@@ -237,6 +237,41 @@ function chalkboard() {
   return toTexture(c);
 }
 
+// ---------- hotel ----------
+function hotelWall() {
+  const [c, g] = canvas(256, 384); // one 2m x 3m wall face: old damask paper over dark wood panelling
+  g.fillStyle = '#4a1a1c'; g.fillRect(0, 0, 256, 384);
+  g.fillStyle = 'rgba(176,132,70,.32)';
+  for (let y = 10; y < 240; y += 56) for (let x = (y / 56) % 2 ? 32 : 0; x < 288; x += 64) {
+    g.beginPath(); g.ellipse(x, y, 14, 22, 0, 0, Math.PI * 2); g.fill();          // a damask motif, roughly
+    g.beginPath(); g.ellipse(x, y, 5, 30, 0, 0, Math.PI * 2); g.fill();
+  }
+  g.fillStyle = '#2a1a10'; g.fillRect(0, 244, 256, 128);        // panelling
+  g.strokeStyle = 'rgba(0,0,0,.4)'; g.lineWidth = 3;
+  for (let x = 8; x < 256; x += 64) g.strokeRect(x, 256, 52, 100);
+  g.fillStyle = '#5a3a20'; g.fillRect(0, 240, 256, 6);          // the rail
+  g.fillStyle = '#1a120c'; g.fillRect(0, 372, 256, 12);
+  blotches(g, 256, 384, 8, 0.3);
+  streaks(g, 256, 240, 4, 'rgba(30,20,10,.35)');
+  stains(g, 256, 384, 3, 'rgba(30,20,10,.35)');
+  grain(g, 256, 384, 20);
+  return toTexture(c);
+}
+
+function hotelFloor() {
+  const [c, g] = canvas(256); // one 2m cell of that carpet: interlocking hexagons in orange, brown and red
+  g.fillStyle = '#4a2410'; g.fillRect(0, 0, 256, 256);
+  const hex = (x, y, r, col) => { g.fillStyle = col; g.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i + Math.PI / 6; g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } g.closePath(); g.fill(); };
+  for (let y = -32; y < 300; y += 64) for (let x = -37; x < 300; x += 74) {
+    const ox = (Math.round((y + 32) / 64) % 2) * 37;
+    hex(x + ox, y, 34, '#a8481c'); hex(x + ox, y, 24, '#3a1a0c'); hex(x + ox, y, 12, '#8a1c14');
+  }
+  blotches(g, 256, 256, 6, 0.35);
+  stains(g, 256, 256, 3, 'rgba(20,10,5,.4)');
+  grain(g, 256, 256, 18);
+  return toTexture(c);
+}
+
 // ---------- house ----------
 const WALLPAPERS = [['#4d5a45', '#5f6d55'], ['#6e4f4f', '#7d5d5b'], ['#6f6141', '#7f7150'], ['#4a4f63', '#5a5f73']];
 
@@ -459,10 +494,11 @@ export function skinNormal() {
 }
 
 export function makeTextures(theme) {
-  const facility = theme === 'facility', hospital = theme === 'hospital', mall = theme === 'mall', school = theme === 'school';
+  const facility = theme === 'facility', hospital = theme === 'hospital', mall = theme === 'mall', school = theme === 'school', hotel = theme === 'hotel';
   const pair = (name) => [photo(`${name}_color`), photo(`${name}_normal`, false)];
-  const [wall, wallN] = facility ? pair('concreteWall') : [hospital ? hospitalWall() : mall ? mallWall() : school ? schoolWall() : houseWall(), photo('plaster_normal', false)];
-  const [floor, floorN] = hospital || mall || school ? [hospital ? hospitalFloor() : mall ? mallFloor() : schoolFloor(), photo('concreteFloor_normal', false)] : pair(facility ? 'concreteFloor' : 'woodFloor');
+  const [wall, wallN] = facility ? pair('concreteWall') : [hospital ? hospitalWall() : mall ? mallWall() : school ? schoolWall() : hotel ? hotelWall() : houseWall(), photo('plaster_normal', false)];
+  const [floor, floorN] = hospital || mall || school ? [hospital ? hospitalFloor() : mall ? mallFloor() : schoolFloor(), photo('concreteFloor_normal', false)]
+    : hotel ? [hotelFloor(), photo('plaster_normal', false)] : pair(facility ? 'concreteFloor' : 'woodFloor');
   const [ceiling, ceilingN] = pair(facility || hospital || mall || school ? 'officeCeiling' : 'plaster');
   const [woodC, woodN] = pair('wood');
   const [metalC, metalN] = pair('paintedMetal');
@@ -475,7 +511,7 @@ export function makeTextures(theme) {
     metal: metal(),
     locker: metalC,
     rust: metal('#5a3b26'),
-    fabric: fabric(facility ? '#3b3d3a' : hospital ? '#2f3b40' : mall ? '#4a3a44' : '#4a2f2c'),
+    fabric: fabric(facility ? '#3b3d3a' : hospital ? '#2f3b40' : mall ? '#4a3a44' : hotel ? '#5a3a24' : '#4a2f2c'),
     sheet: fabric('#8b877c'),
     exitSign: label('EXIT', '#160404', '#ff2b3a'),
     chalk: chalkboard(),

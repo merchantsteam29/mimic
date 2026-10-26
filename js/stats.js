@@ -24,7 +24,7 @@ export function recordRun(r) {
 
 export function resetStats() { try { localStorage.removeItem(KEY); } catch { /* ignore */ } }
 
-const PLACE = { facility: 'Research facility', house: 'Old house', hospital: 'Hospital', mall: 'Mall', school: 'School' };
+const PLACE = { facility: 'Research facility', house: 'Old house', hospital: 'Hospital', mall: 'Mall', school: 'School', hotel: 'Hotel' };
 const clock = (s) => (s >= 3600 ? `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m` : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`);
 
 // Rows for the stats screen: [label, value].

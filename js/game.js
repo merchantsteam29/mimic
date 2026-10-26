@@ -29,6 +29,7 @@ import { Stalker } from './stalker.js';
 import { Recorder } from './recorder.js';
 import { Signals } from './signals.js';
 import { Revive } from './revive.js';
+import { Throwables } from './throwables.js';
 
 import { mulberry32 } from './level.js';
 import { keyLabel, rumble } from './controls.js';
@@ -155,6 +156,7 @@ export class Game {
     const dc = this.world.decoy;
     if (dc) this.items.push({ type: dc.kind, fake: true, x: dc.x, y: 0.1, z: dc.z, mesh: dc.mesh, range: 2.1, active: true });
     this.rec = new Recorder(this); // your own tape recorders (adds their items)
+    this.thr = new Throwables(this); // bottles, cans, a camera (adds their items)
     this.tut = new Tutorial(this, tutorial && !mp); // before Scares: it takes the tricks out
     this.scares = new Scares(this);
     this.recap = new Recap(this); // host: where everyone went, for the end screen
@@ -197,7 +199,7 @@ export class Game {
       if (this.state !== 'playing') return;
       if (e.code === 'Space') e.preventDefault();
       if (this.hunt.me) { if (!e.repeat && this.hunt.onKey(e.code)) return; this.keys.add(e.code); return; }
-      if (!e.repeat && (this.rec.onKey(e.code) || this.traitor.onKey(e.code) || this.scares.onKey(e.code) || this.hb.onKey(e.code) || this.obj.onKey(e.code))) return;
+      if (!e.repeat && (this.rec.onKey(e.code) || this.thr.onKey(e.code) || this.traitor.onKey(e.code) || this.scares.onKey(e.code) || this.hb.onKey(e.code) || this.obj.onKey(e.code))) return;
       this.keys.add(e.code);
       if (e.repeat) return;
       if (e.code === 'KeyF') this.toggleFlash();
@@ -216,6 +218,7 @@ export class Game {
       if (!document.pointerLockElement) return;
       if (this.state === 'spectate') this.specIdx++;
       else if (this.hunt.me && this.state === 'playing' && !this.menuOpen) this.hunt.act();
+      else if (this.state === 'playing' && !this.menuOpen && this.thr.held && !this.p.hidden) this.thr.use(); // click to throw
     };
     addEventListener('keydown', this.onKeyDown);
     addEventListener('keyup', this.onKeyUp);
@@ -304,6 +307,7 @@ export class Game {
     this.ls.dispose();
     this.sk.dispose();
     this.rec.dispose();
+    this.thr.dispose();
     this.inc.dispose();
     this.hunt.dispose();
     this.chat.dispose();
@@ -378,6 +382,7 @@ export class Game {
     this.updateDoors(dt);
     this.applyHunger();
     if (this.isHost && this.mp && !this.hunt.on) this.updateWear();
+    if (this.isHost && !this.hunt.on && !this.tut.holds) this.checkCurtains();
     // The mimic left a hiding spot without a verdict (a flare, say): end that player's heartbeat game.
     if (this.isHost && this.sniffing && this.mimic.state !== 'sniff') { this.sendTo(this.sniffing, { t: 'sniffEnd' }); this.sniffing = null; }
 
@@ -390,6 +395,7 @@ export class Game {
     this.ls.update(dt);
     this.sk.update(dt);
     if (this.state === 'playing' || this.state === 'spectate') this.rec.update(dt);
+    this.thr.update(dt);
     if (this.state === 'playing' || this.state === 'spectate') this.inc.update(dt);
 
     const watching = this.state === 'spectate' ? this.specTarget() : null;

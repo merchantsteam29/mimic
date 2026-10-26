@@ -5,6 +5,16 @@ import { rumble } from './controls.js';
 import { clamp, angleDiff } from './game-shared.js';
 
 export const WorldPart = {
+  // Host: feet showing under a curtain. If it wanders close and can see the curtain, it knows.
+  checkCurtains() {
+    const m = this.mimic;
+    if (!['wander', 'investigate', 'stalk'].includes(m.state) || m.graceT > 0) return;
+    for (const P of this.targets()) {
+      const pr = P.hidden;
+      if (pr?.kind === 'curtain' && Math.hypot(pr.x - m.x, pr.z - m.z) < 3 && this.level.los(m.x, m.z, pr.front.x, pr.front.z)) { m.huntHide(pr, P.id); return; }
+    }
+  },
+
   // The mimic (host) talks: everyone hears the same clip from it.
   mimicSpeaks(style, emitter) {
     const dead = (owner) => this.status.get(owner) === 'dead';

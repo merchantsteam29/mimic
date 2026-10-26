@@ -15,10 +15,10 @@ const $ = (id) => document.getElementById(id);
 // follow the bindings; these are the fixed ones.
 const LABELS = {
   mouse: { Vote: 'Press a number to vote', Esc: 'Esc' },
-  pad: { Esc: 'Start', 1: '▲', 2: '▶', 3: '▼', 4: '◀', 0: 'B', Vote: 'Vote with the D-pad' },
+  pad: { H: 'RT', Esc: 'Start', 1: '▲', 2: '▶', 3: '▼', 4: '◀', 0: 'B', Vote: 'Vote with the D-pad' },
   touch: {
     E: 'Use', F: 'Light', G: 'Ability', C: 'Crouch', Shift: 'Run', Space: 'Tap', Q: 'Jam', R: 'Sabotage', V: 'Accuse',
-    Tab: 'Jobs', T: 'Say', B: 'Radio', X: 'Tape', Z: 'Signal', Esc: 'II', Beat: 'Beat', Next: 'Next', Vote: 'Tap a name to vote',
+    Tab: 'Jobs', T: 'Say', B: 'Radio', X: 'Tape', Z: 'Signal', H: 'Throw', Esc: 'II', Beat: 'Beat', Next: 'Next', Vote: 'Tap a name to vote',
   },
 };
 
@@ -195,7 +195,9 @@ function gamePad(dt, g, { now, down, up, ax }) {
   const spectating = g.state === 'spectate';
   // Hiding with it at the door: "use" is the heartbeat too (pressing "use" would walk you out).
   const useCode = g.hb?.on ? 'Space' : 'KeyE';
-  const map = [[pb.use, useCode], [pb.light, 'KeyF'], [pb.ability, 'KeyG'], [pb.jam, 'KeyQ'], [pb.sabotage, 'KeyR'], [pb.skill, 'Space'], [pb.jobs, 'Tab'], [pb.sprint, 'ShiftLeft'], [pb.radio, 'KeyB'], [pb.recorder, 'KeyX']];
+  // Holding something to throw: RT throws it (unless a skill check or the heartbeat needs RT).
+  const rtCode = g.thr?.held && !g.obj?.skill && !g.hb?.on ? 'KeyH' : 'Space';
+  const map = [[pb.use, useCode], [pb.light, 'KeyF'], [pb.ability, 'KeyG'], [pb.jam, 'KeyQ'], [pb.sabotage, 'KeyR'], [pb.skill, rtCode], [pb.jobs, 'Tab'], [pb.sprint, 'ShiftLeft'], [pb.radio, 'KeyB'], [pb.recorder, 'KeyX']];
   for (const [i, code] of map) {
     if (down(i)) press(code);
     else if (up(i)) { release(code); if (i === pb.use) release('Space'), release('KeyE'); }
@@ -419,6 +421,7 @@ function updateTouch(g) {
   show('KeyB', !!g.radio?.can());
   show('KeyX', !spec && !!g.rec && g.rec.phase !== 'none');
   show('KeyZ', !!g.sig?.can());
+  show('KeyH', !spec && !!g.thr?.held);
   if (hunter) {
     for (const k of ['Space', 'KeyF', 'KeyC', 'KeyG', 'KeyV', 'Tab']) show(k, false);
     for (const k of ['KeyE', 'KeyQ', 'KeyR', 'ShiftLeft']) show(k, true);

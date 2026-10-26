@@ -210,7 +210,7 @@ document.querySelectorAll('.back').forEach((b) => {
 function renderBinds() {
   $('bindList').innerHTML = ACTIONS.map(([id, label, , padDefault]) => `<div class="bind-row"><span>${esc(label)}</span>`
     + `<button data-kind="key" data-id="${id}">${esc(keyName(binds.key[id]))}</button>`
-    + `<button data-kind="pad" data-id="${id}" ${padDefault === null ? 'disabled' : ''}>${padDefault === null ? 'Left stick' : esc(padName(binds.pad[id]))}</button></div>`).join('');
+    + `<button data-kind="pad" data-id="${id}" ${padDefault === null ? 'disabled' : ''}>${padDefault === null ? (id === 'throw' ? 'RT (holding one)' : 'Left stick') : esc(padName(binds.pad[id]))}</button></div>`).join('');
   $('bindList').querySelectorAll('button').forEach((b) => {
     b.onclick = () => {
       const { kind, id } = b.dataset;

@@ -141,7 +141,7 @@ export const PlayerPart = {
       const dx = it.x - c.x, dy = it.y - c.y, dz = it.z - c.z, d = Math.hypot(dx, dy, dz);
       if (d > it.range) continue;
       const dot = (dx * fwd.x + dy * fwd.y + dz * fwd.z) / d;
-      const need = ['fuse', 'battery', 'recorder', 'lifetape'].includes(it.type) ? 0.86 : 0.72;
+      const need = ['fuse', 'battery', 'recorder', 'lifetape', 'throwable'].includes(it.type) ? 0.86 : 0.72;
       // (A shut door blocks sight of itself, so doors skip the line-of-sight check.)
       if (dot < need || dot < bestDot || (it.type !== 'idoor' && !this.level.los(c.x, c.z, it.x, it.z))) continue;
       best = it; bestDot = dot;
@@ -154,9 +154,10 @@ export const PlayerPart = {
       fuse: 'Pick up fuse',
       battery: 'Take battery',
       recorder: 'Pick up tape recorder',
+      throwable: { bottle: 'Pick up bottle', can: 'Pick up can', camera: 'Pick up camera' }[best?.kind],
       lifetape: best?.owner ? `Pick up ${this.nameOf(best.owner)}'s tape` : '',
       fusebox: this.revival.prompt() || (this.fusesHeld && this.fusesIn < 4 ? `Insert fuse${this.fusesHeld > 1 ? 's' : ''} (${this.fusesHeld})` : this.obj.allDone() ? 'Restore power' : 'Power panel') + this.traitor.panelHint(),
-      hide: 'Hide',
+      hide: { bed: 'Hide under the bed', vent: 'Crawl into the vent', curtain: 'Hide behind the curtain' }[best?.prop?.kind] || 'Hide',
       exit: 'Open exit',
     }[best?.type];
     this.setPrompt(text);
@@ -177,7 +178,9 @@ export const PlayerPart = {
       case 'battery':
       case 'recorder':
       case 'lifetape':
+      case 'throwable':
         if (f.type === 'recorder' && this.rec.phase !== 'none') { this.toast('You already have one.'); break; }
+        if (f.type === 'throwable' && this.thr.held) { this.toast('Your hands are full.'); break; }
         f.pending = this.t + 1; // the host confirms (instantly when alone)
         this.send({ t: 'take', i: this.items.indexOf(f) });
         break;
@@ -204,9 +207,11 @@ export const PlayerPart = {
     p.yaw = p.hideYaw; p.pitch = 0;
     p.x = prop.x; p.z = prop.z;
     p.vx = p.vz = 0;
-    p.eye = 1.5;
+    p.eye = { bed: 0.17, vent: 0.32, curtain: 1.55 }[prop.kind] ?? 1.5;
+    this.hud.locker.dataset.kind = prop.kind || 'box';
     this.hud.locker.hidden = false;
-    this.sfx.creak(null, 0.25);
+    if (prop.kind === 'vent') { this.sfx.clank(null, 0.7); this.noise(12, 'step'); } // the grate is loud
+    else if (prop.kind !== 'curtain') this.sfx.creak(null, 0.25);
     this.sfx.cloth();
     if (this.scares.trap(prop)) return; // it was it
     if (this.tut.holds) return; // the tutorial stages this one itself
@@ -220,7 +225,8 @@ export const PlayerPart = {
     p.hidden = null;
     p.x = prop.front.x; p.z = prop.front.z;
     this.hud.locker.hidden = true;
-    if (!silent) this.sfx.creak(null, 0.25);
+    if (!silent && prop.kind === 'vent') { this.sfx.clank(null, 0.7); this.noise(12, 'step'); }
+    else if (!silent) this.sfx.creak(null, 0.25);
   },
 
   powerOn(by) {
@@ -278,6 +284,7 @@ export const PlayerPart = {
     }
     lines.push(...this.obj.lines());
     if (this.rec?.line()) lines.push(this.rec.line());
+    if (this.thr?.line()) lines.push(this.thr.line());
     if (this.obj.allDone()) lines.push('Restore power at the panel');
     o.textContent = lines.join('\n');
   },

@@ -23,7 +23,7 @@ export const NetPart = {
   // Host: a player's intent.
   hostHandle(m, from) {
     const r = this.remotes.get(from);
-    if (this.hunt.hostHandle(m, from) || this.chat.hostHandle(m, from) || this.radio.hostHandle(m, from) || this.rec.hostHandle(m, from) || this.sig.hostHandle(m, from) || this.revival.hostHandle(m, from) || this.haunt.hostHandle(m, from) || this.obj.hostHandle(m, from) || this.ab.hostHandle(m, from) || this.traitor.hostHandle(m, from)) return;
+    if (this.hunt.hostHandle(m, from) || this.chat.hostHandle(m, from) || this.radio.hostHandle(m, from) || this.rec.hostHandle(m, from) || this.thr.hostHandle(m, from) || this.sig.hostHandle(m, from) || this.revival.hostHandle(m, from) || this.haunt.hostHandle(m, from) || this.obj.hostHandle(m, from) || this.ab.hostHandle(m, from) || this.traitor.hostHandle(m, from)) return;
     switch (m.t) {
       case 'door': { // open / close a real door
         const d = this.level.idoors[m.i | 0];
@@ -63,7 +63,7 @@ export const NetPart = {
       }
       case 'take': {
         const it = this.items[m.i];
-        if (!it || !it.active || !['fuse', 'battery', 'keycard', 'recorder', 'lifetape'].includes(it.type) || !this.alive(from)) return;
+        if (!it || !it.active || !['fuse', 'battery', 'keycard', 'recorder', 'lifetape', 'throwable'].includes(it.type) || !this.alive(from)) return;
         if (it.type === 'lifetape' && this.revival.holder) return; // one at a time
         if (it.fake) { // the decoy: it was it
           it.active = false;
@@ -104,7 +104,7 @@ export const NetPart = {
 
   // Everyone: what happened.
   onNet(m) {
-    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m) || this.radio.onNet(m) || this.rec.onNet(m) || this.sig.onNet(m) || this.revival.onNet(m)) return;
+    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m) || this.radio.onNet(m) || this.rec.onNet(m) || this.thr.onNet(m) || this.sig.onNet(m) || this.revival.onNet(m)) return;
     switch (m.t) {
       case 'doorSet': {
         const d = this.level.idoors[m.i | 0];
@@ -182,10 +182,11 @@ export const NetPart = {
         const it = this.items[m.i];
         if (!it) return;
         it.active = false;
-        if (it.type !== 'recorder' && it.type !== 'lifetape') it.mesh?.removeFromParent();
+        if (!['recorder', 'lifetape', 'throwable'].includes(it.type)) it.mesh?.removeFromParent();
         const mine = m.by === this.me;
         if (it.type === 'recorder') { it.active = false; this.rec.took(it, m.by); if (mine) this.sfx.pickup(); this.updateObjective(); break; }
         if (it.type === 'lifetape') { this.revival.took(it, m.by); if (mine) this.sfx.pickup(); break; }
+        if (it.type === 'throwable') { this.thr.took(it, m.by); if (mine) this.sfx.pickup(); break; }
         if (it.type === 'keycard') { this.obj.tookKey(m.by); if (mine) this.events.progress('key'); }
         else if (it.type === 'fuse') {
           this.fusesFound++;

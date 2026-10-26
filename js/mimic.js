@@ -290,13 +290,23 @@ export class Mimic {
   foundHidden(prop, id) { if (this.state !== 'hunt') this.huntHide(prop, id); }
 
   huntHide(prop, id) {
+    // It can't follow you into a vent: it comes to the grate, and loses interest.
+    if (prop.kind === 'vent') { if (this.state === 'chase') this.investigate(prop.front.x, prop.front.z, 2.2); return; }
     if (this.ceiling) { this.ceiling = false; this.dropT = DROP; }
     this.unwear();
     this.state = 'hunt';
     this.targetId = id;
     this.hideTarget = prop;
-    this.path = this.level.findPath(this.x, this.z, prop.front.x, prop.front.z);
+    this.path = this.toDoor(prop);
     this.repath = 0.5;
+  }
+
+  // A path right up to a hiding spot's door. (The door is inside the furniture's own grid cell, which the
+  // path-finder won't enter, so the last step is added by hand.)
+  toDoor(prop) {
+    const path = this.level.findPath(this.x, this.z, prop.front.x, prop.front.z);
+    path.push({ x: prop.front.x, z: prop.front.z });
+    return path;
   }
 
   enrage(P) {
@@ -541,12 +551,15 @@ export class Mimic {
         if (!P.hidden || P.id !== this.targetId) { this.state = 'chase'; this.lostT = 0; break; }
         const f = this.hideTarget.front;
         this.repath -= dt;
-        if (this.repath <= 0 && !this.path.length) { this.path = this.level.findPath(this.x, this.z, f.x, f.z); this.repath = 0.5; }
+        if (this.repath <= 0 && !this.path.length) { this.path = this.toDoor(this.hideTarget); this.repath = 0.5; }
         this.follow(dt, 2.8 * this.aggro);
         if (Math.hypot(f.x - this.x, f.z - this.z) < 1.2) {
           this.state = 'sniff';
           this.sniffT = 0;
           this.path = [];
+          const kind = this.hideTarget.kind;
+          if (kind === 'curtain') { this.hooks.onCatch(P.id); break; }                     // a curtain stops nothing
+          if (kind === 'bed' && Math.random() < 0.5) { this.endSniff(true, P); break; }  // it didn't think to look under
           this.hooks.onSniff(P.id);
         }
         break;
