@@ -61,7 +61,7 @@ const num = (v, d = 0) => (Number.isFinite(v) ? v : d);
 
 export class Game {
   constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null }) {
-    Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs, room });
+    Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs, room, custom });
     this.distort = 0;    // camcorder distortion, 0..1
     this.peekHud = 0;    // seconds the HUD stays visible after something changes
     this.tabDown = false;
@@ -798,12 +798,12 @@ export class Game {
       if (!this.alive(id)) { vc.route(id, { on: !meAlive }); continue; }
       if (this.radio.routes(id)) { vc.route(id, { on: true, radio: true }); continue; } // on the walkie-talkie
       const d = Math.hypot(r.x - c.x, r.z - c.z);
-      if (this.room) { // the waiting room: from where they stand, but you can always hear them
-        vc.route(id, { on: true, volume: clamp(1.3 - d / 14, 0.35, 1), pos: { x: r.x, y: r.eye, z: r.z } });
-        continue;
-      }
-      const volume = clamp(1.25 - d / 24, 0, 1);
-      vc.route(id, { on: volume > 0, volume, pos: { x: r.x, y: r.eye, z: r.z }, occluded: !this.level.los(c.x, c.z, r.x, r.z) });
+      const pos = { x: r.x, y: r.eye, z: r.z }, occluded = !this.level.los(c.x, c.z, r.x, r.z);
+      // Full volume up close, fading out by 45 m (the waiting room, and "Voices: everywhere": never below a floor).
+      let volume = clamp(1 - (d - 8) / 37, 0, 1);
+      if (this.room) volume = Math.max(volume, 0.5);
+      else if (this.custom?.voices === 'everywhere') volume = Math.max(volume, 0.7);
+      vc.route(id, { on: volume > 0, volume, pos, occluded });
     }
   }
 

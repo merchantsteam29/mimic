@@ -214,10 +214,13 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 
 - `net.js`: PeerJS rooms. The host's PeerJS id is `mimic-v1-<CODE>`; data is a star through the host. Player
   ids: `h` (host), `p1`, `p2`... Invite links are `?join=CODE`. A dropped connection reaches the game as `quit`.
-- `vc.js`: voice is a direct call between every pair (the lower peer id calls). Every incoming voice goes through
-  Web Audio (with a muted <audio> element, which Chrome needs). `route(id, {on, pos, volume, occluded})` is decided by the
-  listener every frame in `game.routeVoices`: the living hear the living (positional, fading out by ~30 m), the dead hear everyone.
-  When someone is caught, the living cut their voice instantly, with **no death message** (the owner wants friends to think they're just lost).
+- `vc.js`: voice is a direct call between every pair (the lower peer id calls), with Opus asked for 64 kb/s and FEC
+  (`betterAudio` sdpTransform). Two ways to play a friend (Settings > Voice chat sound, `settings.voiceMode`): **clear** (default: the
+  call's own <audio> element, like a video call; distance only sets its volume) or **3d** (Web Audio: equalpower panner for direction,
+  a lowpass through walls, into `sfx.voiceBus`, which skips the game mix's trim and has its own limiter). The walkie-talkie always uses
+  Web Audio. `route(id, {on, pos, volume, occluded, radio})` is decided by the listener every frame in `game.routeVoices`: full volume
+  within 8 m, fading out by 45 m (host setting Voices: everywhere keeps a 70% floor; the waiting room 50%). Friends' volume is
+  `settings.voiceVol`. When someone is caught, the living cut their voice instantly, with **no death message**.
 - `mp.js` `Session`: room + voice + **clips**. Every clip is sent as 16 kHz Int16 to the host, which relays it, so every
   browser holds all clips. `pickKey` prefers dead players' clips (6x) when anyone is dead. Lures online use style `distant`
   and stalk from 9-16 m.

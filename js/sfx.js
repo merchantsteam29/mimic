@@ -25,6 +25,14 @@ export class Sfx {
     out.connect(trim).connect(ctx.destination);
     this.tap = ctx.createMediaStreamDestination(); // the whole mix, for saving the jumpscare (clip.js)
     trim.connect(this.tap);
+    // Friends' voices (3D mode and the walkie-talkie) skip the game's mix and its trim, so they're as loud as a call,
+    // with a limiter so nobody blows your ears out.
+    this.voiceBus = ctx.createGain();
+    const vlim = ctx.createDynamicsCompressor();
+    vlim.threshold.value = -8; vlim.ratio.value = 10; vlim.attack.value = 0.003; vlim.release.value = 0.15;
+    this.voiceBus.connect(vlim).connect(ctx.destination);
+    vlim.connect(this.tap);
+    this.lp = { x: 0, y: 1.6, z: 0 };
     this.master = ctx.createGain();
     this.master.connect(out);
 
@@ -61,8 +69,11 @@ export class Sfx {
     this.wet.gain.value = wet;
   }
 
+  listenerPos() { return this.lp; }
+
   updateListener(camera) {
     const l = this.ctx.listener, p = camera.position, e = camera.matrixWorld.elements;
+    this.lp = { x: p.x, y: p.y, z: p.z };
     const fx = -e[8], fy = -e[9], fz = -e[10], ux = e[4], uy = e[5], uz = e[6];
     if (l.positionX) {
       l.positionX.value = p.x; l.positionY.value = p.y; l.positionZ.value = p.z;

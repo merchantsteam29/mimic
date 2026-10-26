@@ -24,10 +24,10 @@ function encodeClip(buffer) {
 }
 
 // The host's game settings, checked (they arrive over the network).
-const CHOICES = { dark: ['light', 'normal', 'dark'], jobs: ['short', 'normal', 'long'], battery: ['plenty', 'normal', 'scarce'], speed: ['slow', 'normal', 'fast'] };
+const CHOICES = { voices: ['nearby', 'everywhere'], dark: ['light', 'normal', 'dark'], jobs: ['short', 'normal', 'long'], battery: ['plenty', 'normal', 'scarce'], speed: ['slow', 'normal', 'fast'] };
 export function cleanCustom(c = {}) {
   const out = { events: c?.events !== false };
-  for (const [k, v] of Object.entries(CHOICES)) out[k] = v.includes(c?.[k]) ? c[k] : 'normal';
+  for (const [k, v] of Object.entries(CHOICES)) out[k] = v.includes(c?.[k]) ? c[k] : v.includes('normal') ? 'normal' : v[0];
   return out;
 }
 
@@ -46,7 +46,7 @@ export class Session {
     this.listener = false;   // Normal mode only: the blind thing that hunts by sound
     this.difficulty = 'normal';
     this.stalker = false;    // Normal mode only: the thing that only moves when nobody's looking
-    this.custom = { dark: 'normal', jobs: 'normal', events: true, battery: 'normal', speed: 'normal' }; // the host's game settings
+    this.custom = { voices: 'nearby', dark: 'normal', jobs: 'normal', events: true, battery: 'normal', speed: 'normal' }; // the host's game settings
     this.traitorId = null;  // host only
     this.onRoster = () => {};
     this.onStart = () => {};   // ({ seed, theme, order })
@@ -71,6 +71,7 @@ export class Session {
 
   ready() {
     this.vc = new VoiceChat(this.net, this.sfx, this.voice.stream);
+    this.onVoiceChat?.(this.vc);
     this.vc.sync(this.net.roster);
     // Share every clip I already have (the voice check), then new ones as they come.
     for (const c of this.voice.clips) this.shareClip(c);

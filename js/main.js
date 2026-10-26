@@ -41,7 +41,7 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 // Graphics start on Auto: phones and tablets begin at medium, and it steps down by itself when the game runs slowly
 // (`tier` is where Auto has settled on this device).
 const COARSE = matchMedia('(pointer: coarse)').matches;
-const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1, quality: 'auto', tier: COARSE ? 'medium' : 'high', captions: false, calm: false, diff: 'normal' };
+const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1, quality: 'auto', tier: COARSE ? 'medium' : 'high', captions: false, calm: false, diff: 'normal', voiceMode: 'clear', voiceVol: 1 };
 let settings = { ...DEFAULTS };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('mimic.settings') || '{}')); } catch { /* private mode */ }
 const saveSettings = () => { try { localStorage.setItem('mimic.settings', JSON.stringify(settings)); } catch { /* ignore */ } };
@@ -105,6 +105,15 @@ document.querySelectorAll('#setQuality button').forEach((b) => {
   b.onclick = () => { settings.quality = b.dataset.q; saveSettings(); applyQuality(); };
 });
 applyQuality();
+
+// Friends' voices: clear (played like a call) or 3D (placed in the world), and how loud.
+function applyVoiceChat(vc) {
+  if (vc === undefined) vc = session?.vc;
+  if (vc) { vc.mode = settings.voiceMode === '3d' ? '3d' : 'clear'; vc.volume = settings.voiceVol; }
+  document.querySelectorAll('#setVoiceMode button').forEach((b) => b.classList.toggle('on', b.dataset.v === (settings.voiceMode === '3d' ? '3d' : 'clear')));
+}
+document.querySelectorAll('#setVoiceMode button').forEach((b) => { b.onclick = () => { settings.voiceMode = b.dataset.v; saveSettings(); applyVoiceChat(); }; });
+applyVoiceChat(null); // (no session yet)
 
 // Sound captions.
 const syncCaptions = () => document.querySelectorAll('#setCaptions button').forEach((b) => b.classList.toggle('on', (b.dataset.c === 'on') === !!settings.captions));
@@ -232,6 +241,7 @@ $('btnTouchLayout').onclick = () => { controls.capture = null; show(null); editT
 const sliders = [
   ['setMouse', 'mouse', (v) => v.toFixed(2)],
   ['setVolume', 'volume', (v) => `${Math.round(v * 100)}%`],
+  ['setVoiceVol', 'voiceVol', (v) => `${Math.round(v * 100)}%`],
   ['setFov', 'fov', (v) => `${v}°`],
   ['setMic', 'mic', (v) => `${Math.round(v * 100)}%`],
   ['setBright', 'bright', (v) => `${Math.round(v * 100)}%`],
@@ -245,6 +255,7 @@ for (const [id, key, fmt] of sliders) {
     settings[key] = Number(input.value);
     out.textContent = fmt(settings[key]);
     if (key === 'volume') sfx?.setVolume(settings.volume);
+    if (key === 'voiceVol') applyVoiceChat();
     if (key === 'mic') voice.setSensitivity(settings.mic);
     if (key === 'fov') game?.resize();
     if (key === 'bright') { applyBright(); syncBright(); }
@@ -315,6 +326,7 @@ renderDiff();
 
 // The host's game settings (lobby): everyone sees them, only the host changes them.
 const CUSTOM_ROWS = [
+  ['voices', 'Voices', [['nearby', 'Nearby'], ['everywhere', 'Everywhere']]],
   ['dark', 'Lights', [['light', 'More'], ['normal', 'Normal'], ['dark', 'Fewer']]],
   ['jobs', 'Jobs', [['short', 'Fewer'], ['normal', 'Normal'], ['long', 'More']]],
   ['battery', 'Batteries', [['plenty', 'Plenty'], ['normal', 'Normal'], ['scarce', 'Scarce']]],
@@ -687,6 +699,7 @@ function newSession() {
   const name = cleanName($('mpName').value);
   try { localStorage.setItem('mimic.name', name); } catch { /* ignore */ }
   const s = new Session({ sfx, voice });
+  s.onVoiceChat = (vc) => applyVoiceChat(vc);
   s.onRoster = () => renderLobby();
   s.onStart = (m) => startMpRun(m);
   s.onLobby = () => backToLobby();
