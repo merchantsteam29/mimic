@@ -162,6 +162,14 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   time and hunger interval. Alone it's `settings.diff` (class screen); online the host sets it in the lobby (`setDifficulty`, `start.diff`).
 - **School** theme (`school`, look `facility`): classroom desks, chalkboards with lines written on them (`tex.chalk`), cubbies, trophy
   cases, lockers to hide in; a ticking clock; the PA (`scares.updatePA`: `sfx.chime`, then your voice, far off).
+- **Game settings** (online lobby, "Game settings"; `session.custom`, checked by `cleanCustom` in mp.js, sent in `mode` / `start.cs`):
+  lights (more / fewer: level `broken`), jobs (fewer = fuses only, more = all three: level `tasks`), batteries and its speed (multiply
+  the difficulty), random events on / off. `CUSTOM` and `customLevel` in game.js.
+- `signals.js`: **hand signals** (online). Z (pad D-pad left, touch Signal) opens Wave / Point / Stop / Come here; intent `sig` ->
+  `sign`; `poseSign` moves the remote player's free arm for 2.6 s. Silent.
+- `revive.js`: **bringing a friend back** (online, once per game). A catch drops the victim's tape (`lifeTape`, item `lifetape`).
+  Carry it (one at a time; it drops again if the carrier is taken) to the power panel: intent `revive` -> `revived` puts them back in
+  the game at the panel (`game.revive`), or carry it out of the exit and they get out too. Not after power-on at the panel.
 - `radio.js`: **walkie-talkies** (online). Hold B (pad D-pad down, touch Radio): intent `radio` {on} -> broadcast `radioOn`; listeners route
   that voice through `vc.route(id, { radio: true })` (a band-limited, distorted chain in `vc.js`) at full volume, anywhere. While anyone
   transmits, the host makes noise at every OTHER living player's position (the mimic / listener can hear the radios). Max 12 s a press.

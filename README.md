@@ -73,6 +73,10 @@ Guess wrong, and it gets hungrier.
   and it goes to see who's there. Use its trick against it.
 - **Difficulty:** Easy, Normal or Nightmare (alone on the class screen; the host picks it online).
 - **The Stalker** (online, Normal mode, a lobby switch): it only moves when nobody can see it. Keep it in your light.
+- **Bring them back** (online, once per game): when a friend is taken, their tape is left where it happened. Play it at
+  the power panel and they come back, or carry it out and they get out with you.
+- **Hand signals** (online): `Z` to wave, point, hold up a hand or beckon. Silent: only people who can see you get it.
+- **Game settings** (online, the host): lights, how many jobs, batteries, how fast it is, random events on or off.
 - **New here?** The first time you play alone, a short tutorial walks you through it (it's also under How to play).
 - **What happened:** after every round, the end screen replays it on a map: everyone's route, its route, where people
   were taken, and whose voice it used most.

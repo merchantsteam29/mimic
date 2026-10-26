@@ -312,6 +312,24 @@ function renderDiff() {
   });
 }
 renderDiff();
+
+// The host's game settings (lobby): everyone sees them, only the host changes them.
+const CUSTOM_ROWS = [
+  ['dark', 'Lights', [['light', 'More'], ['normal', 'Normal'], ['dark', 'Fewer']]],
+  ['jobs', 'Jobs', [['short', 'Fewer'], ['normal', 'Normal'], ['long', 'More']]],
+  ['battery', 'Batteries', [['plenty', 'Plenty'], ['normal', 'Normal'], ['scarce', 'Scarce']]],
+  ['speed', 'Its speed', [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast']]],
+  ['events', 'Random events', [[true, 'On'], [false, 'Off']]],
+];
+function renderCustom() {
+  if (!session) return;
+  const c = session.custom;
+  $('customList').innerHTML = CUSTOM_ROWS.map(([k, label, opts]) => `<div class="row">${label}<div class="seg">${opts.map(([v, t]) =>
+    `<button data-k="${k}" data-v="${v}" class="${String(c[k]) === String(v) ? 'on' : ''}" ${session.isHost ? '' : 'disabled'}>${t}</button>`).join('')}</div></div>`).join('');
+  $('customList').querySelectorAll('button').forEach((b) => {
+    b.onclick = () => session.setCustom(b.dataset.k, b.dataset.k === 'events' ? b.dataset.v === 'true' : b.dataset.v);
+  });
+}
 $('btnClassGo').onclick = () => startRun(storyIdx);
 
 // ---------- voice check (before your first game, alone or online) ----------
@@ -733,6 +751,7 @@ function renderLobby() {
     `<li data-id="${esc(r.id)}"><span class="dot"></span>${esc(r.name)}${r.id === session.id ? ' (you)' : ''}<span class="ptag">${CLASSES[r.cls]?.name || ''}${r.id === 'h' ? ' · host' : ''}</span></li>`).join('');
   renderClassPick();
   renderDiff();
+  renderCustom();
   $('btnStart').hidden = !session.isHost;
   $('lobbyStatus').textContent = session.isHost
     ? (session.roster.length < 2 ? 'Send your friends the code or the invite link.' : `${session.roster.length} of 4 players.`)
@@ -810,7 +829,7 @@ function startMpRun(m) {
   const themeId = m.theme in THEMES ? m.theme : 'facility';
   game = new Game({
     renderer, vhs, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order, classes: m.classes || {},
-    mode: m.mode === 'story' ? 'story' : 'normal', traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, difficulty: m.diff,
+    mode: m.mode === 'story' ? 'story' : 'normal', traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, difficulty: m.diff, custom: m.cs,
     hunter: m.mode === 'hunt' && m.order?.includes(m.hunter) ? m.hunter : null,
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),

@@ -1,6 +1,7 @@
 // Other players in the world: a simple low-poly figure with a working flashlight, footsteps,
 // and smoothing between the host's snapshots.
 import * as THREE from 'three';
+import { poseSign } from './signals.js';
 
 const COLORS = [0x6b3a2a, 0x2a4a6b, 0x4a5a2a, 0x5a2a5a];
 
@@ -74,6 +75,7 @@ export class RemotePlayer {
     this.body.position.y = this.crouch ? -0.5 : 0;
     this.body.scale.y = 1;
     this.head.rotation.x = this.pitch;
+    poseSign(this, dt); // a hand signal, if they're making one
     this.torch.intensity = this.visible && this.flash ? 26 : 0;
     this.torch.target.position.set(0.27, 1.25 + Math.tan(this.pitch) * 5, -5);
     this.emitter.setPos(this.x, 0.2, this.z);

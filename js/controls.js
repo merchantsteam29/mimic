@@ -18,7 +18,7 @@ const LABELS = {
   pad: { Esc: 'Start', 1: '▲', 2: '▶', 3: '▼', 4: '◀', 0: 'B', Vote: 'Vote with the D-pad' },
   touch: {
     E: 'Use', F: 'Light', G: 'Ability', C: 'Crouch', Shift: 'Run', Space: 'Tap', Q: 'Jam', R: 'Sabotage', V: 'Accuse',
-    Tab: 'Jobs', T: 'Say', B: 'Radio', X: 'Tape', Esc: 'II', Beat: 'Beat', Next: 'Next', Vote: 'Tap a name to vote',
+    Tab: 'Jobs', T: 'Say', B: 'Radio', X: 'Tape', Z: 'Signal', Esc: 'II', Beat: 'Beat', Next: 'Next', Vote: 'Tap a name to vote',
   },
 };
 
@@ -183,6 +183,13 @@ function gamePad(dt, g, { now, down, up, ax }) {
     if (down(1) || down(pb.chat)) g.chat.close();
     return;
   }
+  // Hand signals open: a D-pad direction gives one; B or the signal button closes.
+  if (g.sig?.open) {
+    [[12, 'Digit1'], [15, 'Digit2'], [13, 'Digit3'], [14, 'Digit4']].forEach(([i, c]) => { if (down(i)) tap(c); });
+    if (down(1) || down(pb.signal)) g.sig.close();
+    return;
+  }
+  if (down(pb.signal) && g.sig?.can()) { tap('KeyZ'); return; }
   if (down(pb.chat)) { tap('KeyT'); return; }
   const voting = g.traitor?.voting;
   const spectating = g.state === 'spectate';
@@ -315,7 +322,7 @@ function initTouch() {
     if (!g || !controls.inGame) return;
     e.preventDefault();
     // Voting, picking whose voice to use (as the mimic), or a quick-chat line: tap it (the lists are under this layer).
-    const li = (g.traitor?.voting || g.hunt?.me || g.chat?.open) && document.elementsFromPoint(e.clientX, e.clientY).find((el) => el.matches('#voteList li, #hunter li, #chat li'));
+    const li = (g.traitor?.voting || g.hunt?.me || g.chat?.open || g.sig?.open) && document.elementsFromPoint(e.clientX, e.clientY).find((el) => el.matches('#voteList li, #hunter li, #chat li, #signals li'));
     if (li) {
       const all = [...li.parentElement.children], i = all.indexOf(li);
       tap(li.matches('#voteList li') && i === all.length - 1 ? 'Digit0' : `Digit${i + 1}`);
@@ -411,6 +418,7 @@ function updateTouch(g) {
   show('KeyT', !!g.chat?.can());
   show('KeyB', !!g.radio?.can());
   show('KeyX', !spec && !!g.rec && g.rec.phase !== 'none');
+  show('KeyZ', !!g.sig?.can());
   if (hunter) {
     for (const k of ['Space', 'KeyF', 'KeyC', 'KeyG', 'KeyV', 'Tab']) show(k, false);
     for (const k of ['KeyE', 'KeyQ', 'KeyR', 'ShiftLeft']) show(k, true);

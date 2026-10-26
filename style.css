@@ -392,3 +392,17 @@ body.calm #flash.hit { animation: hitCalm .5s ease-out; }
 .diff-pick { display: flex; justify-content: center; margin: 4px auto 12px; }
 .diff-pick button { flex: 1; max-width: 140px; }
 .t-tape { right: calc(222px + env(safe-area-inset-right)); top: 56px; width: 60px; height: 44px; border-radius: 22px; }
+
+/* ---------- hand signals (same look as quick chat) ---------- */
+#signals { position: fixed; left: 24px; top: 50%; transform: translateY(-50%); z-index: 6; padding: 14px 18px; background: rgba(5,5,5,.8); border: 1px solid var(--line); font: 15px "Special Elite", monospace; }
+#signals ol { list-style: none; padding: 0; margin: 6px 0 0; }
+#signals li { margin: 5px 0; padding: 2px 6px; }
+#signals kbd { font: 800 11px Inter, sans-serif; border: 1px solid var(--dim); border-radius: 4px; padding: 0 5px; margin-right: 8px; }
+body.input-touch #signals li { pointer-events: auto; padding: 8px 6px; }
+.t-sign { right: calc(290px + env(safe-area-inset-right)); top: 56px; width: 64px; height: 44px; border-radius: 22px; }
+
+/* ---------- the host's game settings ---------- */
+.custom-box { margin: 8px 0 10px; text-align: left; }
+.custom-box summary { cursor: pointer; text-align: center; }
+#customList .row { margin: 6px 0; font-size: 13px; }
+#customList .seg { max-width: 260px; }

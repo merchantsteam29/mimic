@@ -27,6 +27,23 @@ import { Radio } from './radio.js';
 import { ScareClip } from './clip.js';
 import { Stalker } from './stalker.js';
 import { Recorder } from './recorder.js';
+import { Signals } from './signals.js';
+import { Revive } from './revive.js';
+
+// The host's game settings (online lobby): light, how much there is to do, random events, batteries, its speed.
+export const CUSTOM = {
+  dark: { light: 0.12, normal: null, dark: 0.6 },                 // share of dead lights
+  jobs: { short: { fuses: true }, normal: null, long: { fuses: true, gens: 2, tapes: 3 } },
+  battery: { plenty: 1.5, normal: 1, scarce: 0.65 },
+  speed: { slow: 0.85, normal: 1, fast: 1.15 },
+};
+const customLevel = (c) => {
+  if (!c) return {};
+  const o = {};
+  if (CUSTOM.dark[c.dark] != null) o.broken = CUSTOM.dark[c.dark];
+  if (CUSTOM.jobs[c.jobs]) o.tasks = CUSTOM.jobs[c.jobs];
+  return o;
+};
 import { mulberry32 } from './level.js';
 import { keyLabel, rumble } from './controls.js';
 
@@ -43,7 +60,7 @@ const angleDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 const num = (v, d = 0) => (Number.isFinite(v) ? v : d);
 
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false }) {
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null }) {
     Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs, room });
     this.distort = 0;    // camcorder distortion, 0..1
     this.peekHud = 0;    // seconds the HUD stays visible after something changes
@@ -52,7 +69,7 @@ export class Game {
     this.classes = classes || { [this.me]: 'runner' }; // player id -> class
     this.isHost = !mp || mp.isHost;
     this.order = order || [this.me];
-    const level = this.level = generateLevel(seed, themeId, story ? { ...story.gen, lore: story.tapes.length } : tutorial ? TUTORIAL.gen : room ? ROOM.gen : {});
+    const level = this.level = generateLevel(seed, themeId, story ? { ...story.gen, lore: story.tapes.length } : tutorial ? TUTORIAL.gen : room ? ROOM.gen : customLevel(custom));
     const th = level.theme;
 
     const scene = this.scene = new THREE.Scene();
@@ -142,7 +159,8 @@ export class Game {
     this.sk = new Stalker(this, stalker && !hunter);   // online: the thing that only moves when unseen
     if (this.hunt.on) this.status.set(hunter, 'hunter');
     if (story) this.mimic.graceT = story.grace;
-    this.diff = DIFFICULTY[difficulty] || DIFFICULTY.normal;
+    const base = DIFFICULTY[difficulty] || DIFFICULTY.normal;
+    this.diff = { ...base, speed: base.speed * (CUSTOM.speed[custom?.speed] || 1), battery: base.battery * (CUSTOM.battery[custom?.battery] || 1) };
     this.mimic.diff = this.diff;
     this.mimic.graceT = Math.max(6, this.mimic.graceT + this.diff.grace);
     this.ambientEmitter = sfx.emitter();
@@ -164,9 +182,11 @@ export class Game {
     this.haunt = new Haunt(this); // the dead reaching back (online)
     this.radio = new Radio(this); // walkie-talkies (online)
     this.clip = new ScareClip(sfx); // the jumpscare, saved for the end screen
+    this.sig = new Signals(this);     // hand signals (online)
+    this.revival = new Revive(this);  // a taken friend's tape (online)
     this.chaseGoneT = 0;
     this.doorEm = sfx.emitter();
-    this.inc = new Incidents(this, !story && !tutorial && !room); // power cuts, storms, alarms, lockdowns
+    this.inc = new Incidents(this, !story && !tutorial && !room && custom?.events !== false); // power cuts, storms, alarms, lockdowns
     // Hunger: every couple of minutes it gets bolder, and lights die for good (in the same order for everyone).
     this.hungerT = 0;
     this.hungerSeen = 0;
@@ -189,7 +209,7 @@ export class Game {
       if (this.menuOpen) return;
       const live = this.state === 'playing' || this.state === 'spectate';
       if (!e.repeat && this.radio.onKey(e.code, true)) return;
-      if (live && !e.repeat && (this.chat.onKey(e.code) || this.haunt.onKey(e.code))) { if (e.code === 'Tab') e.preventDefault(); return; }
+      if (live && !e.repeat && (this.sig.onKey(e.code) || this.chat.onKey(e.code) || this.haunt.onKey(e.code))) { if (e.code === 'Tab') e.preventDefault(); return; }
       if (this.state === 'spectate' && !e.repeat && (e.code === 'Space' || e.code === 'KeyE')) { this.specIdx++; return; }
       if (e.code === 'Tab') { e.preventDefault(); this.tabDown = true; return; } // hold Tab to see the HUD
       if (this.state !== 'playing') return;
@@ -306,6 +326,7 @@ export class Game {
     this.chat.dispose();
     this.radio.dispose();
     this.clip.dispose();
+    this.sig.dispose();
     this.haunt.dispose();
     this.tut.dispose();
     this.ambientEmitter.dispose();
@@ -387,7 +408,7 @@ export class Game {
   // Host: a player's intent.
   hostHandle(m, from) {
     const r = this.remotes.get(from);
-    if (this.hunt.hostHandle(m, from) || this.chat.hostHandle(m, from) || this.radio.hostHandle(m, from) || this.rec.hostHandle(m, from) || this.haunt.hostHandle(m, from) || this.obj.hostHandle(m, from) || this.ab.hostHandle(m, from) || this.traitor.hostHandle(m, from)) return;
+    if (this.hunt.hostHandle(m, from) || this.chat.hostHandle(m, from) || this.radio.hostHandle(m, from) || this.rec.hostHandle(m, from) || this.sig.hostHandle(m, from) || this.revival.hostHandle(m, from) || this.haunt.hostHandle(m, from) || this.obj.hostHandle(m, from) || this.ab.hostHandle(m, from) || this.traitor.hostHandle(m, from)) return;
     switch (m.t) {
       case 'door': { // open / close a real door
         const d = this.level.idoors[m.i | 0];
@@ -427,7 +448,8 @@ export class Game {
       }
       case 'take': {
         const it = this.items[m.i];
-        if (!it || !it.active || !['fuse', 'battery', 'keycard', 'recorder'].includes(it.type) || !this.alive(from)) return;
+        if (!it || !it.active || !['fuse', 'battery', 'keycard', 'recorder', 'lifetape'].includes(it.type) || !this.alive(from)) return;
+        if (it.type === 'lifetape' && this.revival.holder) return; // one at a time
         if (it.fake) { // the decoy: it was it
           it.active = false;
           this.mimic.hear(it.x, it.z, 15, 'step');
@@ -452,6 +474,7 @@ export class Game {
         this.held.set(from, 0);
         this.recap.event('out', from);
         this.broadcast({ t: 'out', id: from });
+        this.revival.escaped(from);
         break;
       }
       case 'quit': { // a player's connection dropped
@@ -466,7 +489,7 @@ export class Game {
 
   // Everyone: what happened.
   onNet(m) {
-    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m) || this.radio.onNet(m) || this.rec.onNet(m)) return;
+    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m) || this.radio.onNet(m) || this.rec.onNet(m) || this.sig.onNet(m) || this.revival.onNet(m)) return;
     switch (m.t) {
       case 'doorSet': {
         const d = this.level.idoors[m.i | 0];
@@ -544,9 +567,10 @@ export class Game {
         const it = this.items[m.i];
         if (!it) return;
         it.active = false;
-        if (it.type !== 'recorder') it.mesh?.removeFromParent();
+        if (it.type !== 'recorder' && it.type !== 'lifetape') it.mesh?.removeFromParent();
         const mine = m.by === this.me;
         if (it.type === 'recorder') { it.active = false; this.rec.took(it, m.by); if (mine) this.sfx.pickup(); this.updateObjective(); break; }
+        if (it.type === 'lifetape') { this.revival.took(it, m.by); if (mine) this.sfx.pickup(); break; }
         if (it.type === 'keycard') { this.obj.tookKey(m.by); if (mine) this.events.progress('key'); }
         else if (it.type === 'fuse') {
           this.fusesFound++;
@@ -632,6 +656,8 @@ export class Game {
     if (this.ab.hostSave(id)) return; // a medic's rescue: they tear free
     this.dropFuses(id);
     this.recap.event('caught', id, by);
+    const at = id === this.me ? this.p : this.remotes.get(id);
+    if (at) this.revival.taken(id, at.x, at.z);
     if (by === 'sw') { this.broadcast({ t: 'caught', id, sw: [+this.sw.x.toFixed(2), +this.sw.z.toFixed(2)] }); return; }
     if (by === 'ls') { this.broadcast({ t: 'caught', id, ls: [+this.ls.x.toFixed(2), +this.ls.z.toFixed(2)] }); return; }
     if (by === 'sk') { this.broadcast({ t: 'caught', id, sk: [+this.sk.x.toFixed(2), +this.sk.z.toFixed(2)] }); return; }
@@ -646,6 +672,7 @@ export class Game {
     this.held.set(id, 0);
     const at = id === this.me ? this.p : this.remotes.get(id);
     if (!at) return;
+    this.revival.dropped(id, at.x, at.z);
     if (this.obj.keyHolder === id) {
       this.obj.keyHolder = null;
       const pos = this.level.collide({ x: at.x, z: at.z }, 0.2);
@@ -690,6 +717,7 @@ export class Game {
     this.chat.update(dt);
     this.haunt.update(dt);
     this.radio.update(dt);
+    this.sig.update(dt);
     if (!this.hunt.me) { this.ab.update(dt); if (!this.tut.quiet) this.scares.update(dt); }
     this.traitor.update(dt);
     this.updateDoors(dt);
@@ -941,7 +969,7 @@ export class Game {
       const dx = it.x - c.x, dy = it.y - c.y, dz = it.z - c.z, d = Math.hypot(dx, dy, dz);
       if (d > it.range) continue;
       const dot = (dx * fwd.x + dy * fwd.y + dz * fwd.z) / d;
-      const need = it.type === 'fuse' || it.type === 'battery' || it.type === 'recorder' ? 0.86 : 0.72;
+      const need = ['fuse', 'battery', 'recorder', 'lifetape'].includes(it.type) ? 0.86 : 0.72;
       // (A shut door blocks sight of itself, so doors skip the line-of-sight check.)
       if (dot < need || dot < bestDot || (it.type !== 'idoor' && !this.level.los(c.x, c.z, it.x, it.z))) continue;
       best = it; bestDot = dot;
@@ -954,7 +982,8 @@ export class Game {
       fuse: 'Pick up fuse',
       battery: 'Take battery',
       recorder: 'Pick up tape recorder',
-      fusebox: (this.fusesHeld && this.fusesIn < 4 ? `Insert fuse${this.fusesHeld > 1 ? 's' : ''} (${this.fusesHeld})` : this.obj.allDone() ? 'Restore power' : 'Power panel') + this.traitor.panelHint(),
+      lifetape: best?.owner ? `Pick up ${this.nameOf(best.owner)}'s tape` : '',
+      fusebox: this.revival.prompt() || (this.fusesHeld && this.fusesIn < 4 ? `Insert fuse${this.fusesHeld > 1 ? 's' : ''} (${this.fusesHeld})` : this.obj.allDone() ? 'Restore power' : 'Power panel') + this.traitor.panelHint(),
       hide: 'Hide',
       exit: 'Open exit',
     }[best?.type];
@@ -975,11 +1004,13 @@ export class Game {
       case 'fuse':
       case 'battery':
       case 'recorder':
+      case 'lifetape':
         if (f.type === 'recorder' && this.rec.phase !== 'none') { this.toast('You already have one.'); break; }
         f.pending = this.t + 1; // the host confirms (instantly when alone)
         this.send({ t: 'take', i: this.items.indexOf(f) });
         break;
       case 'fusebox':
+        if (this.revival.carry) { this.send({ t: 'revive' }); break; }
         if (this.fusesHeld && this.fusesIn < 4) { this.send({ t: 'insert' }); break; }
         if (this.obj.allDone()) { this.send({ t: 'lever' }); break; }
         this.sfx.denied();
@@ -1459,6 +1490,25 @@ export class Game {
     this.specId = id;
     this.hud.spec.textContent = `Watching ${this.nameOf(id)}  ·  ${keyLabel('Next')} for next  ·  ${this.status.get(this.me) === 'dead' ? 'Only the dead can hear you' : 'You got out'}${this.haunt.hint()}`;
     return r;
+  }
+
+  // Someone played my tape at the panel: back on my feet, there.
+  revive(x, z) {
+    const p = this.p;
+    this.state = 'playing';
+    p.x = x; p.z = z; p.vx = p.vz = 0; p.hidden = null; p.eye = EYE; p.stamina = 1; p.tired = false;
+    p.battery = Math.max(p.battery, 50); p.flashOn = true;
+    this.escapeSent = false;
+    this.distort = 0;
+    this.hud.spec.hidden = true;
+    this.hud.signal.hidden = true;
+    this.hud.root.hidden = false;
+    this.renderer.domElement.style.filter = '';
+    this.mimic.frozen = false; this.sw.posed = this.ls.posed = this.sk.posed = false; this.dragging = false; // (if it was mid-jumpscare)
+    this.peekHud = 5;
+    this.updateObjective();
+    this.sfx.sting();
+    this.toast('Someone played your tape. You\'re back.');
   }
 
   end(won) {
