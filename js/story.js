@@ -244,14 +244,14 @@ export const CHAPTERS = [
     tapeLabel: 'The first recordings',
     tapes: [
       { who: 'Recording 0001', lines: [
-        'Test, test. This is Dr. Okafor, voice sample one. The quick brown fox.',
-        '(The same sentence again, in the same voice. Slightly wrong.)',
-        '(Again. And again. Each time a little closer.)',
+        { by: 'Dr. Okafor', text: 'Test, test. This is Dr. Okafor, voice sample one. The quick brown fox.' },
+        { by: 'Dr. Okafor, copied', text: '(flat, a little wrong) Test, test. This is Dr. Okafor, voice sample one.' },
+        { by: 'Dr. Okafor, copied', text: '(almost perfect now, slowly) The quick brown fox.' },
       ] },
-      { who: 'Recording 0002', lines: [
-        'A child\'s voice, counting to ten. Okafor\'s daughter, visiting the lab one Saturday.',
-        'It learned to count from her. It still counts, when it\'s waiting for someone.',
-        'You\'ve heard it counting. You didn\'t know what it was.',
+      { who: 'Recording 0002 · Okafor\'s daughter', lines: [
+        '(a young girl, counting slowly) One. Two. Three. Four. Five.',
+        'Six. Seven. Eight. Nine.',
+        '(whispering) Ten. Ready or not.',
       ] },
       { who: 'Ellie, tape 12', lines: [
         'I\'m in the first room. I wiped the last of its tapes. It\'s angry now. It can\'t remember how to be most of them.',
@@ -293,9 +293,9 @@ export const OPERATOR = [
     tapeLabel: 'Call recordings',
     tapes: [
       { who: '911 call, 2:13 a.m.', lines: [
-        'Holloway County 911, what is the address of your emergency?',
-        '(Breathing.) St. Agnes. Ward 4. It\'s in here with me.',
-        'Ma\'am, St. Agnes is closed. Ma\'am? (The line goes dead.)',
+        { by: 'Dispatcher', text: 'Holloway County 911, what is the address of your emergency?' },
+        { by: 'Caller', text: '(breathing hard, whispering) St. Agnes. Ward 4. It\'s in here with me.' },
+        { by: 'Dispatcher', text: 'Ma\'am, St. Agnes is closed. Ma\'am?' },
       ] },
       { who: 'Night porter\'s phone, last year', lines: [
         'This is the porter. Somebody keeps calling the ward phones from inside the ward.',
@@ -303,9 +303,9 @@ export const OPERATOR = [
         'I\'ve stopped picking up.',
       ] },
       { who: '911 call, 2:51 a.m.', lines: [
-        'Holloway County 911, what is the address of your emergency?',
-        'It\'s me. I\'m still here. Why haven\'t you come?',
-        '(Your own voice says, very quietly:) "I\'m coming."',
+        { by: 'Dispatcher', text: 'Holloway County 911, what is the address of your emergency?' },
+        { by: 'Caller', text: '(whispering) It\'s me. I\'m still here. Why haven\'t you come?' },
+        { by: 'Dana', text: '(very quietly) I\'m coming.' },
       ] },
     ],
     ending: [
@@ -325,9 +325,9 @@ export const OPERATOR = [
     tapeLabel: 'Archive reels',
     tapes: [
       { who: 'Archive reel, 1987', lines: [
-        'Holloway County 911.',
-        '(A child\'s voice.) There\'s someone in the house who sounds like Mummy.',
-        'But Mummy\'s here with me. Mummy\'s holding my hand.',
+        { by: 'Dispatcher', text: 'Holloway County 911.' },
+        { by: 'Child', text: '(a small, scared child) There\'s someone in the house who sounds like Mummy.' },
+        { by: 'Child', text: 'But Mummy\'s here with me. Mummy\'s holding my hand.' },
       ] },
       { who: 'Supervisor\'s memo, read aloud', lines: [
         'Effective immediately: if a caller\'s voice matches a previous caller\'s voice exactly, end the call.',
@@ -335,9 +335,9 @@ export const OPERATOR = [
         'Do not, under any circumstances, say your own name on the line.',
       ] },
       { who: 'Archive reel, last month', lines: [
-        'Holloway County 911, this is Dana, what is the address of your emergency?',
-        '(Your voice, exactly:) "Holloway County 911, this is Dana."',
-        '(Again. And again. Each time a little closer.)',
+        { by: 'Dana', text: 'Holloway County 911, this is Dana, what is the address of your emergency?' },
+        { by: 'Dana, copied', text: '(flat, a little wrong) Holloway County 911, this is Dana.' },
+        { by: 'Dana, copied', text: '(almost perfect now) Holloway County 911. This is Dana.' },
       ] },
     ],
     ending: [
@@ -362,9 +362,9 @@ export const OPERATOR = [
         'And then it reads my name.',
       ] },
       { who: '911 call, from the payphone', lines: [
-        'Holloway County 911.',
-        '"Dana? Is that Dana? I know your voice. You took my call before."',
-        '"You told me to stay on the line. I\'m still on the line."',
+        { by: 'Dispatcher', text: 'Holloway County 911.' },
+        { by: 'Child', text: 'Dana? Is that Dana? I know your voice. You took my call before.' },
+        { by: 'Child', text: 'You told me to stay on the line. I\'m still on the line.' },
       ] },
       { who: 'Caretaker\'s answering machine', lines: [
         'If you\'re hearing this, unplug the phones. All of them.',
@@ -389,19 +389,19 @@ export const OPERATOR = [
     tapeLabel: 'Front desk recordings',
     tapes: [
       { who: 'Front desk, March', lines: [
-        '"Front desk." "Hi, this is 314, could I get some towels?" "Of course."',
-        'Nobody was checked into 314.',
-        'The towels were gone in the morning. The door was locked from the inside.',
+        { by: 'Front desk', text: 'Front desk.' },
+        { by: 'Caller', text: '(friendly, ordinary) Hi, this is 314, could I get some towels?' },
+        { by: 'Front desk', text: '(later, quietly, to themselves) Nobody was checked into 314. The towels were gone in the morning.' },
       ] },
       { who: 'Guest\'s phone message', lines: [
         'Honey, it\'s me, I\'m at the hotel, call me back.',
-        '(Then, in the same voice, a minute later:) Honey, it\'s me, I\'m at the hotel, call me back.',
-        '(And again. The same breath before every word.)',
+        '(exactly the same again, like a replay) Honey, it\'s me, I\'m at the hotel, call me back.',
+        '(the same again, slower, flatter) Honey. It\'s me. I\'m at the hotel. Call me back.',
       ] },
       { who: '911 call, from Room 314', lines: [
-        '"Holloway County 911, this is Dana, what is the address of your emergency?"',
-        'It\'s your voice asking. It\'s your voice answering.',
-        '"The Westgate Mall. The security office. Come and see what I found."',
+        { by: 'Dana', text: 'Holloway County 911, this is Dana, what is the address of your emergency?' },
+        { by: 'Dana, copied', text: '(calm, in Dana\'s voice) The Westgate Mall. The security office.' },
+        { by: 'Dana, copied', text: '(warmly) Come and see what I found.' },
       ] },
     ],
     ending: [
@@ -426,9 +426,9 @@ export const OPERATOR = [
         'I keep picking up.',
       ] },
       { who: 'Recording, unlabelled', lines: [
-        '(A hundred voices at once, all saying:) "Holloway County 911, what is the address of your emergency?"',
-        '(One by one, they drop away, until only one is left.)',
-        '(It\'s yours.)',
+        { by: 'Dana, copied', text: '(slow and flat) Holloway County 911. What is the address of your emergency?' },
+        { by: 'Dana, copied', text: '(whispering) What is the address of your emergency?' },
+        { by: 'Dana, copied', text: '(whispering, very close to the mic) Your emergency.' },
       ] },
       { who: 'Dana, a message to herself', lines: [
         'If you\'re hearing this, it\'s me. The real me. I recorded this before I came in.',

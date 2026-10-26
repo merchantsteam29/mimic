@@ -1,4 +1,5 @@
-// Writes voices/SCRIPT.md: every tape that can be voiced, its file name, who's speaking, and the lines.
+// The voice-recording script, from the game's own tapes (story.js, lore.js). Writes voices/SCRIPT.md.
+// One recording per line: voices/<book>/<chapter>-<tape>-<line>.m4a (e.g. voices/operator/1-1-2.m4a).
 // Run after changing the story or the victims' tapes:  node tools/script.mjs
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -8,55 +9,61 @@ import { LORE } from '../js/lore.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-// Who is speaking on a tape, from its label: the role, and how to play it.
-export const ROLES = [
-  [/^Ellie\b/, 'Ellie', 'Early 20s, films haunted places for her channel. Chatty and jokey on the first tapes, then whispering, scared, and finally very calm.'],
-  [/Okafor/, 'Dr. Okafor', 'Scientist who built the thing. Careful and clinical at first; by the end, tired and guilty.'],
-  [/^Dana\b/, 'Dana', 'The 911 dispatcher (the player in The Operator). Calm, professional, quietly scared.'],
-  [/^911 call|^Archive reel|Recording 0001|Recording, unlabelled/, 'Dispatch line', 'A 911 dispatcher answering, and whoever is calling. Dana can read the dispatcher parts; the callers are whispery and frightened.'],
-  [/Recording 0002/, 'Child', 'A child counting, played by an adult doing a small, soft voice.'],
-  [/nurse|Nurse|porter|Porter|Coroner|Night guard|guard|Security|Caretaker|Supervisor|Front desk|Guest|PA log|Field team|tape|log|Unlabelled/i, 'Staff and strangers', 'Ordinary adults who were there before you: nurses, guards, porters, a caretaker. Natural, tired, frightened.'],
+// Who records what. A line's speaker (or, for one-voice tapes, the tape's label) decides the part.
+export const PARTS = [
+  ['Ellie', 'Early 20s, films haunted places for her channel. Chatty at first, then whispering and scared, and very calm at the end.', [/^Ellie\b/]],
+  ['Dr. Okafor', 'The scientist who built the thing. Careful and clinical; by the end, tired and guilty. Also plays the copies of his own voice.', [/Okafor/]],
+  ['Dana', 'A 911 dispatcher. Calm and professional, quietly scared. Also reads the dispatcher lines, and the copies of her own voice.', [/^Dana\b/, /^Dispatcher/, /^Recording, unlabelled/]],
+  ['Callers', 'Frightened adults on the phone: whispering, out of breath.', [/^Caller/, /^Guest/]],
+  ['Child', 'A child. An adult doing a small, soft voice is fine.', [/^Child/, /daughter/]],
+  ['Staff and strangers', 'Ordinary adults who were there before: nurses, guards, porters, a caretaker, a rescue team. Natural, tired, frightened.', [/./]],
 ];
-export const roleOf = (who) => ROLES.find(([re]) => re.test(who)) || [null, 'Staff and strangers', ''];
+const partOf = (name) => PARTS.find(([, , res]) => res.some((re) => re.test(name)))[0];
 
-// Every tape: { id, book, chapter, title, who, role, lines (spoken), own (ends with the player's own voice) }
+// A line -> { n, part, by, how, say, own }: how = the direction in brackets (act it, don't say it), say = the words.
+function line(l, n, tapeWho) {
+  if (typeof l === 'object' && l.playerClip) return { n, own: true };
+  const raw = typeof l === 'string' ? l : l.text, by = typeof l === 'object' ? l.by || null : null;
+  const m = /^\s*\(([^)]*)\)\s*(.*)$/.exec(raw);
+  const how = m ? m[1].replace(/[.:]$/, '') : '', say = (m ? m[2] : raw).replace(/^"|"$/g, '');
+  return { n, by, part: partOf(by || tapeWho), how, say, own: false };
+}
+
+// Every tape: { id, book, chapter, who, lines }
 export function allTapes() {
   const out = [];
   for (const b of STORIES) b.chapters.forEach((c, ci) => c.tapes.forEach((t, ti) => out.push({
-    id: `${b.id}/${ci + 1}-${ti + 1}`, book: b.title, chapter: `Chapter ${ci + 1}: ${c.title}`, who: t.who, role: roleOf(t.who)[1],
-    lines: t.lines.filter((l) => typeof l === 'string'), own: t.lines.some((l) => typeof l === 'object' && l.playerClip),
+    id: `${b.id}/${ci + 1}-${ti + 1}`, book: b.title, chapter: `Chapter ${ci + 1}: ${c.title}`, who: t.who,
+    lines: t.lines.map((l, k) => line(l, k + 1, t.who)),
   })));
-  LORE.forEach((t, i) => out.push({ id: `lore/${i + 1}`, book: 'Victims\' tapes (any normal run)', chapter: '', who: t.who, role: roleOf(t.who)[1], lines: t.lines, own: false }));
+  LORE.forEach((t, i) => out.push({ id: `lore/${i + 1}`, book: 'Victims\' tapes', chapter: 'Found in any normal run', who: t.who, lines: t.lines.map((l, k) => line(l, k + 1, t.who)) }));
   return out;
 }
 
-const tapes = allTapes();
-const md = [
-  '# Mimic: voice recording script',
-  '',
-  'Every tape the player can find, with the file name to save it as. Record each tape as **one file**, all its lines in order,',
-  'with a short pause between lines. Put the files in `voices/<folder>/` (folder = the part before the slash) and run',
-  '`node tools/stamp.mjs`: any tape with a recording plays it, and the rest keep the old murmur.',
-  '',
-  '- A phone is fine. The game adds the tape hiss, so record somewhere quiet and don\'t add effects.',
-  '- Lines in brackets, like *(Breathing.)*, are directions: act them, don\'t read them.',
-  '- mp3, m4a, ogg, opus, webm or wav all work. Name the file exactly as shown (e.g. `1-2.m4a` in `voices/ellie/`).',
-  '- Some tapes end with *the player\'s own voice*: stop recording before that line. The game plays the player\'s voice there.',
-  '',
-  '## Cast',
-  '',
-  ...[...new Map(tapes.map((t) => [t.role, ROLES.find((r) => r[1] === t.role)?.[2] || ''])).entries()].map(([r, d]) => `- **${r}** (${tapes.filter((t) => t.role === r).length} tape${tapes.filter((t) => t.role === r).length === 1 ? '' : 's'}): ${d}`),
-  '',
-];
-let book = null;
-for (const t of tapes) {
-  if (t.book !== book) { book = t.book; md.push(`## ${book}`, ''); }
-  md.push(`### \`voices/${t.id}\`  ${t.chapter ? `(${t.chapter})` : ''}`, `**${t.who}** · ${t.role}`, '');
-  t.lines.forEach((l) => md.push(`> ${l}`, '>'));
-  if (md[md.length - 1] === '>') md.pop();
-  if (t.own) md.push('', '*(Stop here: the player\'s own voice plays next.)*');
-  md.push('');
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  const tapes = allTapes(), all = tapes.flatMap((t) => t.lines.filter((l) => !l.own).map((l) => ({ ...l, tape: t })));
+  const md = [
+    '# Mimic: voice recording script',
+    '',
+    '**One line = one recording.** Say the words in **bold**. The bit in *italics* is how to say it: don\'t read it out.',
+    'Save each recording with the name shown, in `voices/<folder>/` (e.g. `voices/ellie/1-2-3.m4a`), then run `node tools/stamp.mjs`.',
+    'A phone voice memo in a quiet room is perfect: the game adds the tape crackle. Lines nobody has recorded yet stay silent.',
+    '',
+    '## Parts',
+    '',
+    ...PARTS.map(([p, d]) => `- **${p}** (${all.filter((l) => l.part === p).length} lines): ${d}`),
+    '',
+  ];
+  for (const [p] of PARTS) {
+    md.push(`## ${p}`, '');
+    let tape = null;
+    for (const l of all.filter((x) => x.part === p)) {
+      if (l.tape !== tape) { if (tape) md.push(''); tape = l.tape; md.push(`### ${tape.who} (${tape.book}${tape.chapter ? `, ${tape.chapter}` : ''})`, ''); }
+      md.push(`- \`${l.tape.id}-${l.n}\`${l.how ? ` *(${l.how})*` : ''} **${l.say}**`);
+    }
+    md.push('');
+  }
+  mkdirSync(join(root, 'voices'), { recursive: true });
+  writeFileSync(join(root, 'voices', 'SCRIPT.md'), md.join('\n'));
+  console.log(`voices/SCRIPT.md: ${tapes.length} tapes, ${all.length} lines to record`);
 }
-mkdirSync(join(root, 'voices'), { recursive: true });
-writeFileSync(join(root, 'voices', 'SCRIPT.md'), md.join('\n'));
-console.log(`voices/SCRIPT.md: ${tapes.length} tapes, ${tapes.reduce((a, t) => a + t.lines.length, 0)} lines`);

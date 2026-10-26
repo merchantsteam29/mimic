@@ -1,5 +1,5 @@
 // Recorded voices for the tapes: the story tapes (Ellie, The Operator) and the victims' tapes in normal runs.
-// The recordings live in voices/, one file per tape, named by the tape's id:
+// The recordings live in voices/: one file per line (ellie/3-2-1.m4a = chapter 3, tape 2, line 1), or one per tape:
 //   ellie/3-2.mp3     Ellie, chapter 3, the 2nd tape
 //   operator/1-1.m4a  The Operator, chapter 1, the 1st tape
 //   lore/4.webm       the 4th victims' tape (LORE in lore.js)

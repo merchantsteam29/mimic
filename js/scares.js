@@ -33,7 +33,11 @@ export class Scares {
     // Cassettes are only ever played locally, but their items share the list (same order for everyone).
     game.world.lore.forEach((l, i) => game.items.push({ type: 'lore', i, n: l.n, x: l.x, y: 0.05, z: l.z, mesh: l.mesh, range: 2, active: true }));
     // Recorded voices for this level's tapes, if anyone has recorded them (voices.js).
-    game.world.lore.forEach((l, i) => preload(tapeId(game.story, i, l.n), sfx.ctx));
+    game.world.lore.forEach((l, i) => {
+      const id = tapeId(game.story, i, l.n), entry = game.story ? game.story.tapes[i] : LORE[l.n % LORE.length];
+      preload(id, sfx.ctx);
+      entry?.lines.forEach((_, k) => preload(`${id}-${k + 1}`, sfx.ctx)); // or one file per line
+    });
     this.el = {
       lore: document.getElementById('lore'), loreWho: document.getElementById('loreWho'), loreLine: document.getElementById('loreLine'),
       qte: document.getElementById('qte'), qteBar: document.querySelector('#qte i'),
@@ -68,16 +72,20 @@ export class Scares {
     const entry = g.story ? g.story.tapes[it.i] : LORE[it.n % LORE.length];
     it.heard = true;
     g.updateObjective();
-    const lines = entry.lines.map((l) => {
+    const id = tapeId(g.story, it.i, it.n);
+    const lines = entry.lines.map((l, k) => {
       const text = typeof l === 'string' ? l : l.text;
-      return { text, own: typeof l === 'object' && l.playerClip, dur: Math.max(2.4, text.length * 0.065) };
+      const shown = typeof l === 'object' && l.by ? `${l.by}: ${text}` : text; // two voices on a tape: say who
+      const buf = recording(`${id}-${k + 1}`);                             // that line, recorded on its own
+      return { text: shown, own: typeof l === 'object' && l.playerClip, buf, dur: buf ? buf.duration + 0.45 : Math.max(2.4, text.length * 0.065) };
     });
-    // A real recording: the subtitles share its length out by how long each line is (your own voice comes after it).
-    const rec = recording(tapeId(g.story, it.i, it.n));
+    // A real recording of the whole tape: the subtitles share its length out by how long each line is (your own voice comes after it).
+    const rec = recording(id);
     if (rec) {
       const spoken = lines.filter((l) => !l.own), chars = spoken.reduce((a, l) => a + l.text.length, 0) || 1;
-      for (const l of spoken) l.dur = (rec.duration * l.text.length) / chars;
+      for (const l of spoken) { l.dur = (rec.duration * l.text.length) / chars; l.buf = null; }
     }
+    const perLine = !rec && lines.some((l) => l.buf);
     const total = lines.reduce((a, l) => a + l.dur, 0);
     this.tape = { lines, i: -1, t: 0, next: 0.6 };
     this.el.loreWho.textContent = entry.who;
@@ -85,6 +93,7 @@ export class Scares {
     this.el.lore.hidden = false;
     g.sfx.click();
     if (rec) { g.sfx.tapeHiss(rec.duration + 1); setTimeout(() => { const d = g.sfx.playVoice(rec, null, 'tape'); g.voice.suppress(d + 0.5); }, 600); }
+    else if (perLine) g.sfx.tapeHiss(total + 1); // each line plays as it comes up (updateTape)
     else g.sfx.tapeVoice(total + 0.6);
     g.noise(6, 'step'); // a tape player isn't quiet
   }
@@ -98,6 +107,7 @@ export class Scares {
     if (tp.i >= tp.lines.length) { this.tape = null; this.el.lore.hidden = true; return; }
     const line = tp.lines[tp.i];
     this.el.loreLine.textContent = line.text;
+    if (line.buf) { const d = this.g.sfx.playVoice(line.buf, null, 'tape'); this.g.voice.suppress(d + 0.5); }
     if (line.own) this.g.playOwnVoice(); // the tape has your voice on it
     tp.next = tp.t + line.dur;
   }

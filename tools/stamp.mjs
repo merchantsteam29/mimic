@@ -48,5 +48,5 @@ for (const book of existsSync(vdir) ? readdirSync(vdir, { withFileTypes: true })
 }
 if (existsSync(vdir)) {
   writeFileSync(join(vdir, 'index.json'), JSON.stringify(vindex, null, 1) + '\n');
-  console.log(`voices/index.json: ${Object.keys(vindex).length} recorded tape(s)`);
+  console.log(`voices/index.json: ${Object.keys(vindex).length} recording(s)`);
 }

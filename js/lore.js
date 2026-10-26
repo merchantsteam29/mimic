@@ -33,10 +33,10 @@ export const LORE = [
     'So it can listen.',
   ] },
   { who: 'Rescue team, channel 3', lines: [
-    'Headcount, sound off.',
-    'One. Two. Three. Four.',
-    'Five.',
-    'There are four of us.',
+    { by: 'Team leader', text: 'Headcount, sound off.' },
+    { by: 'Team', text: '(four different voices, one after another) One. Two. Three. Four.' },
+    { by: 'Someone', text: '(very quiet, close to the mic) Five.' },
+    { by: 'Team leader', text: '(a long pause, scared) There are four of us.' },
   ] },
   { who: 'Dr. Okafor, research log 21', lines: [
     'It can\'t make new words. Only ours.',
@@ -45,8 +45,7 @@ export const LORE = [
     'Don\'t go.',
   ] },
   { who: 'Unknown', lines: [
-    '(breathing)',
-    'It\'s wearing Dana.',
+    '(breathing hard, whispering) It\'s wearing Dana.',
     'It walks like her. It holds the torch like her.',
     'It doesn\'t blink.',
   ] },

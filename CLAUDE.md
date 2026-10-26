@@ -219,8 +219,10 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   (`OPERATOR`, 5: a 911 dispatcher; hospital, facility, school, hotel, mall). The story screen has a tab per story; progress is per
   story (`storyProgress(book)` / `finishChapter(i, book)`, localStorage `book.key`). A story's lures use `book.voice` (`ellie`, or
   `phone`: your voice down a telephone line).
-- `voices.js`: **recorded voices for the tapes** (story tapes and the victims' tapes). One file per tape in `voices/<book>/`, named by
-  the tape id (`ellie/3-2`, `operator/1-1`, `lore/4`; mp3 / m4a / ogg / opus / webm / wav). `tools/stamp.mjs` writes `voices/index.json` from
+- `voices.js`: **recorded voices for the tapes** (story tapes and the victims' tapes). One file per **line** in `voices/<book>/`, named by
+  the tape id and line number (`ellie/3-2-1`, `operator/1-1-2`, `lore/4-1`), or one file for a whole tape (`ellie/3-2`); mp3 / m4a / ogg /
+  opus / webm / wav. Tape lines are strings, or `{ by, text }` when a tape has more than one voice (subtitles say who); a leading
+  `(how)` is the actor's direction. Every line must be something someone says (no narration). `tools/stamp.mjs` writes `voices/index.json` from
   what's there; `scares.js` preloads this level's tapes and, when one has a recording, plays it (`playVoice(..., 'tape')` + `sfx.tapeHiss`)
   with the subtitles timed by line length; otherwise the old murmur. `node tools/script.mjs` regenerates `voices/SCRIPT.md` (every line
   to record, from story.js and lore.js; run it after changing either).
