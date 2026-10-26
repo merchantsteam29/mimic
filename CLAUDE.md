@@ -140,6 +140,16 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   friend's voice comes from elsewhere. Getting within 3.2 m, or lighting it up for 2.6 s, triggers `swReveal` -> `chase` (pale, long
   limbs, upside-down head, split mouth). A catch is `hostCatch(id, 'sw')` -> `caught` with `sw` (the jumpscare uses `sw.poseAt`). It
   leaves if the real friend could see it, and stops after power-on. Host state goes in `snap.sw`.
+- `clip.js`: **save the jumpscare**. `ScareClip` records a 640x360 canvas (the game frame plus a REC stamp and the site address) with
+  the whole mix (`sfx.tap`, a MediaStreamDestination after the master trim) through MediaRecorder. It starts when it chases you
+  (`updateFear`; restarted after 14 s, thrown away 5 s after a chase ends) or on the catch, and is kept at SIGNAL LOST + 1 s. The end
+  screen's "Save the jumpscare" (`offerClip`) shares it (touch) or downloads it.
+- `stats.js`: **Your stats** (title screen; localStorage `mimic.stats`, this device only, nothing to unlock). `recordRun` from `endRun`.
+- **Fewer flashes** (setting `calm`, body class `calm`): no lightning, lights dip instead of strobing, no random tears, distortion
+  capped, a soft hit flash.
+- Jumpscares (`game.caught`): above / behind / drag / front, plus the mimic's slow ones: `dark` (your light and the picture go out,
+  then stutter back with it in your face) and `stare` (it stands 2 m off, head tipping over, whispering, then lunges). `lunge` delays
+  the strike (flash, screech, scream). The listener's head is two hinged halves (`halves`) lined with teeth that part when it rushes.
 - `radio.js`: **walkie-talkies** (online). Hold B (pad D-pad down, touch Radio): intent `radio` {on} -> broadcast `radioOn`; listeners route
   that voice through `vc.route(id, { radio: true })` (a band-limited, distorted chain in `vc.js`) at full volume, anywhere. While anyone
   transmits, the host makes noise at every OTHER living player's position (the mimic / listener can hear the radios). Max 12 s a press.

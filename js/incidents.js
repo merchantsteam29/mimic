@@ -107,7 +107,7 @@ export class Incidents {
         const far = Math.random();
         g.sfx.thunder(far);
         // Lightning through the windows (not underground).
-        if (far < 0.6 && g.level.theme.id !== 'facility') this.flashT = 0.35;
+        if (far < 0.6 && g.level.theme.id !== 'facility' && !g.settings.calm) this.flashT = 0.35;
       }
     }
     if (this.flashT > 0) {

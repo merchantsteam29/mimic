@@ -18,6 +18,7 @@ import { initTitle } from './title.js';
 import { Captions } from './captions.js';
 import { TUTORIAL } from './tutorial.js';
 import { drawRecap, PLAYER_COLORS } from './recap.js';
+import { recordRun, statRows, resetStats } from './stats.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -40,7 +41,7 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 // Graphics start on Auto: phones and tablets begin at medium, and it steps down by itself when the game runs slowly
 // (`tier` is where Auto has settled on this device).
 const COARSE = matchMedia('(pointer: coarse)').matches;
-const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1, quality: 'auto', tier: COARSE ? 'medium' : 'high', captions: false };
+const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1, quality: 'auto', tier: COARSE ? 'medium' : 'high', captions: false, calm: false };
 let settings = { ...DEFAULTS };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('mimic.settings') || '{}')); } catch { /* private mode */ }
 const saveSettings = () => { try { localStorage.setItem('mimic.settings', JSON.stringify(settings)); } catch { /* ignore */ } };
@@ -109,6 +110,20 @@ applyQuality();
 const syncCaptions = () => document.querySelectorAll('#setCaptions button').forEach((b) => b.classList.toggle('on', (b.dataset.c === 'on') === !!settings.captions));
 document.querySelectorAll('#setCaptions button').forEach((b) => { b.onclick = () => { settings.captions = b.dataset.c === 'on'; saveSettings(); syncCaptions(); }; });
 syncCaptions();
+// Fewer flashes: no lightning, no strobing lights, gentler tearing and hit flashes.
+const syncCalm = () => {
+  document.querySelectorAll('#setCalm button').forEach((b) => b.classList.toggle('on', (b.dataset.c === 'on') === !!settings.calm));
+  document.body.classList.toggle('calm', !!settings.calm);
+};
+document.querySelectorAll('#setCalm button').forEach((b) => { b.onclick = () => { settings.calm = b.dataset.c === 'on'; saveSettings(); syncCalm(); }; });
+syncCalm();
+
+// Your stats (this device only).
+$('btnStats').onclick = () => {
+  $('statList').innerHTML = statRows().map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('');
+  show('stats');
+};
+$('btnStatsReset').onclick = () => { if (confirm('Clear your stats on this device?')) { resetStats(); $('btnStats').click(); } };
 
 $('grain').style.backgroundImage = `url(${grainDataUrl()})`;
 preloadPhotos();
@@ -550,6 +565,8 @@ function endRun(r) {
   }
   $('endStats').innerHTML = stats.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
   showRecap(r);
+  if (!r.tutorial) recordRun({ won: r.won, time: r.time, mp: !!r.mp, place: game?.level.theme.id, lures: r.lures, hunter: !!r.hunter && r.hunter === session?.id });
+  offerClip(game?.clip);
   const ended = game;
   setTimeout(() => {
     if (game !== ended) return; // already back in the lobby (timers can run late in background tabs)
@@ -585,6 +602,26 @@ function showRecap(r) {
   const run = () => { stopRecap?.(); stopRecap = drawRecap($('recapMap'), level, rc, order); };
   setTimeout(run, 400); // once the end screen is up
   $('btnReplay').onclick = run;
+}
+
+// The jumpscare, to save or share (when it got you, and this browser can record).
+function offerClip(clip) {
+  const b = $('btnClip');
+  b.hidden = true;
+  if (!clip) return;
+  const ready = (blob) => {
+    b.hidden = false;
+    b.onclick = async () => {
+      const file = new File([blob], `mimic-jumpscare.${clip.ext}`, { type: blob.type });
+      if (controls.mode === 'touch' && navigator.canShare?.({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: 'Mimic' }); return; } catch { /* cancelled: fall back to saving */ }
+      }
+      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: file.name });
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    };
+  };
+  if (clip.blob) ready(clip.blob); else clip.onReady = ready;
 }
 
 let againAction = () => startRun(null);

@@ -382,3 +382,8 @@ body:has(.screen:not([hidden])) #coach, body:has(.screen:not([hidden])) #caption
 #radio b { color: #c8ffc0; font-weight: 400; letter-spacing: .12em; margin-right: 6px; }
 #radio span { color: var(--dim); text-shadow: none; }
 .t-radio { right: calc(150px + env(safe-area-inset-right)); top: 56px; width: 64px; height: 44px; border-radius: 22px; }
+
+/* ---------- fewer flashes ---------- */
+body.calm #flash.hit { animation: hitCalm .5s ease-out; }
+@keyframes hitCalm { 0% { opacity: .3; background: #3a0008; } 100% { opacity: 0; background: #000; } }
+#btnClip { display: block; margin: 10px auto 0; border-color: var(--red); }

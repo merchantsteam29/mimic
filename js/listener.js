@@ -8,6 +8,7 @@
 //   search - feeling around that spot for a few seconds
 // Anyone it walks into is taken. The host runs it and sends it in 'snap' (ls); everyone draws it.
 import * as THREE from 'three';
+import { skinNormal } from './textures.js';
 
 const STATES = ['gone', 'roam', 'listen', 'rush', 'search'];
 const ROAM = 1.2, STALK = 2.4, RUSH = 4.7;
@@ -15,10 +16,13 @@ const R = 0.35;
 const EARS = 1.35; // it hears this much further than the mimic does
 const angleDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 
-// Tall, thin, eyeless: a long smooth head with a vertical mouth and folds where ears should be, arms to the knees.
+// Tall, thin, eyeless, arms to the knees. Its long smooth head is two halves: when it's after something they
+// part down the middle like a mouth, wet and red inside, lined with teeth.
 function makeModel() {
-  const skin = new THREE.MeshStandardMaterial({ color: 0x8a7e76, roughness: 0.55 });
+  const skin = new THREE.MeshStandardMaterial({ color: 0x8a7e76, roughness: 0.5, normalMap: skinNormal(), normalScale: new THREE.Vector2(0.9, 0.9) });
   const dark = new THREE.MeshStandardMaterial({ color: 0x140808, roughness: 0.9 });
+  const flesh = new THREE.MeshStandardMaterial({ color: 0x5a1012, emissive: 0x1a0204, roughness: 0.3 });
+  const bone = new THREE.MeshStandardMaterial({ color: 0xd8d0b8, roughness: 0.4 });
   const mesh = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; return m; };
   const limb = (w, h, mat) => { const g = new THREE.CylinderGeometry(w * 0.6, w, h, 6); g.translate(0, -h / 2, 0); const m = new THREE.Mesh(g, mat); m.castShadow = true; return m; };
   const root = new THREE.Group(), body = new THREE.Group();
@@ -28,17 +32,39 @@ function makeModel() {
   for (let i = 0; i < 5; i++) body.add(mesh(new THREE.BoxGeometry(0.31 - i * 0.02, 0.025, 0.2), skin, 0, 1.95 - i * 0.09, 0.03)); // ribs
   const head = new THREE.Group();
   head.position.set(0, 2.22, -0.08);
-  const skull = mesh(new THREE.SphereGeometry(0.15, 12, 10), skin);
-  skull.scale.set(0.9, 1.55, 1.05);
-  head.add(skull);
-  const mouth = mesh(new THREE.BoxGeometry(0.03, 0.26, 0.04), dark, 0, -0.04, -0.15);
-  head.add(mouth);
-  for (const s of [-1, 1]) { const ear = mesh(new THREE.SphereGeometry(0.07, 8, 6), skin, s * 0.13, 0.02, 0); ear.scale.set(0.4, 1.6, 1.2); head.add(ear); }
+  head.scale.set(0.9, 1.55, 1.05);
+  const inner = mesh(new THREE.SphereGeometry(0.125, 12, 10), flesh);
+  head.add(inner);
+  // Two halves hinged at the back of the head. Left: phi -90..90 deg (front -z round to the back), right: the rest.
+  const halves = [-1, 1].map((s) => {
+    const hinge = new THREE.Group();
+    hinge.position.z = 0.15;
+    const shell = mesh(new THREE.SphereGeometry(0.15, 14, 10, s < 0 ? -Math.PI / 2 : Math.PI / 2, Math.PI), skin, 0, 0, -0.15);
+    hinge.add(shell);
+    // Teeth along the edge, pointing in.
+    for (let i = 0; i < 9; i++) {
+      const y = -0.11 + i * 0.027, w = Math.sqrt(Math.max(0, 0.0225 - y * y));
+      const tooth = mesh(new THREE.ConeGeometry(0.007, 0.03, 4), bone, s * 0.006, y, -0.15 - w * 0.9);
+      tooth.rotation.z = s * Math.PI / 2;
+      hinge.add(tooth);
+    }
+    const ear = mesh(new THREE.SphereGeometry(0.07, 8, 6), skin, s * 0.13, 0.02, -0.15);
+    ear.scale.set(0.4, 1.0, 0.8);
+    hinge.add(ear);
+    head.add(hinge);
+    return hinge;
+  });
   body.add(head);
+  // Bumps of spine down its back, and claws.
+  for (let i = 0; i < 7; i++) body.add(mesh(new THREE.SphereGeometry(0.03, 6, 5), skin, 0, 2.08 - i * 0.12, 0.13));
   const legs = [-1, 1].map((s) => { const l = limb(0.07, 1.3, skin); l.position.set(s * 0.1, 1.32, 0); body.add(l); return l; });
-  const arms = [-1, 1].map((s) => { const a = limb(0.055, 1.35, skin); a.position.set(s * 0.21, 2.06, 0); a.rotation.z = s * 0.12; body.add(a); return a; });
+  const arms = [-1, 1].map((s) => {
+    const a = limb(0.055, 1.35, skin); a.position.set(s * 0.21, 2.06, 0); a.rotation.z = s * 0.12; body.add(a);
+    for (let f = -1; f <= 1; f++) { const c = mesh(new THREE.ConeGeometry(0.012, 0.22, 4), bone, f * 0.025, -1.45, 0); c.rotation.x = Math.PI; a.add(c); }
+    return a;
+  });
   root.visible = false;
-  return { root, body, head, mouth, legs, arms };
+  return { root, body, head, halves, legs, arms };
 }
 
 export class Listener {
@@ -178,11 +204,13 @@ export class Listener {
     m.legs[0].rotation.x = sw * 0.5; m.legs[1].rotation.x = -sw * 0.5;
     m.arms[0].rotation.x = -sw * 0.35; m.arms[1].rotation.x = sw * 0.35;
     const t = g.t, still = this.state === 'listen' || this.state === 'search';
-    m.body.rotation.x = this.state === 'rush' ? 0.45 : 0.2;  // hunched, lower when running
+    m.body.rotation.x = this.state === 'rush' ? -0.45 : -0.2;  // hunched forward (it faces -z), lower when running
     // Listening: head cocked, twitching toward the sound.
     m.head.rotation.z = still ? 0.6 + Math.sin(t * 17) * 0.12 : Math.sin(t * 1.3) * 0.15;
-    m.head.rotation.x = still ? -0.25 : 0.1;
-    m.mouth.scale.y = this.state === 'rush' ? 1.6 + Math.sin(t * 20) * 0.3 : 1;
+    m.head.rotation.x = still ? 0.25 : -0.1; // face tipped up while it listens
+    // The head parts when it's after something; it twitches open a crack while it listens.
+    this.open = this.state === 'rush' ? 0.45 + Math.sin(t * 19) * 0.12 : still ? Math.max(0, Math.sin(t * 7)) * 0.12 : 0;
+    m.halves[0].rotation.y = this.open; m.halves[1].rotation.y = -this.open;
     this.emitter.setPos(this.x, 2.1, this.z);
     const c = g.camera.position;
     this.emitter.setOcclusion(!g.level.los(c.x, c.z, this.x, this.z));
@@ -209,12 +237,13 @@ export class Listener {
     const m = this.model;
     this.posed = true;
     m.root.visible = true;
-    m.root.position.set(x, -0.35, z);
-    m.root.rotation.y = yaw;
-    m.body.rotation.x = 0.75;
-    m.head.rotation.set(0.3, 0, Math.sin(t * 40) * 0.1);
-    m.mouth.scale.y = 2.2 + Math.sin(t * 30) * 0.3;
-    m.arms[0].rotation.x = m.arms[1].rotation.x = -1.2;
+    m.root.position.set(x, 0, z);
+    m.root.rotation.y = yaw + Math.PI; // (the game passes the mimic's facing; this model faces -z)
+    m.body.rotation.x = -0.28; // towering over you, bent down into your face
+    m.head.rotation.set(-0.65, 0, Math.sin(t * 40) * 0.1);
+    const o = 0.95 + Math.sin(t * 30) * 0.06; // split wide open
+    m.halves[0].rotation.y = o; m.halves[1].rotation.y = -o;
+    m.arms[0].rotation.x = m.arms[1].rotation.x = 1.2; // reaching for you
     return m;
   }
 

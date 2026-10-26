@@ -23,6 +23,8 @@ export class Sfx {
     const trim = ctx.createGain();
     trim.gain.value = 0.4;
     out.connect(trim).connect(ctx.destination);
+    this.tap = ctx.createMediaStreamDestination(); // the whole mix, for saving the jumpscare (clip.js)
+    trim.connect(this.tap);
     this.master = ctx.createGain();
     this.master.connect(out);
 

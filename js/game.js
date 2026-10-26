@@ -24,6 +24,7 @@ import { Recap } from './recap.js';
 import { Listener } from './listener.js';
 import { Incidents } from './incidents.js';
 import { Radio } from './radio.js';
+import { ScareClip } from './clip.js';
 import { mulberry32 } from './level.js';
 import { keyLabel, rumble } from './controls.js';
 
@@ -155,6 +156,8 @@ export class Game {
     this.chat = new Chat(this);   // quick chat (online)
     this.haunt = new Haunt(this); // the dead reaching back (online)
     this.radio = new Radio(this); // walkie-talkies (online)
+    this.clip = new ScareClip(sfx); // the jumpscare, saved for the end screen
+    this.chaseGoneT = 0;
     this.doorEm = sfx.emitter();
     this.inc = new Incidents(this, !story && !tutorial && !room); // power cuts, storms, alarms, lockdowns
     // Hunger: every couple of minutes it gets bolder, and lights die for good (in the same order for everyone).
@@ -293,6 +296,7 @@ export class Game {
     this.hunt.dispose();
     this.chat.dispose();
     this.radio.dispose();
+    this.clip.dispose();
     this.haunt.dispose();
     this.tut.dispose();
     this.ambientEmitter.dispose();
@@ -719,6 +723,7 @@ export class Game {
     this.updateCam(dt);
     if (this.vhs) this.vhs.render(this.scene, this.camera, this.t, this.distort);
     else this.renderer.render(this.scene, this.camera);
+    if (this.clip.recording) this.clip.frame(this.renderer.domElement, this.hud.camStamp.textContent, this.lost);
   }
 
   netTick(dt) {
@@ -890,6 +895,10 @@ export class Game {
     if (this.state === 'spectate') on = !!this.specTarget()?.flash;
     if (on && this.state === 'playing') p.battery = Math.max(0, p.battery - (dt * 100) / BATTERY_LIFE);
     let I = on ? (this.state === 'caught' ? 20 : 42) : 0; // a little dimmer in its face, so it isn't washed out
+    if (this.state === 'caught' && this.scare === 'dark') { // the light dies, then stutters back on with it in your face
+      if (this.ct < 0.85) I = 0;
+      else if (this.ct < 1.15 && Math.random() < 0.5) I = 0;
+    }
     if (this.blackout > 0 && this.state === 'playing') {
       const since = this.blackoutTotal - this.blackout;
       if (since < 1.8) I = 0;
@@ -1201,10 +1210,18 @@ export class Game {
     }
 
     // The camcorder picture breaks up when it's close: more the closer it is, with sudden tears.
-    if (vis && d < 8 && Math.random() < dt * 1.8 * (1 - d / 8)) this.glitchT = 0.06 + Math.random() * 0.1;
+    if (vis && d < 8 && !this.settings.calm && Math.random() < dt * 1.8 * (1 - d / 8)) this.glitchT = 0.06 + Math.random() * 0.1;
     this.glitchT = Math.max(0, (this.glitchT || 0) - dt);
     const want = this.fear * 0.12 + (vis && d < 8 ? (1 - d / 8) * 0.15 : 0) + (this.glitchT > 0 ? 0.5 : 0);
-    this.distort += (want - this.distort) * Math.min(1, dt * (this.glitchT > 0 ? 30 : 5));
+    this.distort += ((this.settings.calm ? want * 0.4 : want) - this.distort) * Math.min(1, dt * (this.glitchT > 0 ? 30 : 5));
+
+    // Being chased: start recording, in case it's the end (clip.js). Got away: throw it out.
+    const chasingMe = (m.state === 'chase' || m.state === 'hunt') && (!this.mp || m.targetId === this.me) && d < 25 && !this.room;
+    if (chasingMe) {
+      this.chaseGoneT = 0;
+      if (this.clip.stale) this.clip.stop(false);
+      if (!this.clip.recording) this.clip.start();
+    } else if (this.clip.recording && (this.chaseGoneT += dt) > 5) this.clip.stop(false);
 
     // Spotting it peeking: a quick dolly-zoom lurch toward it.
     if (this.zoomT > 0) {
@@ -1233,7 +1250,7 @@ export class Game {
       let lvl = 1;
       if ((L.broken && !this.power) || L.dead) lvl = 0;
       else {
-        if (L.burst > 0) { L.burst -= dt; lvl = Math.sin(t * 67 + L.seed) > 0.1 ? 1 : 0.1; }
+        if (L.burst > 0) { L.burst -= dt; lvl = this.settings.calm ? 0.45 : Math.sin(t * 67 + L.seed) > 0.1 ? 1 : 0.1; } // (Fewer flashes: a dip, not a strobe)
         else if (L.flicker && Math.random() < dt * 0.3) L.burst = 0.15 + Math.random() * 0.9;
         // Lights stutter when it walks under them.
         if (L.burst <= 0 && Math.hypot(L.x - m.x, L.z - m.z) < 5 && Math.random() < dt * 2.5) L.burst = 0.25 + Math.random() * 0.5;
@@ -1307,6 +1324,7 @@ export class Game {
   caught(by = null) {
     if (this.state !== 'playing') return;
     this.scareBy = by?.sw && this.sw.wearId ? this.sw : by?.ls && this.ls.on ? this.ls : null;
+    if (!this.clip.recording) this.clip.start();
     this.hb.stop();
     this.obj.repairing = null;
     this.obj.endSkill();
@@ -1316,24 +1334,33 @@ export class Game {
     this.lost = false;
     this.hud.locker.hidden = true;
     this.hud.root.hidden = true;
-    this.hud.flash.classList.remove('hit');
-    void this.hud.flash.offsetWidth;
-    this.hud.flash.classList.add('hit');
     this.sfx.stopAmbient();
-    this.sfx.screech();
-    rumble(1, 700);
     this.sfx.setDread(0);
     this.renderer.domElement.style.transform = this.renderer.domElement.style.filter = '';
-    setTimeout(() => this.localSpeak('scream', null), 150);
     // Turn to face it.
     const p = this.p, m = by || this.mimic;
     this.catchYaw = Math.atan2(-(m.x - p.x), -(m.z - p.z));
     p.speed = 0;
-    // How it gets you: from above (off the ceiling), from behind, dragged away, or straight on.
+    // How it gets you: from above (off the ceiling), from behind, dragged away, straight on; or the mimic's slow
+    // ones: the light dies and it's there when it comes back (dark), or it stands and looks at you first (stare).
     const dx = m.x - p.x, dz = m.z - p.z, d = Math.hypot(dx, dz) || 1;
-    const behind = (-Math.sin(p.yaw) * dx - Math.cos(p.yaw) * dz) / d < -0.3;
-    this.scare = m.ceiling || m.dropT > 0 ? 'above' : behind ? 'behind' : Math.random() < 0.3 ? 'drag' : 'front';
-    if (this.scare === 'behind') this.sfx.sniff(this.scareBy ? this.scareBy.emitter : m.emitter);
+    const behind = (-Math.sin(p.yaw) * dx - Math.cos(p.yaw) * dz) / d < -0.3, r = Math.random();
+    this.scare = m.ceiling || m.dropT > 0 ? 'above' : behind ? 'behind'
+      : this.scareBy ? (r < 0.3 ? 'drag' : 'front')
+        : r < 0.2 ? 'drag' : r < 0.42 ? 'dark' : r < 0.62 ? 'stare' : 'front';
+    this.lunge = { dark: 1.0, stare: 1.8 }[this.scare] || 0; // how long before it strikes
+    if (this.scare === 'behind' || this.scare === 'dark') this.sfx.sniff(this.scareBy ? this.scareBy.emitter : m.emitter);
+    if (this.scare === 'stare') setTimeout(() => { if (this.state === 'caught') this.localSpeak('whisper', null); }, 250);
+    const strike = () => {
+      if (this.state !== 'caught') return;
+      this.hud.flash.classList.remove('hit');
+      void this.hud.flash.offsetWidth;
+      this.hud.flash.classList.add('hit');
+      this.sfx.screech();
+      rumble(1, 700);
+      setTimeout(() => this.localSpeak('scream', null), 150);
+    };
+    if (this.lunge) setTimeout(strike, this.lunge * 1000); else strike();
   }
 
   updateCaught(dt) {
@@ -1341,9 +1368,23 @@ export class Game {
     const p = this.p, sc = this.scare;
     const fx = -Math.sin(this.catchYaw), fz = -Math.cos(this.catchYaw);
     // It lunges in, then stays bent over right in your face (or hangs down from above).
-    const dist = sc === 'above' ? 1.05 : 1.25 + Math.max(0, 1 - this.ct * 5) * 0.6;
+    const st = Math.max(0, this.ct - this.lunge); // time since it struck
+    let dist = sc === 'above' ? 1.05 : 1.25 + Math.max(0, 1 - st * 5) * 0.6;
+    if (sc === 'dark') { // already right there in the dark: you just can't see it yet
+      dist = 1.2;
+      this.renderer.domElement.style.filter = this.ct < 0.85 || (this.ct < 1.15 && Math.random() < 0.5) ? 'brightness(0.06)' : '';
+    }
+    if (sc === 'stare' && this.ct < this.lunge) dist = 2.1; // standing back, looking at you
     const it = this.scareBy && this.scareBy.poseAt(p.x + fx * dist, p.z + fz * dist, Math.atan2(-fx, -fz), this.t);
     if (!it) this.mimic.pose(p.x + fx * dist, p.z + fz * dist, Math.atan2(-fx, -fz), this.t, sc === 'above');
+    if (!it && this.ct < this.lunge) {
+      const hd = this.mimic.model.head, jaw = this.mimic.model.jaw;
+      if (sc === 'stare') { // upright, mouth shut, its head tipping slowly over sideways while it whispers
+        this.mimic.model.torso.rotation.x = 0.15;
+        hd.rotation.z = Math.min(1.7, this.ct * 1.1);
+        jaw.rotation.x = 0.05;
+      } else jaw.rotation.x = 0.1 + this.ct * 0.4; // dark: its jaw coming open
+    }
     if (sc === 'drag') {
       // Pulled off your feet and dragged backwards into the dark.
       if (this.ct > 1.5 && !this.dragging) {
@@ -1362,11 +1403,12 @@ export class Game {
     const k = Math.min(1, dt * (sc === 'behind' ? 22 : 14));
     p.yaw += angleDiff(Math.atan2(-dx, -dz), p.yaw) * k;
     p.pitch += (Math.atan2(dy, Math.hypot(dx, dz)) - p.pitch) * k;
-    const T = sc === 'drag' ? 2.8 : 2.5;
+    const T = (sc === 'drag' ? 2.8 : 2.5) + this.lunge;
     // First you see its face (the picture only shudders), then the tape tears apart.
-    this.distort = this.ct < 1.7 ? 0.06 + Math.random() * 0.08 : Math.min(1, 0.4 + (this.ct - 1.7) * 1.2);
+    this.distort = st < 1.7 ? (this.ct < this.lunge ? 0.03 : 0.06 + Math.random() * 0.08) : Math.min(this.settings.calm ? 0.45 : 1, 0.4 + (st - 1.7) * 1.2);
     if (this.ct > T && !this.lost) { this.lost = true; this.hud.signal.hidden = false; this.sfx.static(1.2); }
     if (this.ct > T + 1.1 && this.state === 'caught') {
+      this.clip.stop(true);
       this.renderer.domElement.style.filter = '';
       this.dragging = false;
       if (!this.mp) { this.end(false); return; }

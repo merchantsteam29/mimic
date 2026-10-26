@@ -67,6 +67,8 @@ Guess wrong, and it gets hungrier.
 - **Walkie-talkies** (online): hold `B` to talk to everyone, wherever they are. But every other radio crackles out loud
   while you talk, and it can hear that. It has a radio too. If a friend calls you over the radio, check they're still alive.
 - **Waiting room:** while you wait for the host, walk around a small house together and talk.
+- **Save the jumpscare:** when it gets you, the end screen lets you save (or share, on a phone) a clip of the moment.
+- **Your stats** (title screen) and a **Fewer flashes** setting for players sensitive to flashing light.
 - **New here?** The first time you play alone, a short tutorial walks you through it (it's also under How to play).
 - **What happened:** after every round, the end screen replays it on a map: everyone's route, its route, where people
   were taken, and whose voice it used most.
