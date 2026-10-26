@@ -127,6 +127,27 @@ const syncCalm = () => {
 document.querySelectorAll('#setCalm button').forEach((b) => { b.onclick = () => { settings.calm = b.dataset.c === 'on'; saveSettings(); syncCalm(); }; });
 syncCalm();
 
+// Feedback (beta): opens the Google Form in a new tab. The game version, device and what you were doing are copied to
+// the clipboard first, so a bug report can include them with one paste.
+const FEEDBACK_FORM = 'https://forms.gle/CG3PAo4xpdrp7y6u6';
+function sendFeedback() {
+  const g = game, quality = settings.quality === 'auto' ? `auto (${settings.tier})` : settings.quality;
+  const where = g ? `${g.level.theme.id} · ${session ? `online (${session.roster.length} players, ${session.mode})` : 'alone'} · ${g.state} · ${Math.floor(g.time)} s in` : 'on the menus';
+  const info = [`Mimic ${VERSION}`, `${controls.mode} · graphics ${quality} · voice ${settings.voiceMode}`, where, navigator.userAgent].join('\n');
+  navigator.clipboard?.writeText(info).then(() => toastMenu('Game info copied: paste it into the form if it helps.')).catch(() => {});
+  window.open(FEEDBACK_FORM, '_blank', 'noopener');
+}
+// A small note on the menus (the game's own toast is in the HUD).
+function toastMenu(text) {
+  const t = $('menuToast');
+  t.textContent = text;
+  t.hidden = false;
+  clearTimeout(t.timer);
+  t.timer = setTimeout(() => { t.hidden = true; }, 4000);
+}
+$('btnFeedback').onclick = sendFeedback;
+$('btnPauseFeedback').onclick = sendFeedback;
+
 // Your stats (this device only).
 $('btnStats').onclick = () => {
   $('statList').innerHTML = statRows().map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('');

@@ -440,3 +440,8 @@ body:not(.ready) #title .buttons { opacity: .35; pointer-events: none; }
 body.calm #flash.pop { animation: popCalm .5s ease-out; }
 @keyframes popCalm { 0% { opacity: .35; background: #ddd; } 100% { opacity: 0; } }
 .t-throw { right: calc(14px + env(safe-area-inset-right)); top: 112px; width: 64px; height: 44px; border-radius: 22px; }
+
+/* ---------- feedback ---------- */
+button.feedback { font-size: 11px; opacity: .8; }
+#menuToast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 50; padding: 8px 14px; background: rgba(0,0,0,.85); border: 1px solid var(--line); font: 13px Inter, sans-serif; color: var(--ink); }
+#menuToast[hidden] { display: none; }

@@ -157,6 +157,8 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   the whole mix (`sfx.tap`, a MediaStreamDestination after the master trim) through MediaRecorder. It starts when it chases you
   (`updateFear`; restarted after 14 s, thrown away 5 s after a chase ends) or on the catch, and is kept at SIGNAL LOST + 1 s. The end
   screen's "Save the jumpscare" (`offerClip`) shares it (touch) or downloads it.
+- **Feedback** (beta): "Report a bug / idea" (title) and "Report a bug" (pause) open the Google Form (`FEEDBACK_FORM` in main.js:
+  https://forms.gle/CG3PAo4xpdrp7y6u6) in a new tab, after copying the version, device, settings and what you were doing to the clipboard.
 - `stats.js`: **Your stats** (title screen; localStorage `mimic.stats`, this device only, nothing to unlock). `recordRun` from `endRun`.
 - **Fewer flashes** (setting `calm`, body class `calm`): no lightning, lights dip instead of strobing, no random tears, distortion
   capped, a soft hit flash.
