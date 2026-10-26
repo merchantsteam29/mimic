@@ -19,6 +19,8 @@ import { Captions } from './captions.js';
 import { TUTORIAL } from './tutorial.js';
 import { drawRecap, PLAYER_COLORS } from './recap.js';
 import { recordRun, statRows, resetStats } from './stats.js';
+import { buildingCode, parseCode } from './codes.js';
+import { renderGuide, newTape } from './guide.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -146,6 +148,7 @@ function toastMenu(text) {
   t.timer = setTimeout(() => { t.hidden = true; }, 4000);
 }
 $('btnFeedback').onclick = sendFeedback;
+$('btnGuide').onclick = () => { renderGuide($('guide')); show('guide'); };
 $('btnPauseFeedback').onclick = sendFeedback;
 
 // Your stats (this device only).
@@ -363,7 +366,11 @@ function renderCustom() {
     b.onclick = () => session.setCustom(b.dataset.k, b.dataset.k === 'events' ? b.dataset.v === 'true' : b.dataset.v);
   });
 }
-$('btnClassGo').onclick = () => startRun(storyIdx);
+$('btnClassGo').onclick = () => {
+  const text = $('codeSolo').value.trim(), code = text && storyIdx === null ? parseCode(text) : null;
+  if (text && storyIdx === null && !code) { toastMenu('That building code isn\'t right. It looks like H-4F2K9A.'); return; }
+  startRun(storyIdx, code);
+};
 
 // ---------- voice check (before your first game, alone or online) ----------
 let lineIndex = 0;
@@ -451,12 +458,13 @@ $('btnBegin').onclick = () => finishVoiceCheck();
 $('btnSkipMic').onclick = () => finishVoiceCheck();
 
 // ---------- solo runs ----------
-function startRun(si = null) {
+// code: a building code ({ theme, seed }) to play that exact building.
+function startRun(si = null, code = null) {
   game?.dispose();
   storyIdx = si;
   const story = si === null ? null : { ...CHAPTERS[si], index: si };
-  const themeId = story ? story.theme : params.get('theme') in THEMES ? params.get('theme') : randomTheme();
-  const seed = story ? story.seed : params.has('seed') ? Number(params.get('seed')) : Math.floor(Math.random() * 2 ** 31);
+  const themeId = story ? story.theme : code ? code.theme : params.get('theme') in THEMES ? params.get('theme') : randomTheme();
+  const seed = story ? story.seed : code ? code.seed : params.has('seed') ? Number(params.get('seed')) : Math.floor(Math.random() * 2 ** 31);
   game = new Game({
     renderer, vhs, sfx, voice, settings, hud, themeId, seed, story, classes: { h: params.get('class') in CLASSES ? params.get('class') : myClass }, difficulty: settings.diff,
     noLock: params.has('autostart'),
@@ -528,6 +536,7 @@ function openPause() {
     ? 'The game keeps going while this menu is open.'
     : voice.clips.length ? `It has ${voice.clips.length} recording${voice.clips.length > 1 ? 's' : ''} of your voice.` : '';
   $('btnQuit').textContent = session ? 'Leave game' : 'Quit to menu';
+  $('pauseCode').textContent = game.story || game.tut.on ? '' : `Building code: ${buildingCode(game.themeId, game.seed)}`;
   if (controls.mode === 'mouse') $('pauseClips').textContent += (($('pauseClips').textContent ? ' ' : '') + 'Resume returns to full screen.');
   show('pause');
 }
@@ -577,6 +586,7 @@ function endRun(r) {
   ctx?.resume();
   $('endTitle').textContent = r.won ? 'You got out.' : 'It got you.';
   const stats = [['Location', r.place], ['Time', fmtTime(r.time)], ['Fuses found', `${r.fuses}/4`], ['Times it used a voice', r.lures]];
+  if (!r.story && !r.tutorial && game) stats.push(['Building code', buildingCode(game.themeId, game.seed)]);
   if (r.mp) {
     const out = r.results.filter((p) => p.status === 'out').length;
     $('endSub').textContent = out === r.results.length ? 'Everyone got out. Are you sure it was everyone?'
@@ -862,8 +872,10 @@ $('btnInvite').onclick = async () => {
 
 $('btnStart').onclick = () => {
   if (!session?.isHost) return;
-  const theme = params.get('theme') in THEMES ? params.get('theme') : randomTheme();
-  session.start(theme, Math.floor(Math.random() * 2 ** 31));
+  const text = $('codeRoom').value.trim(), code = text ? parseCode(text) : null;
+  if (text && !code) { toastMenu('That building code isn\'t right. It looks like H-4F2K9A.'); return; }
+  const theme = code ? code.theme : params.get('theme') in THEMES ? params.get('theme') : randomTheme();
+  session.start(theme, code ? code.seed : Math.floor(Math.random() * 2 ** 31));
 };
 
 $('btnLeave').onclick = () => { leaveSession(); show('title'); };
@@ -930,6 +942,15 @@ if (params.has('autostart')) {
 }
 // Everything's loaded: the title's buttons work now.
 document.body.classList.add('ready');
+// Back after an update: a recovered tape with what's new (once per release).
+if (!params.has('autostart') && !params.has('join')) {
+  newTape($('newTape'), () => { // closing it: a burst of static, like the tape being yanked out
+    ensureAudio();
+    sfx.static(0.5);
+    $('signal').hidden = false;
+    setTimeout(() => { $('signal').hidden = true; }, 420);
+  });
+}
 
 // For automated multiplayer tests.
 window.__mimic = { get game() { return game; }, get session() { return session; } };

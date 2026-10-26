@@ -159,6 +159,11 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   screen's "Save the jumpscare" (`offerClip`) shares it (touch) or downloads it.
 - **Feedback** (beta): "Report a bug / idea" (title) and "Report a bug" (pause) open the Google Form (`FEEDBACK_FORM` in main.js:
   https://forms.gle/CG3PAo4xpdrp7y6u6) in a new tab, after copying the version, device, settings and what you were doing to the clipboard.
+- `guide.js`: the **field guide** (title > Field guide, `#guide`): case files on the creatures, hiding spots, items and events
+  (`SECTIONS`; keep it up to date when you add one). Also **What's new** (`newTape`): a "recovered tape" shown once per `RELEASE` to
+  players who have played before (localStorage `mimic.release`). **Bump `RELEASE` and rewrite `NOTES` for each notable update.**
+- `codes.js`: **building codes** (`H-4F2K9A`: the theme's letter + the seed in base 36). Shown on the end screen and the pause menu;
+  enter one on the class screen (alone) or in the lobby's Settings tab (host) to play that exact building.
 - `stats.js`: **Your stats** (title screen; localStorage `mimic.stats`, this device only, nothing to unlock). `recordRun` from `endRun`.
 - **Fewer flashes** (setting `calm`, body class `calm`): no lightning, lights dip instead of strobing, no random tears, distortion
   capped, a soft hit flash.

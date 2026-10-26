@@ -472,3 +472,43 @@ button.feedback { font-size: 11px; opacity: .8; }
   #ability { bottom: 68px; left: 18px; font-size: 13px; }
 }
 body.input-touch #objective { top: 112px; left: 20px; }
+
+/* ---------- building codes ---------- */
+.code-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 12px 0 4px; font-size: 13px; color: var(--dim); }
+.code-row input { width: 170px; padding: 7px 10px; background: #0a0909; border: 1px solid var(--line); color: var(--ink); font: 15px "Special Elite", monospace; letter-spacing: .12em; text-transform: uppercase; }
+
+/* ---------- field guide: case files ---------- */
+.guide-panel { max-width: 760px; }
+.guide-tabs { margin: 12px 0; flex-wrap: wrap; }
+.guide-tabs button { font-size: 11px; }
+.guide-list { display: grid; gap: 12px; max-height: 55vh; overflow-y: auto; padding-right: 4px; }
+.case { display: grid; grid-template-columns: 110px 1fr; gap: 14px; padding: 12px; background: #0d0b0a; border: 1px solid #2a2320; position: relative; }
+.case::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, transparent 1px 3px); }
+.case-photo { position: relative; height: 120px; background: #050505; border: 1px solid #1d1816; display: flex; align-items: center; justify-content: center; overflow: hidden; transform: rotate(-1.5deg); }
+.case-photo::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, rgba(255,255,255,.04) 0 2px, transparent 2px 5px); animation: grain .6s steps(4) infinite; }
+.case-photo span { position: absolute; top: 4px; left: 6px; font: 11px VT323, monospace; color: #b8525f; letter-spacing: .1em; }
+.case-photo i { font: 11px VT323, monospace; color: #555; text-align: center; font-style: normal; letter-spacing: .1em; }
+.case-text h3 { margin: 0 0 6px; font: 400 19px "Special Elite", monospace; color: var(--ink); }
+.case-text p { margin: 4px 0; font-size: 13px; line-height: 1.45; color: #c9c2b4; }
+.case-text b { display: inline-block; min-width: 62px; font: 400 11px "Special Elite", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--red); }
+@media (max-width: 560px) { .case { grid-template-columns: 1fr; } .case-photo { height: 60px; } }
+
+/* ---------- what's new: a recovered tape ---------- */
+#newTape { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(0,0,0,.92); overflow-y: auto; animation: tapeIn 1.4s steps(8) both; }
+#newTape[hidden] { display: none; }
+#newTape::before { content: ""; position: fixed; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,.35) 0 1px, transparent 1px 3px); }
+@keyframes tapeIn { 0% { opacity: 0; filter: brightness(3) contrast(3); } 20% { opacity: 1; } 30% { opacity: .2; } 45% { opacity: 1; filter: none; } }
+.tape-box { position: relative; width: min(620px, 100%); padding: 26px 30px; border: 1px solid #3a1418; background: #070505; box-shadow: 0 0 60px rgba(196,26,50,.15); }
+.tape-head { margin: 0; font: 15px VT323, monospace; letter-spacing: .18em; color: #8a8478; }
+.tape-head .rec { color: #ff3040; animation: recblink 1.6s steps(1) infinite; }
+.tape-title { margin: 8px 0 16px; font-size: 26px; color: var(--ink); animation: tapeShake 6s infinite; }
+@keyframes tapeShake { 0%, 96%, 100% { transform: none; } 97% { transform: translate(2px, -1px) skewX(-6deg); } 98% { transform: translate(-3px, 1px); } }
+.tape-lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.tape-lines li { opacity: 0; animation: lineIn .5s ease-out forwards; animation-delay: calc(1.2s + var(--i) * .45s); }
+@keyframes lineIn { from { opacity: 0; transform: translateX(-8px); filter: blur(2px); } to { opacity: 1; transform: none; filter: none; } }
+.tape-line { display: block; position: relative; font: 16px "Special Elite", monospace; color: #e8dccb; }
+.tape-line::after { content: ""; position: absolute; inset: -1px -4px; background: #000; animation: redact .6s steps(3) forwards; animation-delay: inherit; }
+@keyframes redact { from { transform: scaleX(1); transform-origin: right; } to { transform: scaleX(0); transform-origin: right; } }
+.tape-plain { display: block; margin-top: 2px; font-size: 12px; color: var(--dim); }
+.tape-whisper { margin: 18px 0 14px; text-align: right; font: 14px "Special Elite", monospace; color: #b8525f; opacity: 0; animation: lineIn 2s ease-out 5.5s forwards; }
+.tape-close { width: 100%; }
