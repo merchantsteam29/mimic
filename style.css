@@ -449,3 +449,26 @@ button.feedback { font-size: 11px; opacity: .8; }
 /* The title's small buttons, on one row. */
 #title .small-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 14px auto 0; max-width: 420px; }
 #title .small-row button { flex: 1 1 auto; }
+
+/* ---------- short screens (phones held sideways) ---------- */
+@media (max-height: 500px) {
+  /* The title: a smaller logo and the main buttons in two columns, so it all fits without scrolling. */
+  .logo { font-size: clamp(40px, 10vh, 72px); }
+  .tag { margin: 4px 0 8px; font-size: 14px; }
+  #title .buttons { display: grid; grid-template-columns: 1fr 1fr; max-width: 520px; gap: 8px; margin-top: 8px; }
+  #title .buttons button { padding: 9px 8px; font-size: 13px; }
+  #title .small-row { margin-top: 8px; }
+  .title-cam { font-size: 16px; }
+  /* In the game: a smaller camcorder overlay, and the objectives below the touch pause / jobs buttons. */
+  #cam { font-size: 20px; }
+  #cam .rec { top: 14px; left: 18px; }
+  #cam .bat { top: 16px; right: 18px; width: 34px; height: 15px; border-width: 2px; }
+  #cam .stamp { bottom: 14px; left: 18px; }
+  #cam .counter { bottom: 14px; right: 18px; }
+  #objective { font-size: 13px; }
+  #toast { font-size: 16px; top: 22%; }
+  #captions p { font-size: 13px; }
+  #mic { bottom: 96px; left: 18px; }
+  #ability { bottom: 68px; left: 18px; font-size: 13px; }
+}
+body.input-touch #objective { top: 112px; left: 20px; }

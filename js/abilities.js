@@ -217,7 +217,7 @@ export class Abilities {
       case 'brute': t = `${k}Flares ×${this.charges}`; break;
       case 'medic': t = this.charges ? `${k}Rescue ×1` : 'Rescue used'; break;
       case 'tracker': t = this.battery > 0 ? `${k}Tracker ${this.trackerOn ? 'on' : 'off'} · ${Math.ceil(this.battery)}s` : 'Tracker dead'; break;
-      default: t = 'Runner';
+      default: t = 'faster, longer sprints'; // (the runner has nothing to press)
     }
     this.hud.ability.innerHTML = `${this.c.name} · ${t}`;
   }

@@ -232,6 +232,12 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   the hidden player gets `sniff`: press Space on 10–13 beats. Miss 3, or make a sound on the mic, and `sniffRes` false means
   caught. Success means it flees. If the mimic leaves without a verdict (a teammate's flare), the host sends `sniffEnd`.
 
+- **Mix** (measured 2026-10-26, loudest 100 ms RMS out of the final mix, 3 m away): its lures ~ -19 dB, its scream ~ -8, radio voice
+  ~ -14, warnings you must hear (listener clicks, stalker scrape, phone, PA chime) -31 to -38, your own steps ~ -36, ambience ~ -36.
+  New sounds should land near those for their kind. A re-run script plays every sound alone and measures the tap (`sfx.tap`).
+- **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
+  on touch the objectives sit below the pause / jobs buttons.
+
 ## Decisions
 
 - Raw clips only (no speech-to-text) for now. Clips persist across runs within a tab, but are never saved to disk.

@@ -230,8 +230,8 @@ export class Sfx {
 
   heartbeat(vol) {
     const t = this.now;
-    this._tone(this.master, { t, freq: 62, to: 40, dur: 0.16, peak: 0.55 * vol });
-    this._tone(this.master, { t: t + 0.24, freq: 55, to: 38, dur: 0.2, peak: 0.4 * vol });
+    this._tone(this.master, { t, freq: 62, to: 40, dur: 0.16, peak: 0.4 * vol });
+    this._tone(this.master, { t: t + 0.24, freq: 55, to: 38, dur: 0.2, peak: 0.29 * vol });
   }
 
   // Short dissonant hit when the mimic spots you.
@@ -269,10 +269,10 @@ export class Sfx {
   whisper(emitter = null) {
     const dest = emitter ? emitter.input : this.master, t = this.now;
     const dur = rand(0.8, 1.6);
-    const { f, g } = this._noise(dest, { t, dur, freq: 1800, q: 4, peak: 0.25, attack: 0.1 });
+    const { f, g } = this._noise(dest, { t, dur, freq: 1800, q: 4, peak: 0.5, attack: 0.1 });
     for (let s = 0; s < dur; s += 0.12) {
       f.frequency.setValueAtTime(rand(900, 3200), t + s);
-      g.gain.setValueAtTime(rand(0.05, 0.3), t + s);
+      g.gain.setValueAtTime(rand(0.1, 0.6), t + s);
     }
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     return dur;
@@ -300,7 +300,7 @@ export class Sfx {
     else if (style === 'recorder') { // a cheap tape recorder on the floor
       rate = rand(0.97, 1.0); vol = 1.5; ws.curve = distortionCurve(6); hp.frequency.value = 300; lp.frequency.value = 3800; wet.gain.value = 0.5;
     } else if (style === 'radio') { // over a walkie-talkie
-      rate = 1; vol = 1.4; ws.curve = this.radioCurve(); hp.frequency.value = 450; lp.frequency.value = 2900; pk.frequency.value = 1700; pk.gain.value = 8; wet.gain.value = 0;
+      rate = 1; vol = 0.7; ws.curve = this.radioCurve(); hp.frequency.value = 450; lp.frequency.value = 2900; pk.frequency.value = 1700; pk.gain.value = 8; wet.gain.value = 0;
     } else if (style === 'echo') { rate = 0.78; vol = 1.2; ws.curve = distortionCurve(2); lp.frequency.value = 2600; wet.gain.value = 1; }
     else if (style === 'stranger') { // someone else: pitched, over a bad line. Mostly the same someone.
       if (!this.stranger || Math.random() < 0.2) this.stranger = [0.8, 0.86, 1.17, 1.24][Math.floor(Math.random() * 4)];
@@ -355,8 +355,8 @@ export class Sfx {
   // Your own breathing when you're scared or out of breath. v: 0..1
   playerBreath(v) {
     const t = this.now;
-    this._noise(this.master, { t, dur: 0.55, freq: 1300, q: 0.9, peak: 0.03 + 0.09 * v, attack: 0.25 });
-    this._noise(this.master, { t: t + 0.65, dur: 0.6, freq: 750, q: 0.9, peak: 0.04 + 0.1 * v, attack: 0.08 });
+    this._noise(this.master, { t, dur: 0.55, freq: 1300, q: 0.9, peak: 0.02 + 0.065 * v, attack: 0.25 });
+    this._noise(this.master, { t: t + 0.65, dur: 0.6, freq: 750, q: 0.9, peak: 0.03 + 0.07 * v, attack: 0.08 });
   }
 
   // A low, fast thump during chases.
@@ -487,12 +487,12 @@ export class Sfx {
   // An old tape: hiss, and a voice too damaged to make out (the words come as subtitles).
   tapeVoice(seconds) {
     const t = this.now;
-    this._noise(this.master, { t, dur: seconds, type: 'highpass', freq: 3000, q: 0.4, peak: 0.05, attack: 0.1 });
-    const { f, g } = this._noise(this.master, { t, dur: seconds, freq: 900, q: 6, peak: 0.12, attack: 0.05 });
+    this._noise(this.master, { t, dur: seconds, type: 'highpass', freq: 3000, q: 0.4, peak: 0.1, attack: 0.1 });
+    const { f, g } = this._noise(this.master, { t, dur: seconds, freq: 900, q: 6, peak: 0.24, attack: 0.05 });
     for (let s = 0; s < seconds; s += 0.11) {
       const syl = Math.random() < 0.75;
       f.frequency.setValueAtTime(400 + Math.random() * 1400, t + s);
-      g.gain.setValueAtTime(syl ? 0.04 + Math.random() * 0.12 : 0.005, t + s);
+      g.gain.setValueAtTime(syl ? 0.08 + Math.random() * 0.24 : 0.01, t + s);
     }
     g.gain.setValueAtTime(0.0001, t + seconds);
   }
@@ -664,8 +664,8 @@ export class Sfx {
   // A tin can bouncing on a hard floor.
   clatter(emitter = null) {
     const dest = emitter ? emitter.input : this.master, t = this.now;
-    if (this.rec('metal', emitter, { vol: 1.1, rate: 1.4 })) return;
-    [0, 0.14, 0.24, 0.31, 0.36].forEach((d, i) => this._noise(dest, { t: t + d, dur: 0.06, freq: 2600 + Math.random() * 1500, q: 6, peak: 0.6 - i * 0.1 }));
+    if (this.rec('metal', emitter, { vol: 3.2, rate: 1.4 })) return;
+    [0, 0.14, 0.24, 0.31, 0.36].forEach((d, i) => this._noise(dest, { t: t + d, dur: 0.06, freq: 2600 + Math.random() * 1500, q: 6, peak: 1.8 - i * 0.3 }));
   }
 
   // A disposable camera: the shutter, and the flash whining back up.
@@ -678,8 +678,8 @@ export class Sfx {
   // Stone dragging on stone: the stalker moving.
   scrape(emitter) {
     const dest = emitter ? emitter.input : this.master, t = this.now;
-    this._noise(dest, { t, dur: 0.4, type: 'lowpass', freq: 380, q: 0.8, peak: 0.6, attack: 0.05, buffer: this.brown });
-    this._noise(dest, { t: t + 0.05, dur: 0.3, freq: 1800 + Math.random() * 600, q: 3, peak: 0.12, attack: 0.04 });
+    this._noise(dest, { t, dur: 0.4, type: 'lowpass', freq: 380, q: 0.8, peak: 1.2, attack: 0.05, buffer: this.brown });
+    this._noise(dest, { t: t + 0.05, dur: 0.3, freq: 1800 + Math.random() * 600, q: 3, peak: 0.3, attack: 0.04 });
   }
 
   // An old phone ringing (four rings).
@@ -687,8 +687,8 @@ export class Sfx {
     const dest = emitter ? emitter.input : this.master, t = this.now;
     for (let r = 0; r < 4; r++) for (let i = 0; i < 20; i++) {
       const at = t + r * 3 + i * 0.05;
-      this._tone(dest, { t: at, type: 'square', freq: i % 2 ? 440 : 480, dur: 0.05, peak: 0.07 });
-      this._tone(dest, { t: at + 1, type: 'square', freq: i % 2 ? 440 : 480, dur: 0.05, peak: 0.07 });
+      this._tone(dest, { t: at, type: 'square', freq: i % 2 ? 440 : 480, dur: 0.05, peak: 0.28 });
+      this._tone(dest, { t: at + 1, type: 'square', freq: i % 2 ? 440 : 480, dur: 0.05, peak: 0.28 });
     }
     return 11;
   }
@@ -697,8 +697,8 @@ export class Sfx {
   chime() {
     const t = this.now;
     [[659, 0], [523, 0.55]].forEach(([f, d]) => {
-      this._tone(this.send, { t: t + d, type: 'sine', freq: f, dur: 1.2, peak: 0.08 });
-      this._tone(this.master, { t: t + d, type: 'sine', freq: f, dur: 1.1, peak: 0.05 });
+      this._tone(this.send, { t: t + d, type: 'sine', freq: f, dur: 1.2, peak: 0.2 });
+      this._tone(this.master, { t: t + d, type: 'sine', freq: f, dur: 1.1, peak: 0.13 });
     });
     return 1.4;
   }
@@ -709,8 +709,8 @@ export class Sfx {
   // The click and hiss of a radio key going down (or up: end).
   squelch(end = false) {
     const t = this.now;
-    this._noise(this.master, { t, dur: end ? 0.18 : 0.09, type: 'bandpass', freq: 2600, q: 0.7, peak: end ? 0.14 : 0.1 });
-    this._tone(this.master, { t, type: 'square', freq: end ? 1400 : 1900, dur: 0.04, peak: 0.03 });
+    this._noise(this.master, { t, dur: end ? 0.18 : 0.09, type: 'bandpass', freq: 2600, q: 0.7, peak: end ? 0.28 : 0.2 });
+    this._tone(this.master, { t, type: 'square', freq: end ? 1400 : 1900, dur: 0.04, peak: 0.06 });
   }
 
   // ---------- the listener, and random events ----------
@@ -719,7 +719,7 @@ export class Sfx {
     const dest = emitter ? emitter.input : this.master, t = this.now;
     let at = t;
     for (let i = 0; i < n; i++) {
-      this._noise(dest, { t: at, dur: 0.03, freq: 2200 + Math.random() * 1200, q: 5, peak: 0.9 * vol, attack: 0.001 });
+      this._noise(dest, { t: at, dur: 0.04, freq: 2200 + Math.random() * 1200, q: 4, peak: 3.2 * vol, attack: 0.001 });
       at += 0.06 + Math.random() * 0.05;
     }
   }

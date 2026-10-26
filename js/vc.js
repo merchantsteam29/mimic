@@ -132,7 +132,7 @@ export class VoiceChat {
     }
     if (!on || !web || radio) { e.gain.gain.cancelScheduledValues(now); e.gain.gain.setValueAtTime(0, now); }
     if (!on) { e.radio.gain.cancelScheduledValues(now); e.radio.gain.setValueAtTime(0, now); return; }
-    e.radio.gain.setTargetAtTime(radio ? 1.6 * this.volume : 0, now, 0.03);
+    e.radio.gain.setTargetAtTime(radio ? 1.1 * this.volume : 0, now, 0.03);
     if (!web || radio) return;
     // 3D.
     e.gain.gain.setTargetAtTime(v * 1.6, now, 0.05);
