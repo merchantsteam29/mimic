@@ -232,6 +232,7 @@ export const PlayerPart = {
   powerOn(by) {
     if (this.power) return;
     this.power = true;
+    this.vs.powered(by);
     this.items.find((i) => i?.type === 'exit').active = false;
     this.items.find((i) => i?.type === 'fusebox').active = false;
     for (const L of this.world.fixtures) L.mat.emissive.setHex(0xff1020);
@@ -285,6 +286,7 @@ export const PlayerPart = {
     lines.push(...this.obj.lines());
     if (this.rec?.line()) lines.push(this.rec.line());
     if (this.thr?.line()) lines.push(this.thr.line());
+    if (this.vs?.line()) lines.unshift(this.vs.line());
     if (this.obj.allDone()) lines.push('Restore power at the panel');
     o.textContent = lines.join('\n');
   },

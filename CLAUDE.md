@@ -194,6 +194,11 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   `camFlash` -> `camFlashed`; the host stuns the mimic (or the hunter) if it's in front within 8 m and in sight.
 - **Hotel** theme (`hotel`, look `house`): small rooms off long halls, beds (hide under), armchairs, old TVs, luggage carts; damask
   walls and the hex carpet; a lift hum; a phone that rings in a nearby room (`scares.updatePhone`), and sometimes you answer.
+- `versus.js`: **Versus** (online lobby mode, 2+ players). `start` carries `teams` (id -> 0 red / 1 blue, shuffled). Everything is
+  shared; `powered(by)` records which team pulled the lever. `result()` (in `end.versus`): the lever team wins if any of them got out,
+  else the team with more out, else it wins. Walkie-talkies reach your own team only (`vs.same`). Remote players get a team armband.
+- Haunting also has V: **a mark** (a red handprint on the floor where the watched player is looking, 25 s; `aim()`, `haunted` k `mark`),
+  and the dead see **where it is** (`haunt.marker`, a red sprite over the mimic, through walls).
 - `radio.js`: **walkie-talkies** (online). Hold B (pad D-pad down, touch Radio): intent `radio` {on} -> broadcast `radioOn`; listeners route
   that voice through `vc.route(id, { radio: true })` (a band-limited, distorted chain in `vc.js`) at full volume, anywhere. While anyone
   transmits, the host makes noise at every OTHER living player's position (the mimic / listener can hear the radios). Max 12 s a press.

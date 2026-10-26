@@ -270,7 +270,7 @@ export const NetPart = {
     if ([...this.status.values()].some((s) => s === 'alive')) return;
     this.ended = true;
     if (!this.mp) return; // alone, the jumpscare / escape ends the run itself
-    this.broadcast({ t: 'end', st: Object.fromEntries(this.status), time: this.time, mode: this.hunt.id ? 'hunt' : this.traitor.on ? 'story' : 'normal', hunter: this.hunt.id, recap: this.recap.data(), ...this.traitor.result() });
+    this.broadcast({ t: 'end', st: Object.fromEntries(this.status), time: this.time, mode: this.hunt.id ? 'hunt' : this.traitor.on ? 'story' : this.vs.on ? 'versus' : 'normal', hunter: this.hunt.id, recap: this.recap.data(), ...this.traitor.result(), ...this.vs.result() });
   },
 
   // Host: the mimic (or, by 'sw', the skinwalker; 'ls', the listener) reached a player.

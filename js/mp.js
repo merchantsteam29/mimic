@@ -167,7 +167,7 @@ export class Session {
       return;
     }
     if (m.t === 'start') { this.net.locked = true; this.lastStart = m; this.onStart(m); return; }
-    if (m.t === 'mode') { if (from === 'h') { this.mode = ['story', 'hunt'].includes(m.mode) ? m.mode : 'normal'; this.skinwalker = !!m.sw; this.listener = !!m.ls; this.stalker = !!m.sk; this.custom = cleanCustom(m.cs); this.difficulty = ['easy', 'nightmare'].includes(m.diff) ? m.diff : 'normal'; this.onRoster(this.roster); } return; }
+    if (m.t === 'mode') { if (from === 'h') { this.mode = ['story', 'hunt', 'versus'].includes(m.mode) ? m.mode : 'normal'; this.skinwalker = !!m.sw; this.listener = !!m.ls; this.stalker = !!m.sk; this.custom = cleanCustom(m.cs); this.difficulty = ['easy', 'nightmare'].includes(m.diff) ? m.diff : 'normal'; this.onRoster(this.roster); } return; }
     if (m.t === 'role') { if (from === 'h') this.game?.traitor.onNet(m); return; }
     if (m.t === 'class') { // a player picked a class (host keeps it in the roster)
       const r = this.isHost && this.roster.find((x) => x.id === from);
@@ -190,13 +190,20 @@ export class Session {
     this.traitorId = this.mode === 'story' && ids.length > 1 && Math.random() < 0.5 ? ids[Math.floor(Math.random() * ids.length)] : null;
     // Hunt: one of you is the mimic (it needs someone to hunt).
     const hunter = this.mode === 'hunt' && ids.length > 1 ? ids[Math.floor(Math.random() * ids.length)] : null;
-    this.net.broadcast({ t: 'start', theme, seed, order: ids, classes, mode: hunter ? 'hunt' : this.mode === 'hunt' ? 'normal' : this.mode, sw: this.mode === 'normal' && this.skinwalker, ls: this.mode === 'normal' && this.listener, sk: this.mode === 'normal' && this.stalker, hunter, diff: this.difficulty, cs: this.custom });
+    // Versus: shuffle everyone into two teams.
+    let teams = null;
+    if (this.mode === 'versus' && ids.length > 1) {
+      const sh = ids.slice();
+      for (let i = sh.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [sh[i], sh[j]] = [sh[j], sh[i]]; }
+      teams = Object.fromEntries(sh.map((id, i) => [id, i % 2]));
+    }
+    this.net.broadcast({ t: 'start', theme, seed, order: ids, classes, mode: hunter ? 'hunt' : teams ? 'versus' : ['hunt', 'versus'].includes(this.mode) ? 'normal' : this.mode, teams, sw: this.mode === 'normal' && this.skinwalker, ls: this.mode === 'normal' && this.listener, sk: this.mode === 'normal' && this.stalker, hunter, diff: this.difficulty, cs: this.custom });
     if (this.traitorId && this.traitorId !== 'h') this.net.sendTo(this.traitorId, { t: 'role', traitor: true });
   }
 
   setMode(mode) {
     if (!this.isHost) return;
-    this.mode = ['story', 'hunt'].includes(mode) ? mode : 'normal';
+    this.mode = ['story', 'hunt', 'versus'].includes(mode) ? mode : 'normal';
     this.sendMode();
     this.onRoster(this.roster);
   }

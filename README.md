@@ -80,6 +80,8 @@ Guess wrong, and it gets hungrier.
 - **More places to hide:** under beds (it may not look), in vents (it can't follow, but they're loud), behind curtains
   (quick, but your feet show).
 - **Things to throw:** bottles and cans to make it look somewhere else, and a disposable camera whose flash blinds it.
+- **Versus** (online mode): red team against blue. Race to pull the lever first, then get out. It hunts both of you.
+- **The dead help:** while watching, they can see where it is, and leave a red handprint where you're looking.
 - **New here?** The first time you play alone, a short tutorial walks you through it (it's also under How to play).
 - **What happened:** after every round, the end screen replays it on a map: everyone's route, its route, where people
   were taken, and whose voice it used most.

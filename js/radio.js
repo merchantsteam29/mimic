@@ -92,7 +92,7 @@ export class Radio {
       const was = this.tx.has(m.id);
       if (m.id && m.on) this.tx.add(m.id); else this.tx.delete(m.id);
       if (m.id === g.me && !m.on && this.talking) { this.talking = false; g.sfx.squelch(true); }
-      if (m.id !== g.me && was !== !!m.on && this.hears()) { g.sfx.squelch(!m.on); if (m.on) this.show(m.id, 999); else this.shown = null; }
+      if (m.id !== g.me && was !== !!m.on && this.hears() && g.vs.same(m.id, g.me)) { g.sfx.squelch(!m.on); if (m.on) this.show(m.id, 999); else this.shown = null; }
       return true;
     }
     if (m.t === 'radioFake') {
@@ -133,7 +133,7 @@ export class Radio {
   }
 
   // Radio voices: everyone who's talking reaches me through the radio (vc.route with radio).
-  routes(id) { return this.hears() && this.tx.has(id) && this.g.alive(id); }
+  routes(id) { return this.hears() && this.tx.has(id) && this.g.alive(id) && this.g.vs.same(id, this.g.me); } // (versus: your team only)
 
   dispose() { $('radio').hidden = true; }
 }

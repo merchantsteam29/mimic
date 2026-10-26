@@ -173,8 +173,10 @@ export const DeathPart = {
     // Hunt: the mimic wins if fewer than half of them got out.
     const others = this.order.filter((id) => id !== m.hunter), out = others.filter((id) => st[id] === 'out').length;
     const hunterWins = !!m.hunter && out * 2 < others.length;
+    const vs = m.versus && typeof m.versus === 'object' ? m.versus : null;
     this.onEnd({
-      mp: true, won: m.hunter === this.me ? hunterWins : m.traitor === this.me ? !!m.traitorWins : st[this.me] === 'out',
+      mp: true, won: vs ? vs.winner === vs.teams?.[this.me] : m.hunter === this.me ? hunterWins : m.traitor === this.me ? !!m.traitorWins : st[this.me] === 'out',
+      versus: vs,
       hunter: m.hunter || null, hunterName: m.hunter ? this.nameOf(m.hunter) : null, hunterWins, time: num(m.time, this.time), fuses: this.fusesFound, lures: this.lures,
       mode: m.mode, traitor: m.traitor || null, traitorName: m.traitor ? this.nameOf(m.traitor) : null, traitorWins: !!m.traitorWins,
       clips: this.mp.clips.size, place: this.level.name, recap: m.recap,

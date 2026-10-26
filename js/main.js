@@ -572,6 +572,16 @@ function endRun(r) {
       $('endTitle').textContent = r.hunterWins ? 'The mimic wins.' : 'You got away from it.';
       $('endSub').textContent = `${r.hunter === session?.id ? 'You were' : `${r.hunterName} was`} the mimic. It took ${took} of ${others.length}.`;
     }
+    if (r.versus) { // which team won the race
+      const T = [['Red', '#e05060'], ['Blue', '#60a0f0']], w = r.versus.winner, lever = r.versus.lever;
+      $('endTitle').textContent = w === null || w === undefined ? 'It wins.' : `${T[w][0]} team wins.`;
+      $('endSub').textContent = (lever === null || lever === undefined ? 'Nobody got the power on.' : `The ${T[lever][0]} team got to the lever first.`)
+        + ` Out: Red ${r.versus.out?.[0] ?? 0}, Blue ${r.versus.out?.[1] ?? 0}.`;
+      $('endPlayers').querySelectorAll('li').forEach((li, i) => {
+        const t = r.versus.teams?.[r.results[i]?.id];
+        if (t === 0 || t === 1) li.querySelector('.dot').style.background = T[t][1];
+      });
+    }
     if (r.mode === 'story') { // the reveal
       $('endSub').textContent += r.traitor
         ? ` ${r.traitor === session?.id ? 'You were' : `${r.traitorName} was`} working for it. The traitor ${r.traitorWins ? 'wins' : 'loses'}.`
@@ -851,7 +861,7 @@ function startMpRun(m) {
   const themeId = m.theme in THEMES ? m.theme : 'facility';
   game = new Game({
     renderer, vhs, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order, classes: m.classes || {},
-    mode: m.mode === 'story' ? 'story' : 'normal', traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, difficulty: m.diff, custom: m.cs,
+    mode: m.mode === 'story' ? 'story' : 'normal', traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, difficulty: m.diff, custom: m.cs, teams: m.mode === 'versus' && m.teams && typeof m.teams === 'object' ? m.teams : null,
     hunter: m.mode === 'hunt' && m.order?.includes(m.hunter) ? m.hunter : null,
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),

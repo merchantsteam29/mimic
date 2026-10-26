@@ -417,6 +417,7 @@ function updateTouch(g) {
   name('KeyF', haunt ? 'Flicker' : 'Light');
   name('KeyG', haunt ? 'Knock' : 'Ability');
   name('KeyC', haunt ? 'Whisper' : 'Crouch');
+  name('KeyV', haunt ? 'Mark' : 'Accuse');
   show('KeyT', !!g.chat?.can());
   show('KeyB', !!g.radio?.can());
   show('KeyX', !spec && !!g.rec && g.rec.phase !== 'none');
@@ -434,7 +435,7 @@ function updateTouch(g) {
   show('KeyG', haunt || (!spec && g.ab?.id !== 'runner'));
   show('KeyQ', !spec && !!(tr?.on && tr.me));
   show('KeyR', !spec && !!(tr?.on && tr.me));
-  show('KeyV', !spec && !!(tr?.on && !tr.voteUsed && g.focus?.type === 'fusebox'));
+  show('KeyV', haunt || (!spec && !!(tr?.on && !tr.voteUsed && g.focus?.type === 'fusebox')));
   for (const b of root.querySelectorAll('[data-toggle]')) b.classList.toggle('on', !spec && held.has(b.dataset.k));
 }
 

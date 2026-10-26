@@ -30,6 +30,7 @@ import { Recorder } from './recorder.js';
 import { Signals } from './signals.js';
 import { Revive } from './revive.js';
 import { Throwables } from './throwables.js';
+import { Versus } from './versus.js';
 
 import { mulberry32 } from './level.js';
 import { keyLabel, rumble } from './controls.js';
@@ -42,7 +43,7 @@ import { DeathPart } from './game-death.js';
 
 export { CUSTOM, ROOM } from './game-shared.js';
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null }) {
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null, teams = null }) {
     Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs, room, custom });
     this.distort = 0;    // camcorder distortion, 0..1
     this.peekHud = 0;    // seconds the HUD stays visible after something changes
@@ -157,6 +158,7 @@ export class Game {
     if (dc) this.items.push({ type: dc.kind, fake: true, x: dc.x, y: 0.1, z: dc.z, mesh: dc.mesh, range: 2.1, active: true });
     this.rec = new Recorder(this); // your own tape recorders (adds their items)
     this.thr = new Throwables(this); // bottles, cans, a camera (adds their items)
+    this.vs = new Versus(this, teams);   // versus mode: red against blue
     this.tut = new Tutorial(this, tutorial && !mp); // before Scares: it takes the tricks out
     this.scares = new Scares(this);
     this.recap = new Recap(this); // host: where everyone went, for the end screen
@@ -249,6 +251,7 @@ export class Game {
     this.hunt.begin();
     this.updateObjective();
     this.toast(this.resumed ? 'You\'re back in.' : this.level.name);
+    if (!this.resumed) this.vs.begin();
     if (this.mp && !this.alive(this.me) && !this.hunt.me) this.startSpectate(); // came back after being taken (or getting out)
   }
 
