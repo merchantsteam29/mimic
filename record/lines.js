@@ -7,7 +7,7 @@ import { LORE } from '../js/lore.js';
 // Who records what. A line's speaker (or, for one-voice tapes, the tape's label) decides the part.
 export const PARTS = [
   ['Ellie', 'Early 20s, films haunted places for her channel. Chatty at first, then whispering and scared, and very calm at the end.', [/^Ellie\b/]],
-  ['Dr. Okafor', 'The scientist who built the thing. Careful and clinical; by the end, tired and guilty. Also plays the copies of his own voice.', [/Okafor/]],
+  ['Dr. Okafor', 'The scientist who built the thing. Careful and clinical; by the end, tired and guilty. Also plays the copies of his own voice.', [/^(?!.*daughter).*Okafor/]],
   ['Dana', 'A 911 dispatcher. Calm and professional, quietly scared. Also reads the dispatcher lines, and the copies of her own voice.', [/^Dana\b/, /^Dispatcher/, /^Recording, unlabelled/]],
   ['Callers', 'Frightened adults on the phone: whispering, out of breath.', [/^Caller/, /^Guest/]],
   ['Child', 'A child. An adult doing a small, soft voice is fine.', [/^Child/, /daughter/]],

@@ -7,10 +7,10 @@ A phone voice memo in a quiet room is perfect: the game adds the tape crackle. L
 ## Parts
 
 - **Ellie** (38 lines): Early 20s, films haunted places for her channel. Chatty at first, then whispering and scared, and very calm at the end.
-- **Dr. Okafor** (29 lines): The scientist who built the thing. Careful and clinical; by the end, tired and guilty. Also plays the copies of his own voice.
+- **Dr. Okafor** (26 lines): The scientist who built the thing. Careful and clinical; by the end, tired and guilty. Also plays the copies of his own voice.
 - **Dana** (17 lines): A 911 dispatcher. Calm and professional, quietly scared. Also reads the dispatcher lines, and the copies of her own voice.
 - **Callers** (6 lines): Frightened adults on the phone: whispering, out of breath.
-- **Child** (4 lines): A child. An adult doing a small, soft voice is fine.
+- **Child** (7 lines): A child. An adult doing a small, soft voice is fine.
 - **Staff and strangers** (52 lines): Ordinary adults who were there before: nurses, guards, porters, a caretaker, a rescue team. Natural, tired, frightened.
 
 ## Ellie
@@ -130,12 +130,6 @@ A phone voice memo in a quiet room is perfect: the game adds the tape crackle. L
 - `ellie/8-1-2` *(flat, a little wrong)* **Test, test. This is Dr. Okafor, voice sample one.**
 - `ellie/8-1-3` *(almost perfect now, slowly)* **The quick brown fox.**
 
-### Recording 0002 · Okafor's daughter (Ellie, Chapter 8: The First Room)
-
-- `ellie/8-2-1` *(a young girl, counting slowly)* **One. Two. Three. Four. Five.**
-- `ellie/8-2-2` **Six. Seven. Eight. Nine.**
-- `ellie/8-2-3` *(whispering)* **Ten. Ready or not.**
-
 ### Dr. Okafor, research log 14 (Victims' tapes, Found in any normal run)
 
 - `lore/3-1` **The specimen responds to speech. It doesn't understand language.**
@@ -214,6 +208,12 @@ A phone voice memo in a quiet room is perfect: the game adds the tape crackle. L
 - `operator/4-2-3` *(the same again, slower, flatter)* **Honey. It's me. I'm at the hotel. Call me back.**
 
 ## Child
+
+### Recording 0002 · Okafor's daughter (Ellie, Chapter 8: The First Room)
+
+- `ellie/8-2-1` *(a young girl, counting slowly)* **One. Two. Three. Four. Five.**
+- `ellie/8-2-2` **Six. Seven. Eight. Nine.**
+- `ellie/8-2-3` *(whispering)* **Ten. Ready or not.**
 
 ### Archive reel, 1987 (The Operator, Chapter 2: Dispatch)
 
