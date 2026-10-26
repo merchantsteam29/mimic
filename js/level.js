@@ -1,4 +1,4 @@
-// Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house, a hospital or a mall.
+// Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house, a hospital, a mall or a school.
 // Also holds the collision, line-of-sight and path-finding the player and the mimic use.
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
@@ -54,6 +54,15 @@ export const THEMES = {
     fog: 0x030202, fogDensity: 0.075, reverb: [3.4, 0.5],
     props: ['mannequin', 'clothesrack', 'counter', 'bench', 'planter', 'shoerack', 'mannequin', 'clothesrack'], hideProp: 'fittingroom', surface: 'hard',
   },
+  // A school at night: classrooms off long halls of lockers, a clock ticking, the PA system. Built like the facility.
+  school: {
+    id: 'school', look: 'facility', kicker: 'Closed school',
+    names: ['Ashgrove Elementary', 'Pine Hills Middle School', 'St. Brendan\'s · East Wing', 'Holloway County High'],
+    size: 28, roomSize: [4, 7], tries: 130, minRooms: 9,
+    light: 0xf2f4ff, lightIntensity: 8, corridorLights: true, flicker: 0.45, broken: 0.35,
+    fog: 0x020203, fogDensity: 0.08, reverb: [2.6, 0.44],
+    props: ['schooldesk', 'schooldesk', 'chalkboard', 'teacherdesk', 'bookshelf', 'cubbies', 'trophycase', 'schooldesk'], hideProp: 'locker', surface: 'hard',
+  },
 };
 
 // Footprint (w across the front, d front-to-back) of each prop, in metres. Front faces +z.
@@ -64,6 +73,7 @@ const PROP_DEFS = {
   gurney: { w: 0.9, d: 2.0 }, wheelchair: { w: 0.7, d: 0.8 }, ivstand: { w: 0.5, d: 0.5 }, curtain: { w: 1.9, d: 0.3 }, medcabinet: { w: 1.0, d: 0.45 },
   mannequin: { w: 0.6, d: 0.5 }, clothesrack: { w: 1.6, d: 0.6 }, counter: { w: 1.8, d: 0.8 }, bench: { w: 1.6, d: 0.6 }, planter: { w: 1.0, d: 1.0 },
   shoerack: { w: 1.6, d: 0.45 }, fittingroom: { w: 1.2, d: 1.0 },
+  schooldesk: { w: 1.2, d: 1.1 }, teacherdesk: { w: 1.6, d: 0.8 }, chalkboard: { w: 1.9, d: 0.2 }, cubbies: { w: 1.6, d: 0.45 }, trophycase: { w: 1.4, d: 0.5 },
 };
 
 // opts (story chapters): { size, tasks: { fuses, gens, tapes, keycard }, lore (tape count), broken (share of dead lights) }
@@ -723,6 +733,38 @@ function buildProp(type, M) {
       for (let i = 0; i < 6; i++) g.add(box(0.19, 1.75, 0.02, M.booth, -0.48 + i * 0.193, 1.12, 0.47 + (i % 2) * 0.03));
       g.add(box(0.5, 0.75, 0.02, M.mirror, 0, 1.4, -0.45));
       break;
+    case 'schooldesk': // two small desks and their chairs, one knocked over
+      for (const x of [-0.32, 0.32]) {
+        g.add(box(0.55, 0.03, 0.42, M.wood, x, 0.7, -0.2), box(0.5, 0.18, 0.38, M.metal, x, 0.6, -0.2));
+        for (const lx of [-0.24, 0.24]) g.add(box(0.03, 0.6, 0.03, M.metal, x + lx, 0.3, -0.2));
+        const chair = new THREE.Group();
+        chair.add(box(0.38, 0.03, 0.36, M.wood, 0, 0.42, 0), box(0.38, 0.3, 0.03, M.wood, 0, 0.62, 0.18));
+        for (const cx of [-0.17, 0.17]) for (const cz of [-0.15, 0.15]) chair.add(box(0.025, 0.42, 0.025, M.metal, cx, 0.21, cz));
+        chair.position.set(x, 0, 0.28);
+        if (r() < 0.25) { chair.rotation.x = -Math.PI / 2; chair.position.y = 0.18; chair.position.z = 0.45; }
+        g.add(chair);
+      }
+      break;
+    case 'teacherdesk':
+      g.add(box(1.6, 0.05, 0.8, M.wood, 0, 0.76, 0), box(0.45, 0.72, 0.75, M.wood, -0.55, 0.37, 0), box(1.5, 0.5, 0.03, M.wood, 0, 0.5, -0.37));
+      if (r() < 0.6) g.add(cyl(0.05, 0.05, 0.1, M.metal, 0.4, 0.84, 0.1, 8)); // a mug
+      if (r() < 0.7) g.add(box(0.3, 0.04, 0.22, M.paper, 0.1, 0.8, -0.05));
+      break;
+    case 'chalkboard': // on the wall; somebody's been writing lines
+      g.add(box(1.85, 1.05, 0.04, M.chalk, 0, 1.55, -0.06), box(1.9, 0.05, 0.12, M.wood, 0, 1.0, -0.02));
+      for (const y of [0.995, 2.095]) g.add(box(1.92, 0.04, 0.06, M.wood, 0, y, -0.05));
+      break;
+    case 'cubbies':
+      g.add(box(1.6, 1.4, 0.04, M.wood, 0, 0.7, -0.2));
+      for (const y of [0.02, 0.47, 0.92, 1.38]) g.add(box(1.6, 0.03, 0.42, M.wood, 0, y, 0));
+      for (const x of [-0.79, -0.4, 0, 0.4, 0.79]) g.add(box(0.03, 1.4, 0.42, M.wood, x, 0.7, 0));
+      for (const y of [0.05, 0.5, 0.95]) for (const x of [-0.6, -0.2, 0.2, 0.6]) if (r() < 0.5) g.add(box(0.28, 0.25, 0.3, M.clothes[Math.floor(r() * M.clothes.length)], x, y + 0.14, 0)); // left-behind bags
+      break;
+    case 'trophycase':
+      g.add(box(1.4, 0.8, 0.5, M.darkWood, 0, 0.4, 0), box(1.4, 1.1, 0.02, M.glass, 0, 1.35, 0.24), box(1.4, 1.1, 0.04, M.darkWood, 0, 1.35, -0.23));
+      g.add(box(1.4, 0.04, 0.5, M.darkWood, 0, 1.92, 0), box(1.4, 0.02, 0.45, M.glass, 0, 1.35, 0));
+      for (let x = -0.5; x < 0.55; x += 0.25) if (r() < 0.75) g.add(cyl(0.04, 0.06, 0.22, M.brass, x, 0.92, 0, 8), cyl(0.06, 0.03, 0.08, M.brass, x, 1.07, 0, 8));
+      break;
     case 'wardrobe':
       g.add(box(1.25, 2.2, 0.75, M.darkWood, 0, 1.1, 0));
       g.add(box(0.015, 2.0, 0.01, M.black, 0, 1.1, 0.376));
@@ -765,6 +807,8 @@ export function buildLevelScene(level) {
     bag: new THREE.MeshStandardMaterial({ color: 0x8a1010, roughness: 0.3, transparent: true, opacity: 0.8 }),
     bottles: [0x5a3a14, 0x8a8a80, 0x2a4a5a].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.2 })),
     plastic: new THREE.MeshStandardMaterial({ color: 0xcfc6b8, roughness: 0.35 }),
+    chalk: new THREE.MeshStandardMaterial({ map: tex.chalk, roughness: 0.9 }),
+    brass: new THREE.MeshStandardMaterial({ color: 0xb08a3a, roughness: 0.35, metalness: 0.8 }),
     clothes: [0x5a2230, 0x22344a, 0x3a3a36, 0x6a5a3a, 0x2a4a3a, 0x7a6a6a].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.95 })),
     deadLeaf: new THREE.MeshStandardMaterial({ color: 0x3a3220, roughness: 1, side: THREE.DoubleSide }),
     booth: new THREE.MeshStandardMaterial({ color: 0x4a1418, roughness: 1, side: THREE.DoubleSide }),

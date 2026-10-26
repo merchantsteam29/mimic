@@ -182,6 +182,61 @@ function mallFloor() {
   return toTexture(c);
 }
 
+// ---------- school ----------
+function schoolWall() {
+  const [c, g] = canvas(256, 384); // one 2m x 3m wall face: painted cinder blocks
+  g.fillStyle = '#a7a492'; g.fillRect(0, 0, 256, 384);           // cream above
+  g.fillStyle = '#5e7480'; g.fillRect(0, 230, 256, 142);         // blue-grey below
+  g.fillStyle = '#8a3a2a'; g.fillRect(0, 224, 256, 6);           // a red stripe
+  g.strokeStyle = 'rgba(40,40,35,.35)'; g.lineWidth = 2;
+  for (let y = 0; y < 372; y += 24) {
+    g.beginPath(); g.moveTo(0, y); g.lineTo(256, y); g.stroke();
+    for (let x = (y / 24) % 2 ? 32 : 0; x < 256; x += 64) { g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + 24); g.stroke(); }
+  }
+  g.fillStyle = '#2a2826'; g.fillRect(0, 372, 256, 12);          // skirting
+  // Children's drawings, sometimes. Some of them are of something tall.
+  if (Math.random() < 0.4) {
+    for (let i = 0; i < 2; i++) {
+      const x = 30 + i * 110 + Math.random() * 20, y = 110 + Math.random() * 30;
+      g.fillStyle = '#e8e2cc'; g.fillRect(x, y, 70, 56);
+      g.strokeStyle = ['#2a4a8a', '#8a2a2a', '#2a6a3a'][i % 3]; g.lineWidth = 2;
+      g.beginPath(); g.arc(x + 20, y + 22, 6, 0, Math.PI * 2); g.moveTo(x + 20, y + 28); g.lineTo(x + 20, y + 44); g.stroke(); // a person
+      g.strokeStyle = '#111'; g.beginPath(); g.moveTo(x + 50, y + 6); g.lineTo(x + 50, y + 50); g.moveTo(x + 50, y + 16); g.lineTo(x + 38, y + 40); g.moveTo(x + 50, y + 16); g.lineTo(x + 62, y + 40); g.stroke(); // it
+    }
+  }
+  blotches(g, 256, 384, 8, 0.28);
+  streaks(g, 256, 230, 4, 'rgba(50,40,25,.3)');
+  stains(g, 256, 384, 3, 'rgba(40,30,15,.3)');
+  grain(g, 256, 384, 22);
+  return toTexture(c);
+}
+
+function schoolFloor() {
+  const [c, g] = canvas(256); // one 2m cell: speckled vinyl tiles
+  for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
+    const v = Math.random() * 10, odd = Math.random() < 0.08;
+    g.fillStyle = odd ? `rgb(${90 + v},${110 + v},${120 + v})` : `rgb(${158 + v},${154 + v},${140 + v})`;
+    g.fillRect(x * 64 + 1, y * 64 + 1, 62, 62);
+  }
+  for (let i = 0; i < 700; i++) { g.fillStyle = Math.random() < 0.5 ? 'rgba(60,60,55,.45)' : 'rgba(200,195,180,.4)'; g.fillRect(Math.random() * 256, Math.random() * 256, 2, 1); }
+  blotches(g, 256, 256, 6, 0.35);
+  stains(g, 256, 256, 2, 'rgba(50,40,20,.35)');
+  grain(g, 256, 256, 20);
+  return toTexture(c);
+}
+
+// The chalkboard, and what's written on it.
+function chalkboard() {
+  const [c, g] = canvas(512, 290);
+  g.fillStyle = '#1f2b24'; g.fillRect(0, 0, 512, 290);
+  blotches(g, 512, 290, 10, 0.25, false);
+  g.fillStyle = 'rgba(230,230,220,.8)';
+  g.font = '22px "Special Elite", monospace';
+  const line = ['I will not talk in class.', 'I will not answer it.', 'It sounds like Mrs. Hale.', 'DONT LET IT HEAR YOU'][Math.floor(Math.random() * 4)];
+  for (let i = 0; i < 9; i++) g.fillText(line, 22 + Math.random() * 6, 34 + i * 28);
+  return toTexture(c);
+}
+
 // ---------- house ----------
 const WALLPAPERS = [['#4d5a45', '#5f6d55'], ['#6e4f4f', '#7d5d5b'], ['#6f6141', '#7f7150'], ['#4a4f63', '#5a5f73']];
 
@@ -404,11 +459,11 @@ export function skinNormal() {
 }
 
 export function makeTextures(theme) {
-  const facility = theme === 'facility', hospital = theme === 'hospital', mall = theme === 'mall';
+  const facility = theme === 'facility', hospital = theme === 'hospital', mall = theme === 'mall', school = theme === 'school';
   const pair = (name) => [photo(`${name}_color`), photo(`${name}_normal`, false)];
-  const [wall, wallN] = facility ? pair('concreteWall') : [hospital ? hospitalWall() : mall ? mallWall() : houseWall(), photo('plaster_normal', false)];
-  const [floor, floorN] = hospital || mall ? [hospital ? hospitalFloor() : mallFloor(), photo('concreteFloor_normal', false)] : pair(facility ? 'concreteFloor' : 'woodFloor');
-  const [ceiling, ceilingN] = pair(facility || hospital || mall ? 'officeCeiling' : 'plaster');
+  const [wall, wallN] = facility ? pair('concreteWall') : [hospital ? hospitalWall() : mall ? mallWall() : school ? schoolWall() : houseWall(), photo('plaster_normal', false)];
+  const [floor, floorN] = hospital || mall || school ? [hospital ? hospitalFloor() : mall ? mallFloor() : schoolFloor(), photo('concreteFloor_normal', false)] : pair(facility ? 'concreteFloor' : 'woodFloor');
+  const [ceiling, ceilingN] = pair(facility || hospital || mall || school ? 'officeCeiling' : 'plaster');
   const [woodC, woodN] = pair('wood');
   const [metalC, metalN] = pair('paintedMetal');
   wall.repeat.set(1, 1.5); wallN.repeat.set(1, 1.5); // one 2m x 3m wall face
@@ -423,5 +478,6 @@ export function makeTextures(theme) {
     fabric: fabric(facility ? '#3b3d3a' : hospital ? '#2f3b40' : mall ? '#4a3a44' : '#4a2f2c'),
     sheet: fabric('#8b877c'),
     exitSign: label('EXIT', '#160404', '#ff2b3a'),
+    chalk: chalkboard(),
   };
 }

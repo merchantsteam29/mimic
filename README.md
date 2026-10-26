@@ -53,7 +53,7 @@ Guess wrong, and it gets hungrier.
   pickups are it. A body on the floor isn't where you left it. Mirrors show it standing behind you (usually it isn't).
   It opens doors, slowly. It gets hungrier over time, and lights die for good. When the power comes back, it changes.
   Online, it can walk around as a friend it took. Old tapes from people who came before tell you what happened to them.
-- **Random maps:** each run is a research facility, an old house, an abandoned hospital or a closed-down mall, with a new layout every time.
+- **Random maps:** each run is a research facility, an old house, an abandoned hospital, a closed-down mall or a school at night, with a new layout every time.
 - **Hunt** (online mode): one of you, picked at random, IS the mimic. You see in the dark, you see their flashlights, you
   see where they made noise through the walls, and you can call to them in any of their voices. Bite them, rip open their
   hiding spots, kill the lights. Everyone else plays the normal game against you. The mimic wins if fewer than half get out.
@@ -69,6 +69,10 @@ Guess wrong, and it gets hungrier.
 - **Waiting room:** while you wait for the host, walk around a small house together and talk.
 - **Save the jumpscare:** when it gets you, the end screen lets you save (or share, on a phone) a clip of the moment.
 - **Your stats** (title screen) and a **Fewer flashes** setting for players sensitive to flashing light.
+- **Your own tape recorder:** pick one up, press `X` and say something, then put it down. It plays your voice a few times, loudly,
+  and it goes to see who's there. Use its trick against it.
+- **Difficulty:** Easy, Normal or Nightmare (alone on the class screen; the host picks it online).
+- **The Stalker** (online, Normal mode, a lobby switch): it only moves when nobody can see it. Keep it in your light.
 - **New here?** The first time you play alone, a short tutorial walks you through it (it's also under How to play).
 - **What happened:** after every round, the end screen replays it on a map: everyone's route, its route, where people
   were taken, and whose voice it used most.

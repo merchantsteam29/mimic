@@ -150,6 +150,18 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - Jumpscares (`game.caught`): above / behind / drag / front, plus the mimic's slow ones: `dark` (your light and the picture go out,
   then stutter back with it in your face) and `stare` (it stands 2 m off, head tipping over, whispering, then lunges). `lunge` delays
   the strike (flash, screech, scream). The listener's head is two hinged halves (`halves`) lined with teeth that part when it rushes.
+- `stalker.js`: the **stalker**: online, **Normal mode only**, a host lobby toggle (`session.setStalker`, `start` carries `sk`). A pale
+  cracked figure that only moves while no living player can see it (`seenBy`: in their view cone, line of sight, and lit: within 6 m,
+  in their beam, or under a working light). Unseen it runs (5.6 m/s) at the nearest player not hiding, and changes pose each time it moves
+  (`POSES`); clients never move or re-pose it while they're looking. Stays ~70 s, then gone for 60-110 s. `hostCatch(id, 'sk')`, `snap.sk`.
+- `recorder.js`: **your own tape recorder**: two per level at seeded spots (item type `recorder`, taken through `take`). X records (your
+  next clip within 8 s, else your last one), X again puts it down: intent `recDrop` -> `recSet`; it plays 3 times (4 / 11 / 18 s) as
+  `playVoice(..., 'recorder')`, and each play the host calls `mimic.hear` / `ls.hear` at 24 m. Then it can be picked up again. Online the
+  clip goes by its key (`clip.key`, set in `Session.shareClip`).
+- **Difficulty** (`DIFFICULTY` in mimic.js: Easy / Normal / Nightmare): its speed, sight range, how often it talks, battery life, grace
+  time and hunger interval. Alone it's `settings.diff` (class screen); online the host sets it in the lobby (`setDifficulty`, `start.diff`).
+- **School** theme (`school`, look `facility`): classroom desks, chalkboards with lines written on them (`tex.chalk`), cubbies, trophy
+  cases, lockers to hide in; a ticking clock; the PA (`scares.updatePA`: `sfx.chime`, then your voice, far off).
 - `radio.js`: **walkie-talkies** (online). Hold B (pad D-pad down, touch Radio): intent `radio` {on} -> broadcast `radioOn`; listeners route
   that voice through `vc.route(id, { radio: true })` (a band-limited, distorted chain in `vc.js`) at full volume, anywhere. While anyone
   transmits, the host makes noise at every OTHER living player's position (the mimic / listener can hear the radios). Max 12 s a press.

@@ -387,3 +387,8 @@ body:has(.screen:not([hidden])) #coach, body:has(.screen:not([hidden])) #caption
 body.calm #flash.hit { animation: hitCalm .5s ease-out; }
 @keyframes hitCalm { 0% { opacity: .3; background: #3a0008; } 100% { opacity: 0; background: #000; } }
 #btnClip { display: block; margin: 10px auto 0; border-color: var(--red); }
+
+/* ---------- difficulty ---------- */
+.diff-pick { display: flex; justify-content: center; margin: 4px auto 12px; }
+.diff-pick button { flex: 1; max-width: 140px; }
+.t-tape { right: calc(222px + env(safe-area-inset-right)); top: 56px; width: 60px; height: 44px; border-radius: 22px; }

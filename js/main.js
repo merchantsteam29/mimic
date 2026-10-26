@@ -41,7 +41,7 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 // Graphics start on Auto: phones and tablets begin at medium, and it steps down by itself when the game runs slowly
 // (`tier` is where Auto has settled on this device).
 const COARSE = matchMedia('(pointer: coarse)').matches;
-const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1, quality: 'auto', tier: COARSE ? 'medium' : 'high', captions: false, calm: false };
+const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1, quality: 'auto', tier: COARSE ? 'medium' : 'high', captions: false, calm: false, diff: 'normal' };
 let settings = { ...DEFAULTS };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('mimic.settings') || '{}')); } catch { /* private mode */ }
 const saveSettings = () => { try { localStorage.setItem('mimic.settings', JSON.stringify(settings)); } catch { /* ignore */ } };
@@ -297,6 +297,21 @@ function renderClassPick() {
   }
 }
 renderClassPick();
+// Difficulty (alone; online the host picks it in the lobby).
+function renderDiff() {
+  document.querySelectorAll('.diff-pick').forEach((box) => {
+    const online = box.dataset.for === 'lobby', cur = online ? session?.difficulty : settings.diff;
+    box.querySelectorAll('button').forEach((b) => {
+      b.classList.toggle('on', b.dataset.d === cur);
+      b.disabled = online && !session?.isHost;
+      b.onclick = () => {
+        if (online) session?.setDifficulty(b.dataset.d);
+        else { settings.diff = b.dataset.d; saveSettings(); renderDiff(); }
+      };
+    });
+  });
+}
+renderDiff();
 $('btnClassGo').onclick = () => startRun(storyIdx);
 
 // ---------- voice check (before your first game, alone or online) ----------
@@ -392,7 +407,7 @@ function startRun(si = null) {
   const themeId = story ? story.theme : params.get('theme') in THEMES ? params.get('theme') : randomTheme();
   const seed = story ? story.seed : params.has('seed') ? Number(params.get('seed')) : Math.floor(Math.random() * 2 ** 31);
   game = new Game({
-    renderer, vhs, sfx, voice, settings, hud, themeId, seed, story, classes: { h: params.get('class') in CLASSES ? params.get('class') : myClass },
+    renderer, vhs, sfx, voice, settings, hud, themeId, seed, story, classes: { h: params.get('class') in CLASSES ? params.get('class') : myClass }, difficulty: settings.diff,
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),
   });
@@ -717,6 +732,7 @@ function renderLobby() {
   $('lobbyList').innerHTML = session.roster.map((r) =>
     `<li data-id="${esc(r.id)}"><span class="dot"></span>${esc(r.name)}${r.id === session.id ? ' (you)' : ''}<span class="ptag">${CLASSES[r.cls]?.name || ''}${r.id === 'h' ? ' · host' : ''}</span></li>`).join('');
   renderClassPick();
+  renderDiff();
   $('btnStart').hidden = !session.isHost;
   $('lobbyStatus').textContent = session.isHost
     ? (session.roster.length < 2 ? 'Send your friends the code or the invite link.' : `${session.roster.length} of 4 players.`)
@@ -738,6 +754,11 @@ function renderLobby() {
   ls.querySelector('b').textContent = `Listener: ${lsOn ? 'on' : 'off'}`;
   ls.disabled = !session.isHost || session.mode !== 'normal';
   ls.onclick = () => session.setListener(!session.listener);
+  const sk = $('btnStalker'), skOn = session.stalker && session.mode === 'normal';
+  sk.classList.toggle('on', skOn);
+  sk.querySelector('b').textContent = `Stalker: ${skOn ? 'on' : 'off'}`;
+  sk.disabled = !session.isHost || session.mode !== 'normal';
+  sk.onclick = () => session.setStalker(!session.stalker);
 }
 
 // The waiting room: a small house to walk around in with everyone while you wait.
@@ -789,7 +810,7 @@ function startMpRun(m) {
   const themeId = m.theme in THEMES ? m.theme : 'facility';
   game = new Game({
     renderer, vhs, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order, classes: m.classes || {},
-    mode: m.mode === 'story' ? 'story' : 'normal', traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls,
+    mode: m.mode === 'story' ? 'story' : 'normal', traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, difficulty: m.diff,
     hunter: m.mode === 'hunt' && m.order?.includes(m.hunter) ? m.hunter : null,
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),

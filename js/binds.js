@@ -17,6 +17,7 @@ export const ACTIONS = [
   ['jobs', 'Show objectives', 'Tab', 8],
   ['chat', 'Quick chat', 'KeyT', 11],
   ['radio', 'Walkie-talkie (hold)', 'KeyB', 13],
+  ['recorder', 'Tape recorder', 'KeyX', 15],
   ['jam', 'Jam a door (traitor)', 'KeyQ', 4],
   ['sabotage', 'Sabotage (traitor)', 'KeyR', 5],
   ['accuse', 'Call a vote', 'KeyV', 12],
@@ -25,7 +26,7 @@ const BY = Object.fromEntries(ACTIONS.map((a) => [a[0], a]));
 // The code the game listens for, per action.
 export const GAME_CODE = Object.fromEntries(ACTIONS.map(([id, , key]) => [id, key]));
 // Short names used in hints (keyLabel('E') etc.) -> action.
-export const HINT_ACTION = { E: 'use', F: 'light', G: 'ability', C: 'crouch', Shift: 'sprint', Space: 'skill', Q: 'jam', R: 'sabotage', V: 'accuse', Tab: 'jobs', T: 'chat', B: 'radio', Beat: 'skill' };
+export const HINT_ACTION = { E: 'use', F: 'light', G: 'ability', C: 'crouch', Shift: 'sprint', Space: 'skill', Q: 'jam', R: 'sabotage', V: 'accuse', Tab: 'jobs', T: 'chat', B: 'radio', X: 'recorder', Beat: 'skill' };
 
 export const PAD_NAMES = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'View', 'Start', 'L3', 'R3', '▲', '▼', '◀', '▶', 'Home'];
 

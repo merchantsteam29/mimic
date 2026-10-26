@@ -286,7 +286,9 @@ export class Sfx {
     if (style === 'scream') { rate = rand(1.12, 1.28); vol = 1.5; ws.curve = distortionCurve(30); }
     else if (style === 'distant') { rate = rand(0.955, 1.0); vol = 0.95; ws.curve = distortionCurve(3); lp.frequency.value = 2300; wet.gain.value = 0.9; }
     else if (style === 'whisper') { rate = rand(0.96, 0.99); vol = 0.6; ws.curve = distortionCurve(1); hp.frequency.value = 380; lp.frequency.value = 4200; wet.gain.value = 0; }
-    else if (style === 'radio') { // over a walkie-talkie
+    else if (style === 'recorder') { // a cheap tape recorder on the floor
+      rate = rand(0.97, 1.0); vol = 1.5; ws.curve = distortionCurve(6); hp.frequency.value = 300; lp.frequency.value = 3800; wet.gain.value = 0.5;
+    } else if (style === 'radio') { // over a walkie-talkie
       rate = 1; vol = 1.4; ws.curve = this.radioCurve(); hp.frequency.value = 450; lp.frequency.value = 2900; pk.frequency.value = 1700; pk.gain.value = 8; wet.gain.value = 0;
     } else if (style === 'echo') { rate = 0.78; vol = 1.2; ws.curve = distortionCurve(2); lp.frequency.value = 2600; wet.gain.value = 1; }
     else if (style === 'stranger') { // someone else: pitched, over a bad line. Mostly the same someone.
@@ -571,6 +573,15 @@ export class Sfx {
       const mg = ctx.createGain(); mg.gain.value = 0.012;
       const mlp = ctx.createBiquadFilter(); mlp.type = 'lowpass'; mlp.frequency.value = 1800; // through a wall or two
       mon.connect(mlp).connect(mg).connect(bus); mon.start(); nodes.push(mon);
+    } else if (theme === 'school') {
+      // A classroom clock, ticking, somewhere close. Nothing else.
+      const sr = ctx.sampleRate, b = ctx.createBuffer(1, sr, sr), d = b.getChannelData(0);
+      for (let i = 0; i < 300; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / 40);
+      const tick = ctx.createBufferSource(); tick.buffer = b; tick.loop = true;
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2400; bp.Q.value = 2;
+      const tg = ctx.createGain(); tg.gain.value = 0.05;
+      tick.connect(bp).connect(tg).connect(bus); tg.connect(this.send);
+      tick.start(); nodes.push(tick);
     } else if (theme === 'mall') {
       // Somewhere, the music never got switched off: a slow tune on a worn tape, through a few walls.
       const sr = ctx.sampleRate, NOTES = [64, 67, 71, 69, 67, 64, 62, 64, 67, 66, 62, 59, 60, 64, 62, 0];
@@ -629,6 +640,23 @@ export class Sfx {
     tone.start(); vib.start();
     nodes.push(tone, vib, dread, high);
     this.ambient = { nodes, bus, theme, dread, dreadLp, high };
+  }
+
+  // Stone dragging on stone: the stalker moving.
+  scrape(emitter) {
+    const dest = emitter ? emitter.input : this.master, t = this.now;
+    this._noise(dest, { t, dur: 0.4, type: 'lowpass', freq: 380, q: 0.8, peak: 0.6, attack: 0.05, buffer: this.brown });
+    this._noise(dest, { t: t + 0.05, dur: 0.3, freq: 1800 + Math.random() * 600, q: 3, peak: 0.12, attack: 0.04 });
+  }
+
+  // The school PA: two notes before an announcement.
+  chime() {
+    const t = this.now;
+    [[659, 0], [523, 0.55]].forEach(([f, d]) => {
+      this._tone(this.send, { t: t + d, type: 'sine', freq: f, dur: 1.2, peak: 0.08 });
+      this._tone(this.master, { t: t + d, type: 'sine', freq: f, dur: 1.1, peak: 0.05 });
+    });
+    return 1.4;
   }
 
   // ---------- walkie-talkies ----------

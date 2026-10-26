@@ -18,7 +18,7 @@ const LABELS = {
   pad: { Esc: 'Start', 1: '▲', 2: '▶', 3: '▼', 4: '◀', 0: 'B', Vote: 'Vote with the D-pad' },
   touch: {
     E: 'Use', F: 'Light', G: 'Ability', C: 'Crouch', Shift: 'Run', Space: 'Tap', Q: 'Jam', R: 'Sabotage', V: 'Accuse',
-    Tab: 'Jobs', T: 'Say', B: 'Radio', Esc: 'II', Beat: 'Beat', Next: 'Next', Vote: 'Tap a name to vote',
+    Tab: 'Jobs', T: 'Say', B: 'Radio', X: 'Tape', Esc: 'II', Beat: 'Beat', Next: 'Next', Vote: 'Tap a name to vote',
   },
 };
 
@@ -188,7 +188,7 @@ function gamePad(dt, g, { now, down, up, ax }) {
   const spectating = g.state === 'spectate';
   // Hiding with it at the door: "use" is the heartbeat too (pressing "use" would walk you out).
   const useCode = g.hb?.on ? 'Space' : 'KeyE';
-  const map = [[pb.use, useCode], [pb.light, 'KeyF'], [pb.ability, 'KeyG'], [pb.jam, 'KeyQ'], [pb.sabotage, 'KeyR'], [pb.skill, 'Space'], [pb.jobs, 'Tab'], [pb.sprint, 'ShiftLeft'], [pb.radio, 'KeyB']];
+  const map = [[pb.use, useCode], [pb.light, 'KeyF'], [pb.ability, 'KeyG'], [pb.jam, 'KeyQ'], [pb.sabotage, 'KeyR'], [pb.skill, 'Space'], [pb.jobs, 'Tab'], [pb.sprint, 'ShiftLeft'], [pb.radio, 'KeyB'], [pb.recorder, 'KeyX']];
   for (const [i, code] of map) {
     if (down(i)) press(code);
     else if (up(i)) { release(code); if (i === pb.use) release('Space'), release('KeyE'); }
@@ -410,6 +410,7 @@ function updateTouch(g) {
   name('KeyC', haunt ? 'Whisper' : 'Crouch');
   show('KeyT', !!g.chat?.can());
   show('KeyB', !!g.radio?.can());
+  show('KeyX', !spec && !!g.rec && g.rec.phase !== 'none');
   if (hunter) {
     for (const k of ['Space', 'KeyF', 'KeyC', 'KeyG', 'KeyV', 'Tab']) show(k, false);
     for (const k of ['KeyE', 'KeyQ', 'KeyR', 'ShiftLeft']) show(k, true);

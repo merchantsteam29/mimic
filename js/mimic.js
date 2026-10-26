@@ -21,6 +21,12 @@ const STATES = ['wander', 'investigate', 'stalk', 'chase', 'hunt', 'peek', 'flee
 const CEIL = 3;          // ceiling height (level.js WALL_H)
 const DROP = 0.45;       // seconds to drop from the ceiling
 const RADIUS = 0.35;
+// Difficulty: how fast it moves, how far it sees, how often it talks (a multiplier on the wait between lures).
+export const DIFFICULTY = {
+  easy: { name: 'Easy', speed: 0.85, sight: 0.8, talk: 1.35, battery: 1.5, grace: 20, hunger: 1.5 },
+  normal: { name: 'Normal', speed: 1, sight: 1, talk: 1, battery: 1, grace: 0, hunger: 1 },
+  nightmare: { name: 'Nightmare', speed: 1.15, sight: 1.25, talk: 0.7, battery: 0.7, grace: -8, hunger: 0.65 },
+};
 
 export function buildModel() {
   const root = new THREE.Group();
@@ -201,6 +207,7 @@ export class Mimic {
     this.hideTarget = null;
     this.stalkCd = 12 + Math.random() * 8;   // the first lure comes soon
     this.speakCd = 10;
+    this.diff = DIFFICULTY.normal; // set by the game
     this.screamCd = 0;
     this.speaking = 0;
     this.aggro = 1;
@@ -252,7 +259,7 @@ export class Mimic {
     if (this.state === 'stunned' || this.state === 'sniff') return false;
     if (P.hidden) return false;
     if (this.graceT > 0) return false;
-    let range = P.flashOn ? 22 : 12;
+    let range = (P.flashOn ? 22 : 12) * this.diff.sight;
     if (P.crouch) range *= 0.75;
     if (this.enraged > 0) range = 40;
     if (d > range) return false;
@@ -417,7 +424,7 @@ export class Mimic {
   speak(style) {
     const d = this.hooks.speak(style, this.emitter);
     this.speaking = d;
-    this.speakCd = (9 + Math.random() * 8) * (1 - this.hunger * 0.12); // hungrier, chattier
+    this.speakCd = (9 + Math.random() * 8) * (1 - this.hunger * 0.12) * this.diff.talk; // hungrier, chattier
   }
 
   // ---------- movement ----------
@@ -444,7 +451,7 @@ export class Mimic {
     }
     const dx = wp.x - this.x, dz = wp.z - this.z, dist = Math.hypot(dx, dz);
     if (dist < 0.2) { this.path.shift(); return !this.path.length; }
-    const step = Math.min(dist, speed * dt);
+    const step = Math.min(dist, speed * this.diff.speed * dt);
     const p = { x: this.x + (dx / dist) * step, z: this.z + (dz / dist) * step };
     lv.collide(p, RADIUS);
     const moved = Math.hypot(p.x - this.x, p.z - this.z);

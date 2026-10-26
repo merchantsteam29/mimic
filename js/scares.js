@@ -291,6 +291,18 @@ export class Scares {
     this.updateBody(dt);
     this.updateDecoys(dt);
     this.updateMannequins(dt);
+    this.updatePA(dt);
+  }
+
+  // The school's PA: a chime, then your own voice over the speakers, far away.
+  updatePA(dt) {
+    const g = this.g;
+    if (g.level.theme.id !== 'school' || g.power) return;
+    this.paT = (this.paT ?? 70 + Math.random() * 40) - dt;
+    if (this.paT > 0) return;
+    this.paT = 110 + Math.random() * 70;
+    const wait = g.sfx.chime();
+    setTimeout(() => { if (g.state === 'playing') g.localSpeak('distant', null); }, wait * 1000);
   }
 
   // The mall's mannequins: when you aren't looking, one turns a little more toward you, or tilts its head.

@@ -10,7 +10,7 @@ import { Net } from './net.js';
 import { VoiceChat } from './vc.js';
 import { CLASSES } from './classes.js';
 
-const HOST_TYPES = new Set(['st', 'noise', 'take', 'insert', 'escaped', 'work', 'bang', 'smash', 'unlock', 'lever', 'flare', 'rescue', 'sniffRes', 'door', 'trapped', 'fakeDone', 'jam', 'sab', 'accuse', 'ballot', 'mst', 'bite', 'msay', 'mlight', 'chat', 'haunt', 'radio']);
+const HOST_TYPES = new Set(['st', 'noise', 'take', 'insert', 'escaped', 'work', 'bang', 'smash', 'unlock', 'lever', 'flare', 'rescue', 'sniffRes', 'door', 'trapped', 'fakeDone', 'jam', 'sab', 'accuse', 'ballot', 'mst', 'bite', 'msay', 'mlight', 'chat', 'haunt', 'radio', 'recDrop']);
 const CLIP_RATE = 16000;
 
 function encodeClip(buffer) {
@@ -36,6 +36,8 @@ export class Session {
     this.mode = 'normal';   // or 'story' (The Signal: maybe a traitor), or 'hunt' (one of you is the mimic)
     this.skinwalker = false; // Normal mode only: something that wears a living friend
     this.listener = false;   // Normal mode only: the blind thing that hunts by sound
+    this.difficulty = 'normal';
+    this.stalker = false;    // Normal mode only: the thing that only moves when nobody's looking
     this.traitorId = null;  // host only
     this.onRoster = () => {};
     this.onStart = () => {};   // ({ seed, theme, order })
@@ -43,7 +45,7 @@ export class Session {
     this.onClose = () => {};   // (reason)
     this.net.onRoster = (r) => {
       this.vc?.sync(r);
-      if (this.isHost) this.net.broadcast({ t: 'mode', mode: this.mode, sw: this.skinwalker, ls: this.listener }, { self: false }); // newcomers learn the mode
+      if (this.isHost) this.sendMode(); // newcomers learn the mode
       this.onRoster(r);
     };
     this.net.onClose = (why) => { this.dispose(); this.onClose(why); };
@@ -73,6 +75,7 @@ export class Session {
 
   shareClip(clip) {
     const key = `${this.id}:${this.myClips++}`;
+    clip.key = key; // (the tape recorder sends it by this name)
     this.clips.set(key, { buffer: clip.buffer, owner: this.id, plays: 0 });
     const m = { t: 'clip', key, owner: this.id, pcm: encodeClip(clip.buffer) };
     if (this.isHost) this.net.broadcast(m, { self: false });
@@ -119,7 +122,7 @@ export class Session {
       return;
     }
     if (m.t === 'start') { this.net.locked = true; this.onStart(m); return; }
-    if (m.t === 'mode') { if (from === 'h') { this.mode = ['story', 'hunt'].includes(m.mode) ? m.mode : 'normal'; this.skinwalker = !!m.sw; this.listener = !!m.ls; this.onRoster(this.roster); } return; }
+    if (m.t === 'mode') { if (from === 'h') { this.mode = ['story', 'hunt'].includes(m.mode) ? m.mode : 'normal'; this.skinwalker = !!m.sw; this.listener = !!m.ls; this.stalker = !!m.sk; this.difficulty = ['easy', 'nightmare'].includes(m.diff) ? m.diff : 'normal'; this.onRoster(this.roster); } return; }
     if (m.t === 'role') { if (from === 'h') this.game?.traitor.onNet(m); return; }
     if (m.t === 'class') { // a player picked a class (host keeps it in the roster)
       const r = this.isHost && this.roster.find((x) => x.id === from);
@@ -142,21 +145,21 @@ export class Session {
     this.traitorId = this.mode === 'story' && ids.length > 1 && Math.random() < 0.5 ? ids[Math.floor(Math.random() * ids.length)] : null;
     // Hunt: one of you is the mimic (it needs someone to hunt).
     const hunter = this.mode === 'hunt' && ids.length > 1 ? ids[Math.floor(Math.random() * ids.length)] : null;
-    this.net.broadcast({ t: 'start', theme, seed, order: ids, classes, mode: hunter ? 'hunt' : this.mode === 'hunt' ? 'normal' : this.mode, sw: this.mode === 'normal' && this.skinwalker, ls: this.mode === 'normal' && this.listener, hunter });
+    this.net.broadcast({ t: 'start', theme, seed, order: ids, classes, mode: hunter ? 'hunt' : this.mode === 'hunt' ? 'normal' : this.mode, sw: this.mode === 'normal' && this.skinwalker, ls: this.mode === 'normal' && this.listener, sk: this.mode === 'normal' && this.stalker, hunter, diff: this.difficulty });
     if (this.traitorId && this.traitorId !== 'h') this.net.sendTo(this.traitorId, { t: 'role', traitor: true });
   }
 
   setMode(mode) {
     if (!this.isHost) return;
     this.mode = ['story', 'hunt'].includes(mode) ? mode : 'normal';
-    this.net.broadcast({ t: 'mode', mode: this.mode, sw: this.skinwalker, ls: this.listener }, { self: false });
+    this.sendMode();
     this.onRoster(this.roster);
   }
 
   setSkinwalker(on) {
     if (!this.isHost) return;
     this.skinwalker = !!on;
-    this.net.broadcast({ t: 'mode', mode: this.mode, sw: this.skinwalker, ls: this.listener }, { self: false });
+    this.sendMode();
     this.onRoster(this.roster);
   }
 
@@ -168,7 +171,24 @@ export class Session {
   setListener(on) {
     if (!this.isHost) return;
     this.listener = !!on;
-    this.net.broadcast({ t: 'mode', mode: this.mode, sw: this.skinwalker, ls: this.listener }, { self: false });
+    this.sendMode();
+    this.onRoster(this.roster);
+  }
+
+  setDifficulty(d) {
+    if (!this.isHost) return;
+    this.difficulty = ['easy', 'nightmare'].includes(d) ? d : 'normal';
+    this.sendMode();
+    this.onRoster(this.roster);
+  }
+
+  // The lobby's settings, to everyone else.
+  sendMode() { this.net.broadcast({ t: 'mode', mode: this.mode, sw: this.skinwalker, ls: this.listener, sk: this.stalker, diff: this.difficulty }, { self: false }); }
+
+  setStalker(on) {
+    if (!this.isHost) return;
+    this.stalker = !!on;
+    this.sendMode();
     this.onRoster(this.roster);
   }
 

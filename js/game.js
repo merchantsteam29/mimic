@@ -5,7 +5,7 @@
 // the host. Online (mp = Session), the host's browser runs the mimic and the others show a puppet.
 import * as THREE from 'three';
 import { generateLevel, buildLevelScene, makeFuse, CELL, WALL_H } from './level.js';
-import { Mimic } from './mimic.js';
+import { Mimic, DIFFICULTY } from './mimic.js';
 import { Director } from './director.js';
 import { RemotePlayer } from './remote.js';
 import { Objectives } from './objectives.js';
@@ -25,6 +25,8 @@ import { Listener } from './listener.js';
 import { Incidents } from './incidents.js';
 import { Radio } from './radio.js';
 import { ScareClip } from './clip.js';
+import { Stalker } from './stalker.js';
+import { Recorder } from './recorder.js';
 import { mulberry32 } from './level.js';
 import { keyLabel, rumble } from './controls.js';
 
@@ -41,7 +43,7 @@ const angleDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 const num = (v, d = 0) => (Number.isFinite(v) ? v : d);
 
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false }) {
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false }) {
     Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs, room });
     this.distort = 0;    // camcorder distortion, 0..1
     this.peekHud = 0;    // seconds the HUD stays visible after something changes
@@ -137,8 +139,12 @@ export class Game {
     this.sw = new Skinwalker(this, skinwalker); // online only: something wearing a living friend
     this.hunt = new Hunter(this, hunter);       // Hunt mode: a player is the mimic
     this.ls = new Listener(this, listener && !hunter); // online: the blind thing that hunts by sound
+    this.sk = new Stalker(this, stalker && !hunter);   // online: the thing that only moves when unseen
     if (this.hunt.on) this.status.set(hunter, 'hunter');
     if (story) this.mimic.graceT = story.grace;
+    this.diff = DIFFICULTY[difficulty] || DIFFICULTY.normal;
+    this.mimic.diff = this.diff;
+    this.mimic.graceT = Math.max(6, this.mimic.graceT + this.diff.grace);
     this.ambientEmitter = sfx.emitter();
     this.director = new Director(this);
     this.events = new Events(this);   // hand-placed scares
@@ -149,6 +155,7 @@ export class Game {
     level.idoors.forEach((d, i) => this.items.push({ type: 'idoor', i, x: d.x, y: 1.2, z: d.z, range: 2.3, active: true }));
     const dc = this.world.decoy;
     if (dc) this.items.push({ type: dc.kind, fake: true, x: dc.x, y: 0.1, z: dc.z, mesh: dc.mesh, range: 2.1, active: true });
+    this.rec = new Recorder(this); // your own tape recorders (adds their items)
     this.tut = new Tutorial(this, tutorial && !mp); // before Scares: it takes the tricks out
     this.scares = new Scares(this);
     this.recap = new Recap(this); // host: where everyone went, for the end screen
@@ -188,7 +195,7 @@ export class Game {
       if (this.state !== 'playing') return;
       if (e.code === 'Space') e.preventDefault();
       if (this.hunt.me) { if (!e.repeat && this.hunt.onKey(e.code)) return; this.keys.add(e.code); return; }
-      if (!e.repeat && (this.traitor.onKey(e.code) || this.scares.onKey(e.code) || this.hb.onKey(e.code) || this.obj.onKey(e.code))) return;
+      if (!e.repeat && (this.rec.onKey(e.code) || this.traitor.onKey(e.code) || this.scares.onKey(e.code) || this.hb.onKey(e.code) || this.obj.onKey(e.code))) return;
       this.keys.add(e.code);
       if (e.repeat) return;
       if (e.code === 'KeyF') this.toggleFlash();
@@ -292,6 +299,8 @@ export class Game {
     this.mimic.dispose();
     this.sw.dispose();
     this.ls.dispose();
+    this.sk.dispose();
+    this.rec.dispose();
     this.inc.dispose();
     this.hunt.dispose();
     this.chat.dispose();
@@ -378,7 +387,7 @@ export class Game {
   // Host: a player's intent.
   hostHandle(m, from) {
     const r = this.remotes.get(from);
-    if (this.hunt.hostHandle(m, from) || this.chat.hostHandle(m, from) || this.radio.hostHandle(m, from) || this.haunt.hostHandle(m, from) || this.obj.hostHandle(m, from) || this.ab.hostHandle(m, from) || this.traitor.hostHandle(m, from)) return;
+    if (this.hunt.hostHandle(m, from) || this.chat.hostHandle(m, from) || this.radio.hostHandle(m, from) || this.rec.hostHandle(m, from) || this.haunt.hostHandle(m, from) || this.obj.hostHandle(m, from) || this.ab.hostHandle(m, from) || this.traitor.hostHandle(m, from)) return;
     switch (m.t) {
       case 'door': { // open / close a real door
         const d = this.level.idoors[m.i | 0];
@@ -418,7 +427,7 @@ export class Game {
       }
       case 'take': {
         const it = this.items[m.i];
-        if (!it || !it.active || !['fuse', 'battery', 'keycard'].includes(it.type) || !this.alive(from)) return;
+        if (!it || !it.active || !['fuse', 'battery', 'keycard', 'recorder'].includes(it.type) || !this.alive(from)) return;
         if (it.fake) { // the decoy: it was it
           it.active = false;
           this.mimic.hear(it.x, it.z, 15, 'step');
@@ -457,7 +466,7 @@ export class Game {
 
   // Everyone: what happened.
   onNet(m) {
-    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m) || this.radio.onNet(m)) return;
+    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m) || this.radio.onNet(m) || this.rec.onNet(m)) return;
     switch (m.t) {
       case 'doorSet': {
         const d = this.level.idoors[m.i | 0];
@@ -509,6 +518,7 @@ export class Game {
         if (Array.isArray(m.m) && !(this.state === 'caught')) this.mimic.applySnap(m.m);
         if (m.sw && this.state !== 'caught') this.sw.applySnap(m.sw);
         if (m.ls && this.state !== 'caught') this.ls.applySnap(m.ls);
+        if (m.sk && this.state !== 'caught') this.sk.applySnap(m.sk);
         for (const row of m.p || []) {
           const r = this.remotes.get(row[0]);
           if (r) r.setState(row.slice(1).map((v) => num(v)));
@@ -534,8 +544,9 @@ export class Game {
         const it = this.items[m.i];
         if (!it) return;
         it.active = false;
-        it.mesh?.removeFromParent();
+        if (it.type !== 'recorder') it.mesh?.removeFromParent();
         const mine = m.by === this.me;
+        if (it.type === 'recorder') { it.active = false; this.rec.took(it, m.by); if (mine) this.sfx.pickup(); this.updateObjective(); break; }
         if (it.type === 'keycard') { this.obj.tookKey(m.by); if (mine) this.events.progress('key'); }
         else if (it.type === 'fuse') {
           this.fusesFound++;
@@ -582,8 +593,8 @@ export class Game {
       case 'power': this.powerOn(m.by); break;
       case 'caught': {
         this.status.set(m.id, 'dead');
-        const at = Array.isArray(m.sw) ? m.sw : Array.isArray(m.ls) ? m.ls : null;
-        if (m.id === this.me) this.caught(at ? { x: num(at[0]), z: num(at[1]), ceiling: false, dropT: 0, sw: !!m.sw, ls: !!m.ls } : null);
+        const at = Array.isArray(m.sw) ? m.sw : Array.isArray(m.ls) ? m.ls : Array.isArray(m.sk) ? m.sk : null;
+        if (m.id === this.me) this.caught(at ? { x: num(at[0]), z: num(at[1]), ceiling: false, dropT: 0, sw: !!m.sw, ls: !!m.ls, sk: !!m.sk } : null);
         // Nobody else is told. Their voice just stops, as if they wandered off.
         else if (this.alive(this.me)) this.mp?.vc?.route(m.id, { on: false });
         this.checkEnd();
@@ -623,6 +634,7 @@ export class Game {
     this.recap.event('caught', id, by);
     if (by === 'sw') { this.broadcast({ t: 'caught', id, sw: [+this.sw.x.toFixed(2), +this.sw.z.toFixed(2)] }); return; }
     if (by === 'ls') { this.broadcast({ t: 'caught', id, ls: [+this.ls.x.toFixed(2), +this.ls.z.toFixed(2)] }); return; }
+    if (by === 'sk') { this.broadcast({ t: 'caught', id, sk: [+this.sk.x.toFixed(2), +this.sk.z.toFixed(2)] }); return; }
     this.mimic.shyT = 8; // it lets the others breathe for a moment
     this.mimic.state = 'wander';
     this.mimic.path = [];
@@ -693,6 +705,8 @@ export class Game {
     if (this.hunt.me) this.mimic.model.root.visible = false; // you're inside it
     this.sw.update(dt);
     this.ls.update(dt);
+    this.sk.update(dt);
+    if (this.state === 'playing' || this.state === 'spectate') this.rec.update(dt);
     if (this.state === 'playing' || this.state === 'spectate') this.inc.update(dt);
 
     const watching = this.state === 'spectate' ? this.specTarget() : null;
@@ -735,7 +749,7 @@ export class Game {
       const rows = [];
       if (mine) rows.push([this.me, ...mine]);
       for (const [id, r] of this.remotes) if (this.alive(id) && r.seen) rows.push([id, +r.tx.toFixed(2), +r.tz.toFixed(2), +r.tyaw.toFixed(2), +r.pitch.toFixed(2), r.crouch ? 1 : 0, r.flash ? 1 : 0, r.hidden]);
-      this.mp.net.broadcast({ t: 'snap', m: this.mimic.snap(), p: rows, sw: this.sw.on ? this.sw.snap() : undefined, ls: this.ls.on ? this.ls.snap() : undefined }, { self: false });
+      this.mp.net.broadcast({ t: 'snap', m: this.mimic.snap(), p: rows, sw: this.sw.on ? this.sw.snap() : undefined, ls: this.ls.on ? this.ls.snap() : undefined, sk: this.sk.on ? this.sk.snap() : undefined }, { self: false });
     } else if (mine) this.send({ t: 'st', s: mine });
   }
 
@@ -893,7 +907,7 @@ export class Game {
     const p = this.p;
     let on = !this.hunt.me && ((p.flashOn && p.battery > 0 && !p.hidden) || this.state === 'caught');
     if (this.state === 'spectate') on = !!this.specTarget()?.flash;
-    if (on && this.state === 'playing') p.battery = Math.max(0, p.battery - (dt * 100) / BATTERY_LIFE);
+    if (on && this.state === 'playing') p.battery = Math.max(0, p.battery - (dt * 100) / (BATTERY_LIFE * this.diff.battery));
     let I = on ? (this.state === 'caught' ? 20 : 42) : 0; // a little dimmer in its face, so it isn't washed out
     if (this.state === 'caught' && this.scare === 'dark') { // the light dies, then stutters back on with it in your face
       if (this.ct < 0.85) I = 0;
@@ -927,7 +941,7 @@ export class Game {
       const dx = it.x - c.x, dy = it.y - c.y, dz = it.z - c.z, d = Math.hypot(dx, dy, dz);
       if (d > it.range) continue;
       const dot = (dx * fwd.x + dy * fwd.y + dz * fwd.z) / d;
-      const need = it.type === 'fuse' || it.type === 'battery' ? 0.86 : 0.72;
+      const need = it.type === 'fuse' || it.type === 'battery' || it.type === 'recorder' ? 0.86 : 0.72;
       // (A shut door blocks sight of itself, so doors skip the line-of-sight check.)
       if (dot < need || dot < bestDot || (it.type !== 'idoor' && !this.level.los(c.x, c.z, it.x, it.z))) continue;
       best = it; bestDot = dot;
@@ -939,6 +953,7 @@ export class Game {
     const text = {
       fuse: 'Pick up fuse',
       battery: 'Take battery',
+      recorder: 'Pick up tape recorder',
       fusebox: (this.fusesHeld && this.fusesIn < 4 ? `Insert fuse${this.fusesHeld > 1 ? 's' : ''} (${this.fusesHeld})` : this.obj.allDone() ? 'Restore power' : 'Power panel') + this.traitor.panelHint(),
       hide: 'Hide',
       exit: 'Open exit',
@@ -959,6 +974,8 @@ export class Game {
       case 'unhide': this.exitHide(); break;
       case 'fuse':
       case 'battery':
+      case 'recorder':
+        if (f.type === 'recorder' && this.rec.phase !== 'none') { this.toast('You already have one.'); break; }
         f.pending = this.t + 1; // the host confirms (instantly when alone)
         this.send({ t: 'take', i: this.items.indexOf(f) });
         break;
@@ -1057,6 +1074,7 @@ export class Game {
       if (this.mp && this.fusesHeld) lines.push(`Carrying  ${this.fusesHeld}`);
     }
     lines.push(...this.obj.lines());
+    if (this.rec?.line()) lines.push(this.rec.line());
     if (this.obj.allDone()) lines.push('Restore power at the panel');
     o.textContent = lines.join('\n');
   }
@@ -1180,7 +1198,7 @@ export class Game {
     const p = this.p, m = this.mimic;
     const d = Math.hypot(m.x - p.x, m.z - p.z);
     const vis = this.level.los(p.x, p.z, m.x, m.z);
-    let f = Math.max(clamp(1 - d / 12, 0, 1) * (vis ? 1 : 0.45), this.ls.nearness(p.x, p.z) * 0.8);
+    let f = Math.max(clamp(1 - d / 12, 0, 1) * (vis ? 1 : 0.45), this.ls.nearness(p.x, p.z) * 0.8, this.sk.nearness(p.x, p.z) * 0.7);
     if ((m.state === 'chase' || m.state === 'hunt') && (!this.mp || d < 25)) f = Math.max(f, 0.45);
     this.fear += (f - this.fear) * (1 - Math.exp(-dt * 3));
     this.hud.fear.style.opacity = (this.fear * 0.85).toFixed(3);
@@ -1292,7 +1310,7 @@ export class Game {
   updateHunger(dt) {
     if (this.story && !this.story.hunger) return;
     this.hungerT += dt;
-    if (this.hungerT < 150 || this.mimic.hunger >= 4) return;
+    if (this.hungerT < 150 * this.diff.hunger || this.mimic.hunger >= 4) return;
     this.hungerT = 0;
     this.mimic.hunger++;
     this.mimic.aggro += 0.06;
@@ -1323,7 +1341,7 @@ export class Game {
   // by: where the skinwalker got me (null = the mimic).
   caught(by = null) {
     if (this.state !== 'playing') return;
-    this.scareBy = by?.sw && this.sw.wearId ? this.sw : by?.ls && this.ls.on ? this.ls : null;
+    this.scareBy = by?.sw && this.sw.wearId ? this.sw : by?.ls && this.ls.on ? this.ls : by?.sk && this.sk.on ? this.sk : null;
     if (!this.clip.recording) this.clip.start();
     this.hb.stop();
     this.obj.repairing = null;
@@ -1415,6 +1433,7 @@ export class Game {
       this.mimic.frozen = false;
       this.sw.posed = false;
       this.ls.posed = false;
+      this.sk.posed = false;
       this.startSpectate();
     }
   }
