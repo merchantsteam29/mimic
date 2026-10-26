@@ -278,7 +278,7 @@ export class Hunter {
         const who = m.who && g.order.includes(m.who) ? m.who : null;
         if (who && ![...mp.clips.values()].some((c) => c.owner === who)) { g.sendTo(from, { t: 'mNoClip', who }); return true; }
         const key = mp.pickKey((owner) => g.status.get(owner) === 'dead', who);
-        if (key) g.broadcast({ t: 'say', key, style: 'lure' });
+        if (key) { g.recap.voice(key); g.broadcast({ t: 'say', key, style: 'lure' }); }
         return true;
       }
       case 'mlight': {

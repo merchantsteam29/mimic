@@ -352,3 +352,26 @@ body.touch-edit #touch { z-index: 30; background: rgba(0,0,0,.6); }
 body.touch-edit #touchEditBar { display: flex; position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%); gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; text-align: center; }
 body.touch-edit #touchEditBar p { width: 100%; margin: 0 0 6px; color: var(--ink); font-family: "Special Elite", monospace; }
 body.touch-edit .t-btn { outline: 1px dashed rgba(233,228,218,.5); cursor: grab; }
+
+/* ---------- sound captions ---------- */
+#captions { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 5; pointer-events: none; text-align: center; width: min(90vw, 560px); }
+#captions p { display: table; margin: 3px auto; padding: 2px 10px; background: rgba(0,0,0,.65); color: #e9e4da; font: 15px "Special Elite", monospace; }
+
+/* ---------- tutorial coach ---------- */
+#coach { position: fixed; left: 50%; top: 16%; transform: translateX(-50%); z-index: 5; width: min(88vw, 620px); text-align: center; pointer-events: none;
+  padding: 12px 18px; background: rgba(5,5,5,.72); border: 1px solid var(--line); font: 17px/1.45 "Special Elite", monospace; color: var(--ink); }
+#coach span { display: block; margin-top: 4px; font-size: 14px; color: var(--dim); }
+#coach kbd { font: 800 12px Inter, sans-serif; border: 1px solid var(--dim); border-radius: 4px; padding: 1px 6px; margin: 0 2px; }
+#coach.in { animation: coachIn .35s ease-out; }
+@keyframes coachIn { from { opacity: 0; transform: translate(-50%, -6px); } }
+
+/* ---------- end-of-round recap ---------- */
+#recap { margin: 14px 0 4px; text-align: center; }
+#recapMap { display: block; margin: 0 auto; max-width: 100%; max-height: 40vh; image-rendering: pixelated; background: #0b0a09; border: 1px solid var(--line); }
+#recapKey { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 6px 16px; justify-content: center; font-size: 13px; }
+#recapKey li { display: flex; align-items: center; gap: 6px; }
+#recapKey i { width: 14px; height: 4px; border-radius: 2px; display: inline-block; }
+#recapKey i.it { background: repeating-linear-gradient(90deg, #e01a3a 0 5px, transparent 5px 8px); }
+#recapKey span { color: var(--dim); }
+#recap .small { margin-top: 6px; padding: 4px 12px; font-size: 11px; }
+body:has(.screen:not([hidden])) #coach, body:has(.screen:not([hidden])) #captions { display: none; }

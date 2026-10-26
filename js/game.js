@@ -19,11 +19,13 @@ import { Skinwalker } from './skinwalker.js';
 import { Hunter } from './hunter.js';
 import { Chat } from './chat.js';
 import { Haunt } from './haunt.js';
+import { Tutorial, TUTORIAL } from './tutorial.js';
+import { Recap } from './recap.js';
 import { mulberry32 } from './level.js';
 import { keyLabel, rumble } from './controls.js';
 
 const POOL = 6;              // real point lights, moved to the nearest fixtures (fewer on lower graphics settings)
-const QUALITY = { low: { lights: 3, shadow: 512 }, medium: { lights: 4, shadow: 768 }, high: { lights: POOL, shadow: 1024 } };
+const QUALITY = { lowest: { lights: 2, shadow: 0 }, low: { lights: 3, shadow: 512 }, medium: { lights: 4, shadow: 768 }, high: { lights: POOL, shadow: 1024 } };
 const EYE = 1.62, EYE_CROUCH = 1.0;
 const PLAYER_R = 0.3;
 const BATTERY_LIFE = 300;    // seconds of flashlight on a full battery
@@ -33,7 +35,7 @@ const angleDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 const num = (v, d = 0) => (Number.isFinite(v) ? v : d);
 
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null }) {
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false }) {
     Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs });
     this.distort = 0;    // camcorder distortion, 0..1
     this.peekHud = 0;    // seconds the HUD stays visible after something changes
@@ -42,7 +44,7 @@ export class Game {
     this.classes = classes || { [this.me]: 'runner' }; // player id -> class
     this.isHost = !mp || mp.isHost;
     this.order = order || [this.me];
-    const level = this.level = generateLevel(seed, themeId, story ? { ...story.gen, lore: story.tapes.length } : {});
+    const level = this.level = generateLevel(seed, themeId, story ? { ...story.gen, lore: story.tapes.length } : tutorial ? TUTORIAL.gen : {});
     const th = level.theme;
 
     const scene = this.scene = new THREE.Scene();
@@ -58,9 +60,9 @@ export class Game {
 
     // Flashlight: the only shadow-casting light.
     this.flash = new THREE.SpotLight(0xfff1d8, 0, 24, 0.4, 0.55, 1.5);
-    this.flash.castShadow = true;
-    const q = QUALITY[settings.quality] || QUALITY.high;
-    this.flash.shadow.mapSize.set(q.shadow, q.shadow);
+    const q = QUALITY[settings.quality === 'auto' ? settings.tier : settings.quality] || QUALITY.high;
+    this.flash.castShadow = q.shadow > 0;
+    this.flash.shadow.mapSize.set(q.shadow || 512, q.shadow || 512);
     this.flash.shadow.bias = -0.0006;
     this.flash.shadow.camera.near = 0.1;
     this.flash.shadow.camera.far = 26;
@@ -138,7 +140,9 @@ export class Game {
     level.idoors.forEach((d, i) => this.items.push({ type: 'idoor', i, x: d.x, y: 1.2, z: d.z, range: 2.3, active: true }));
     const dc = this.world.decoy;
     if (dc) this.items.push({ type: dc.kind, fake: true, x: dc.x, y: 0.1, z: dc.z, mesh: dc.mesh, range: 2.1, active: true });
+    this.tut = new Tutorial(this, tutorial && !mp); // before Scares: it takes the tricks out
     this.scares = new Scares(this);
+    this.recap = new Recap(this); // host: where everyone went, for the end screen
     this.traitor = new Traitor(this, { mode, traitorId });
     this.chat = new Chat(this);   // quick chat (online)
     this.haunt = new Haunt(this); // the dead reaching back (online)
@@ -245,6 +249,17 @@ export class Game {
     this.sfx.ctx.resume();
   }
 
+  // Auto graphics changed tier mid-run: fewer lights, a smaller (or no) flashlight shadow. Shaders recompile once.
+  setQuality(tier) {
+    const q = QUALITY[tier];
+    if (!q) return;
+    while (this.pool.length > q.lights) this.scene.remove(this.pool.pop());
+    this.flash.shadow.map?.dispose();
+    this.flash.shadow.map = null;
+    this.flash.castShadow = q.shadow > 0;
+    if (q.shadow) this.flash.shadow.mapSize.set(q.shadow, q.shadow);
+  }
+
   resize() {
     this.camera.aspect = innerWidth / innerHeight;
     this.camera.fov = this.settings.fov;
@@ -264,6 +279,7 @@ export class Game {
     this.hunt.dispose();
     this.chat.dispose();
     this.haunt.dispose();
+    this.tut.dispose();
     this.ambientEmitter.dispose();
     this.director.dispose();
     this.events.dispose();
@@ -362,6 +378,7 @@ export class Game {
       case 'escaped': {
         if (!this.alive(from) || !this.level.exitOpen) return;
         this.held.set(from, 0);
+        this.recap.event('out', from);
         this.broadcast({ t: 'out', id: from });
         break;
       }
@@ -530,7 +547,7 @@ export class Game {
     if ([...this.status.values()].some((s) => s === 'alive')) return;
     this.ended = true;
     if (!this.mp) return; // alone, the jumpscare / escape ends the run itself
-    this.broadcast({ t: 'end', st: Object.fromEntries(this.status), time: this.time, mode: this.hunt.id ? 'hunt' : this.traitor.on ? 'story' : 'normal', hunter: this.hunt.id, ...this.traitor.result() });
+    this.broadcast({ t: 'end', st: Object.fromEntries(this.status), time: this.time, mode: this.hunt.id ? 'hunt' : this.traitor.on ? 'story' : 'normal', hunter: this.hunt.id, recap: this.recap.data(), ...this.traitor.result() });
   }
 
   // Host: the mimic (or, by 'sw', the skinwalker) reached a player.
@@ -538,6 +555,7 @@ export class Game {
     if (!this.alive(id)) return;
     if (this.ab.hostSave(id)) return; // a medic's rescue: they tear free
     this.dropFuses(id);
+    this.recap.event('caught', id, by);
     if (by === 'sw') { this.broadcast({ t: 'caught', id, sw: [+this.sw.x.toFixed(2), +this.sw.z.toFixed(2)] }); return; }
     this.mimic.shyT = 8; // it lets the others breathe for a moment
     this.mimic.state = 'wander';
@@ -582,17 +600,17 @@ export class Game {
       this.updateVoice(dt);
       this.updateFear(dt);
       this.updateAmbient(dt);
-      this.director.update(dt);
-      this.events.update(dt);
+      if (!this.tut.quiet) { this.director.update(dt); this.events.update(dt); }
+      this.tut.update(dt);
       this.watchPeek();
       this.obj.update(dt);
       this.hb.update(dt);
-      if (this.isHost && !this.power) this.updateHunger(dt);
+      if (this.isHost && !this.power && !this.tut.on) this.updateHunger(dt);
     } else if (this.state === 'caught') this.updateCaught(dt);
     this.updateDoor(dt);
     this.chat.update(dt);
     this.haunt.update(dt);
-    if (!this.hunt.me) { this.ab.update(dt); this.scares.update(dt); }
+    if (!this.hunt.me) { this.ab.update(dt); if (!this.tut.quiet) this.scares.update(dt); }
     this.traitor.update(dt);
     this.updateDoors(dt);
     this.applyHunger();
@@ -602,6 +620,7 @@ export class Game {
 
     if (!this.isHost) this.mimic.puppet(dt, this.t);
     else if (this.hunt.on) this.hunt.driveMimic(dt);
+    else if (this.tut.holds) this.tut.driveMimic(dt);
     else if (this.mp || this.state === 'playing') this.mimic.update(dt, this.targets(), this.t);
     if (this.hunt.me) this.mimic.model.root.visible = false; // you're inside it
     this.sw.update(dt);
@@ -620,6 +639,7 @@ export class Game {
       } else r.head.rotation.z = 0;
     }
     if (this.mp) { this.netTick(dt); this.routeVoices(); }
+    if (this.isHost && (this.state === 'playing' || this.state === 'spectate')) this.recap.update(dt);
   }
 
   render(dt) {
@@ -888,6 +908,7 @@ export class Game {
     this.sfx.creak(null, 0.25);
     this.sfx.cloth();
     if (this.scares.trap(prop)) return; // it was it
+    if (this.tut.holds) return; // the tutorial stages this one itself
     this.events.onHide();
     if (this.isHost) this.mimic.notifyHide(prop, this.playerInfo());
   }
@@ -995,12 +1016,14 @@ export class Game {
         return bufs.length ? this.sfx.chorus(bufs, emitter) : this.sfx.whisper(emitter);
       }
       const keys = [...new Set([0, 1, 2].map(() => this.mp.pickKey(dead)).filter(Boolean))];
+      keys.forEach((k) => this.recap.voice(k));
       this.broadcast({ t: 'say', keys, style });
       return 3;
     }
     if (!this.mp) return this.localSpeak(style, emitter);
     const wearing = this.mimic.wearId;
     const key = this.mp.pickKey(dead, wearing);
+    this.recap.voice(key);
     this.broadcast({ t: 'say', key, style: wearing && style !== 'scream' ? 'lure' : style });
     const c = key && this.mp.clips.get(key);
     return c ? c.buffer.duration / (style === 'scream' ? 0.6 : 0.98) : 1.2;
@@ -1020,6 +1043,7 @@ export class Game {
           const d = this.sfx.playStitch(a.buffer, b.buffer, emitter, 'stranger');
           this.voice.suppress(d + 0.3);
           this.lures++;
+          this.recap.voice(null);
           return d;
         }
       }
@@ -1033,6 +1057,7 @@ export class Game {
     const d = this.sfx.playVoice(buffer, emitter, style);
     this.voice.suppress(d + 0.3);
     this.lures++;
+    if (!this.mp) this.recap.voice(null);
     return d;
   }
 
@@ -1306,7 +1331,9 @@ export class Game {
     this.hud.root.hidden = true;
     this.hud.locker.hidden = true;
     if (won) this.sfx.stopAmbient();
+    this.recap.event(won ? 'out' : 'caught', this.me);
     this.onEnd({
+      recap: this.recap.data(), tutorial: this.tut.on,
       won, time: this.time, fuses: this.fusesFound, lures: this.lures,
       clips: this.voice.clips.length, place: this.story ? this.story.title : this.level.name, story: this.story,
     });
@@ -1328,7 +1355,7 @@ export class Game {
       mp: true, won: m.hunter === this.me ? hunterWins : m.traitor === this.me ? !!m.traitorWins : st[this.me] === 'out',
       hunter: m.hunter || null, hunterName: m.hunter ? this.nameOf(m.hunter) : null, hunterWins, time: num(m.time, this.time), fuses: this.fusesFound, lures: this.lures,
       mode: m.mode, traitor: m.traitor || null, traitorName: m.traitor ? this.nameOf(m.traitor) : null, traitorWins: !!m.traitorWins,
-      clips: this.mp.clips.size, place: this.level.name,
+      clips: this.mp.clips.size, place: this.level.name, recap: m.recap,
       results: this.order.map((id) => ({ id, name: this.nameOf(id), status: st[id] || 'left' })),
     });
   }

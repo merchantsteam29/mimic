@@ -15,6 +15,9 @@ import { CHAPTERS, SIGNAL, storyProgress, finishChapter } from './story.js';
 import { controls, initControls, bindsChanged, editTouchLayout } from './controls.js';
 import { ACTIONS, binds, resetBinds, keyName, padName } from './binds.js';
 import { initTitle } from './title.js';
+import { Captions } from './captions.js';
+import { TUTORIAL } from './tutorial.js';
+import { drawRecap, PLAYER_COLORS } from './recap.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -34,8 +37,10 @@ const randomTheme = () => { const ids = Object.keys(THEMES); return ids[Math.flo
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 // ---------- settings ----------
-// Phones and tablets start on medium graphics.
-const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1, quality: matchMedia('(pointer: coarse)').matches ? 'medium' : 'high' };
+// Graphics start on Auto: phones and tablets begin at medium, and it steps down by itself when the game runs slowly
+// (`tier` is where Auto has settled on this device).
+const COARSE = matchMedia('(pointer: coarse)').matches;
+const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1, quality: 'auto', tier: COARSE ? 'medium' : 'high', captions: false };
 let settings = { ...DEFAULTS };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('mimic.settings') || '{}')); } catch { /* private mode */ }
 const saveSettings = () => { try { localStorage.setItem('mimic.settings', JSON.stringify(settings)); } catch { /* ignore */ } };
@@ -55,20 +60,55 @@ addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); vh
 
 // Graphics quality: tape and screen resolution change now; game.js also uses fewer lights and softer
 // shadows from the next game.
-const QUALITY = { low: { lines: 240, ratio: 0.6 }, medium: { lines: 300, ratio: 0.8 }, high: { lines: 360, ratio: 1 } };
-if (!QUALITY[settings.quality]) settings.quality = DEFAULTS.quality;
+// 'lowest' is only reached by Auto, on a struggling phone.
+const QUALITY = { lowest: { lines: 200, ratio: 0.5 }, low: { lines: 240, ratio: 0.6 }, medium: { lines: 300, ratio: 0.8 }, high: { lines: 360, ratio: 1 } };
+const TIERS = ['lowest', 'low', 'medium', 'high'];
+if (settings.quality !== 'auto' && !QUALITY[settings.quality]) settings.quality = DEFAULTS.quality;
+if (!QUALITY[settings.tier]) settings.tier = DEFAULTS.tier;
+const tierNow = () => (settings.quality === 'auto' ? settings.tier : settings.quality);
 function applyQuality() {
-  const q = QUALITY[settings.quality];
+  const q = QUALITY[tierNow()];
   renderer.setPixelRatio(q.ratio);
   renderer.setSize(innerWidth, innerHeight);
   vhs.lines = q.lines;
   vhs.resize();
   document.querySelectorAll('#setQuality button').forEach((b) => b.classList.toggle('on', b.dataset.q === settings.quality));
+  $('qualityNow').textContent = settings.quality === 'auto' ? `Auto is on ${tierNow()} for this device.` : '';
+}
+
+// Auto graphics: watch the frame rate while playing. Slow for a few seconds: one step down (the picture now; lights and
+// shadows too, with a short hitch). Smooth for a long time: one step back up.
+const perf = { last: 0, n: 0, sum: 0, slow: 0, fast: 0 };
+function watchPerf(now) {
+  const dt = now - perf.last;
+  perf.last = now;
+  if (settings.quality !== 'auto' || !game || game.state !== 'playing' || game.paused || document.hidden || dt > 250) { perf.n = perf.sum = 0; return; }
+  perf.n++; perf.sum += dt;
+  if (perf.sum < 2000) return;
+  const fps = (perf.n * 1000) / perf.sum;
+  perf.n = perf.sum = 0;
+  perf.slow = fps < 27 ? perf.slow + 1 : 0;
+  perf.fast = fps > 57 ? perf.fast + 1 : 0;
+  const i = TIERS.indexOf(settings.tier);
+  let to = null;
+  if (perf.slow >= 2 && i > 0) to = TIERS[i - 1];
+  else if (perf.fast >= 15 && i < TIERS.length - 1) to = TIERS[i + 1];
+  if (!to) return;
+  perf.slow = perf.fast = 0;
+  settings.tier = to;
+  saveSettings();
+  applyQuality();
+  game.setQuality(to);
 }
 document.querySelectorAll('#setQuality button').forEach((b) => {
   b.onclick = () => { settings.quality = b.dataset.q; saveSettings(); applyQuality(); };
 });
 applyQuality();
+
+// Sound captions.
+const syncCaptions = () => document.querySelectorAll('#setCaptions button').forEach((b) => b.classList.toggle('on', (b.dataset.c === 'on') === !!settings.captions));
+document.querySelectorAll('#setCaptions button').forEach((b) => { b.onclick = () => { settings.captions = b.dataset.c === 'on'; saveSettings(); syncCaptions(); }; });
+syncCaptions();
 
 $('grain').style.backgroundImage = `url(${grainDataUrl()})`;
 preloadPhotos();
@@ -85,6 +125,7 @@ const hud = {
 
 // ---------- audio ----------
 let ctx = null, sfx = null;
+const captions = new Captions($('captions'), () => game, () => settings.captions);
 const voice = new Voice();
 voice.setSensitivity(settings.mic);
 
@@ -95,6 +136,7 @@ function ensureAudio() {
     sfx.setVolume(settings.volume);
     sfx.samples = new Samples(ctx);
     sfx.samples.load(); // recorded sounds (CC0); synthesized ones stand in until they arrive
+    captions.attach(sfx);
   }
   if (ctx.state === 'suspended') ctx.resume();
 }
@@ -216,6 +258,8 @@ async function openSettings() {
       li.classList.toggle('talking', id === session.id ? voice.talking : !!session.vc?.talking(id));
     }
   }
+  watchPerf(performance.now());
+  captions.update();
   requestAnimationFrame(meters);
 })();
 
@@ -286,7 +330,26 @@ function finishVoiceCheck() {
   next?.();
 }
 
-$('btnPlay').onclick = () => voiceCheck(() => { storyIdx = null; renderClassPick(); show('classes'); });
+// The first time you play alone, it offers the tutorial (once; How to play has it too).
+const tutorialSeen = () => { try { return !!localStorage.getItem('mimic.tutorial'); } catch { return true; } };
+const markTutorial = () => { try { localStorage.setItem('mimic.tutorial', '1'); } catch { /* ignore */ } };
+const pickClass = () => { storyIdx = null; renderClassPick(); show('classes'); };
+$('btnPlay').onclick = () => voiceCheck(() => (tutorialSeen() ? pickClass() : show('first')));
+$('btnFirstTut').onclick = () => { markTutorial(); startTutorial(); };
+$('btnFirstSkip').onclick = () => { markTutorial(); pickClass(); };
+$('btnTutorial').onclick = () => voiceCheck(() => { markTutorial(); startTutorial(); });
+
+function startTutorial() {
+  game?.dispose();
+  storyIdx = null;
+  game = new Game({
+    renderer, vhs, sfx, voice, settings, hud, themeId: TUTORIAL.theme, seed: TUTORIAL.seed, tutorial: true, classes: { h: 'runner' },
+    noLock: params.has('autostart'),
+    onEnd: (r) => endRun(r),
+  });
+  showIntro(TUTORIAL.theme, null, TUTORIAL.intro);
+  $('introKicker').textContent = 'Tutorial';
+}
 $('btnStory').onclick = () => voiceCheck(() => openStory());
 
 // ---------- story: chapter select ----------
@@ -478,7 +541,14 @@ function endRun(r) {
     $('btnToLobby').hidden = true;
     $('btnMenu').textContent = 'Main menu';
   }
+  if (r.tutorial) {
+    $('endSub').textContent = r.won ? 'That\'s all there is to it. Every run is a new building, and it learns your voice as you go.'
+      : 'It happens. Every run is a new building, and it learns your voice as you go.';
+    $('btnAgain').textContent = 'Play for real';
+    againAction = () => pickClass();
+  }
   $('endStats').innerHTML = stats.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
+  showRecap(r);
   const ended = game;
   setTimeout(() => {
     if (game !== ended) return; // already back in the lobby (timers can run late in background tabs)
@@ -488,6 +558,32 @@ function endRun(r) {
     const clip = !r.mp && !r.story && voice.started ? voice.pick() : null;
     if (clip) setTimeout(() => sfx.playVoice(clip.buffer, null, 'echo'), 900);
   }, 300);
+}
+
+// The round on a map, plus who it copied most.
+let stopRecap = null;
+function showRecap(r) {
+  stopRecap?.();
+  stopRecap = null;
+  const rc = r.recap, level = game?.level;
+  $('recap').hidden = !rc || !level;
+  if ($('recap').hidden) return;
+  const order = game.order, name = (id) => (r.mp ? game.nameOf(id) : 'You');
+  const fate = (id) => {
+    const e = rc.ev.find((q) => q[1] === id);
+    if (id === r.hunter) return 'was the mimic';
+    if (!e) return r.results?.find((q) => q.id === id)?.status === 'left' ? 'left' : 'still in there';
+    return e[0] === 'out' ? `got out at ${fmtTime(e[4])}` : `taken at ${fmtTime(e[4])}${e[5] === 'sw' ? ' (not by the mimic)' : ''}`;
+  };
+  $('recapKey').innerHTML = order.map((id, i) => `<li><i style="background:${PLAYER_COLORS[i % 4]}"></i>${esc(name(id))}${r.mp && id === session?.id ? ' (you)' : ''}<span>${fate(id)}</span></li>`).join('')
+    + '<li><i class="it"></i>It<span>its route</span></li>';
+  const most = Object.entries(rc.v || {}).sort((a, b) => b[1] - a[1])[0];
+  $('recapNote').textContent = !most ? 'It never used anyone\'s voice.'
+    : r.mp ? `It used ${name(most[0])}'s voice the most: ${most[1]} time${most[1] > 1 ? 's' : ''}.`
+      : `It used your voice ${most[1]} time${most[1] > 1 ? 's' : ''}.`;
+  const run = () => { stopRecap?.(); stopRecap = drawRecap($('recapMap'), level, rc, order); };
+  setTimeout(run, 400); // once the end screen is up
+  $('btnReplay').onclick = run;
 }
 
 let againAction = () => startRun(null);
@@ -662,7 +758,7 @@ if (params.has('autostart')) {
   (async () => {
     ensureAudio();
     if (!params.has('nomic')) await voice.start(ctx);
-    startRun();
+    if (params.has('tutorial')) startTutorial(); else startRun();
     show(null);
     game.begin();
     window.__game = game;

@@ -60,6 +60,11 @@ Guess wrong, and it gets hungrier.
 - **Skinwalker** (online, Normal mode, the host switches it on in the lobby): something else is in there too, and it wears
   one of you who is still alive. Same body, same flashlight, same voice. If your friend is waiting for you at the end of a
   hallway, check where their voice is coming from. And don't stare at it too long.
+- **New here?** The first time you play alone, a short tutorial walks you through it (it's also under How to play).
+- **What happened:** after every round, the end screen replays it on a map: everyone's route, its route, where people
+  were taken, and whose voice it used most.
+- **Sound captions** (Settings) show what you'd hear and where it came from. **Graphics: Auto** lowers the quality by
+  itself on slower phones.
 
 It hates the light: under working lights it's slow, but in the dark it's faster than you.
 

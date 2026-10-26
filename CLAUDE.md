@@ -22,9 +22,22 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 
 ## Modules (`js/`)
 
-- `main.js`: menus, settings (localStorage `mimic.settings`; `quality` low/medium/high sets the tape lines and pixel ratio,
-  and `game.js` uses it for the light pool size and the flashlight's shadow map), voice check, pointer lock / pause, run start / end,
+- `main.js`: menus, settings (localStorage `mimic.settings`; `quality` auto/low/medium/high sets the tape lines and pixel ratio,
+  and `game.js` uses it for the light pool size and the flashlight's shadow map. **Auto** (the default) starts phones on medium and
+  `watchPerf` steps `settings.tier` down (to `lowest`: no flashlight shadow) after ~4 s under 27 fps, or up after ~30 s over 57; mid-run
+  `game.setQuality(tier)` drops lights / shadows), voice check, pointer lock / pause, run start / end,
   the Install button (`beforeinstallprompt`).
+- `captions.js`: **sound captions** (Settings, off by default). `attach(sfx)` wraps the sfx one-shots (`SOUNDS`: which argument is
+  the emitter, and the caption) and makes emitters remember `setPos`; the direction (ahead / behind you / left / right, far off)
+  comes from the camera. `update()` (main's rAF loop) adds its breathing up close and friends talking. `#captions`.
+- `tutorial.js`: the **first-time tutorial** (offered once on the first Play alone, localStorage `mimic.tutorial`; also in How to
+  play; `?autostart&tutorial`). A fixed small facility (`TUTORIAL`), steps with a coach line (`#coach`): move, flashlight, a battery
+  moved near the start, Tab, say something (then your clip plays back from behind a wall), hide (a staged walk-up: `holds` = the
+  tutorial drives the mimic puppet; `quiet` = no director / events / scares), then `release()` wakes the AI and tips show the first
+  time things happen.
+- `recap.js`: the **end-of-round recap**. The host samples everyone's and the mimic's position every 2 s, plus catches / escapes
+  (`event`) and whose clips it used (`voice`); `end` carries `recap` (alone, `end()` passes it). `drawRecap` replays it on a map of
+  the level on the end screen (`#recap`).
 - `title.js`: the title screen as found footage: camcorder text, scanlines and grain, whispered lines surfacing at the edges, eyes
   that vanish when the cursor nears, a tagline that slips, and after 25 s idle it plays one of your clips (once per visit).
 - Sharing and installing: Open Graph / Twitter tags in `index.html` point at `og.png` (1200x630) on GitHub Pages;
