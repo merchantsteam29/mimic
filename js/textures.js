@@ -134,6 +134,54 @@ function hospitalFloor() {
   return toTexture(c);
 }
 
+// ---------- mall ----------
+function mallWall() {
+  const [c, g] = canvas(256, 384); // one 2m x 3m wall face
+  g.fillStyle = '#8f8b84'; g.fillRect(0, 0, 256, 384);           // old paint
+  g.fillStyle = '#5c2a2e'; g.fillRect(0, 70, 256, 26);           // the shop-front band
+  g.fillStyle = '#c9b48a'; g.fillRect(0, 96, 256, 3);
+  // Big pale tiles below.
+  for (let y = 260; y < 372; y += 56) for (let x = 0; x < 256; x += 64) {
+    const v = Math.random() * 10;
+    g.fillStyle = `rgb(${150 + v},${144 + v},${132 + v})`;
+    g.fillRect(x + 1, y + 1, 62, 54);
+  }
+  g.fillStyle = '#2a2826'; g.fillRect(0, 372, 256, 12);          // skirting
+  // Sometimes an old poster, faded and peeling.
+  if (Math.random() < 0.35) {
+    g.save(); g.translate(60 + Math.random() * 100, 130); g.rotate((Math.random() - 0.5) * 0.08);
+    g.fillStyle = '#b8ac90'; g.fillRect(0, 0, 90, 120);
+    g.fillStyle = 'rgba(150,30,35,.75)'; g.font = 'bold 30px Inter, sans-serif'; g.fillText('SALE', 10, 42);
+    g.fillStyle = 'rgba(60,50,40,.6)'; g.font = '12px Inter, sans-serif'; g.fillText('EVERYTHING', 12, 66); g.fillText('MUST GO', 12, 82);
+    g.restore();
+  }
+  blotches(g, 256, 384, 8, 0.3);
+  streaks(g, 256, 260, 4, 'rgba(50,40,25,.3)');
+  stains(g, 256, 384, 3, 'rgba(40,30,15,.3)');
+  grain(g, 256, 384, 22);
+  return toTexture(c);
+}
+
+function mallFloor() {
+  const [c, g] = canvas(256); // one 2m cell: big terrazzo tiles
+  for (let y = 0; y < 2; y++) for (let x = 0; x < 2; x++) {
+    const v = Math.random() * 8;
+    g.fillStyle = `rgb(${132 + v},${126 + v},${116 + v})`;
+    g.fillRect(x * 128 + 1, y * 128 + 1, 126, 126);
+  }
+  for (let i = 0; i < 900; i++) { // the chips in the stone
+    const v = Math.random();
+    g.fillStyle = v < 0.5 ? 'rgba(60,55,50,.5)' : v < 0.8 ? 'rgba(190,180,160,.5)' : 'rgba(120,60,50,.4)';
+    g.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
+  }
+  g.fillStyle = '#4a4640';
+  g.fillRect(0, 127, 256, 2); g.fillRect(127, 0, 2, 256);
+  blotches(g, 256, 256, 6, 0.35);
+  stains(g, 256, 256, 2, 'rgba(50,40,20,.35)');
+  grain(g, 256, 256, 20);
+  return toTexture(c);
+}
+
 // ---------- house ----------
 const WALLPAPERS = [['#4d5a45', '#5f6d55'], ['#6e4f4f', '#7d5d5b'], ['#6f6141', '#7f7150'], ['#4a4f63', '#5a5f73']];
 
@@ -356,11 +404,11 @@ export function skinNormal() {
 }
 
 export function makeTextures(theme) {
-  const facility = theme === 'facility', hospital = theme === 'hospital';
+  const facility = theme === 'facility', hospital = theme === 'hospital', mall = theme === 'mall';
   const pair = (name) => [photo(`${name}_color`), photo(`${name}_normal`, false)];
-  const [wall, wallN] = facility ? pair('concreteWall') : [hospital ? hospitalWall() : houseWall(), photo('plaster_normal', false)];
-  const [floor, floorN] = hospital ? [hospitalFloor(), photo('concreteFloor_normal', false)] : pair(facility ? 'concreteFloor' : 'woodFloor');
-  const [ceiling, ceilingN] = pair(facility || hospital ? 'officeCeiling' : 'plaster');
+  const [wall, wallN] = facility ? pair('concreteWall') : [hospital ? hospitalWall() : mall ? mallWall() : houseWall(), photo('plaster_normal', false)];
+  const [floor, floorN] = hospital || mall ? [hospital ? hospitalFloor() : mallFloor(), photo('concreteFloor_normal', false)] : pair(facility ? 'concreteFloor' : 'woodFloor');
+  const [ceiling, ceilingN] = pair(facility || hospital || mall ? 'officeCeiling' : 'plaster');
   const [woodC, woodN] = pair('wood');
   const [metalC, metalN] = pair('paintedMetal');
   wall.repeat.set(1, 1.5); wallN.repeat.set(1, 1.5); // one 2m x 3m wall face
@@ -372,7 +420,7 @@ export function makeTextures(theme) {
     metal: metal(),
     locker: metalC,
     rust: metal('#5a3b26'),
-    fabric: fabric(facility ? '#3b3d3a' : hospital ? '#2f3b40' : '#4a2f2c'),
+    fabric: fabric(facility ? '#3b3d3a' : hospital ? '#2f3b40' : mall ? '#4a3a44' : '#4a2f2c'),
     sheet: fabric('#8b877c'),
     exitSign: label('EXIT', '#160404', '#ff2b3a'),
   };

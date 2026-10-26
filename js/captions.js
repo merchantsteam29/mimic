@@ -27,6 +27,10 @@ const SOUNDS = {
   flare: [0, () => 'A flare hisses'],
   powerDown: [-1, () => 'The power dies'],
   sting: [0, (e) => e && 'It\'s seen you'],
+  clicks: [0, () => 'Clicking'],
+  thunder: [-1, () => 'Thunder'],
+  siren: [0, () => 'An alarm is going off'],
+  shutter: [0, () => 'A shutter slams down'],
 };
 const FAR = 30;     // not captioned beyond this
 const LIFE = 3.2;   // seconds on screen

@@ -21,6 +21,8 @@ import { Chat } from './chat.js';
 import { Haunt } from './haunt.js';
 import { Tutorial, TUTORIAL } from './tutorial.js';
 import { Recap } from './recap.js';
+import { Listener } from './listener.js';
+import { Incidents } from './incidents.js';
 import { mulberry32 } from './level.js';
 import { keyLabel, rumble } from './controls.js';
 
@@ -35,7 +37,7 @@ const angleDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 const num = (v, d = 0) => (Number.isFinite(v) ? v : d);
 
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false }) {
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false }) {
     Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs });
     this.distort = 0;    // camcorder distortion, 0..1
     this.peekHud = 0;    // seconds the HUD stays visible after something changes
@@ -52,7 +54,9 @@ export class Game {
     scene.fog = new THREE.FogExp2(th.fog, th.fogDensity);
     this.world = buildLevelScene(level);
     scene.add(this.world.group);
-    scene.add(new THREE.HemisphereLight(th.look === 'house' ? 0x6a5a48 : 0x56687a, 0x0a0806, 0.12));
+    this.hemiBase = 0.12; // (lightning flashes it brighter: incidents.js)
+    this.hemi = new THREE.HemisphereLight(th.look === 'house' ? 0x6a5a48 : 0x56687a, 0x0a0806, this.hemiBase);
+    scene.add(this.hemi);
 
     this.camera = new THREE.PerspectiveCamera(settings.fov, innerWidth / innerHeight, 0.05, 80);
     this.camera.rotation.order = 'YXZ';
@@ -128,6 +132,7 @@ export class Game {
     if (mp) { this.mimic.lureStyle = 'distant'; this.mimic.stalkRange = [9, 16]; }
     this.sw = new Skinwalker(this, skinwalker); // online only: something wearing a living friend
     this.hunt = new Hunter(this, hunter);       // Hunt mode: a player is the mimic
+    this.ls = new Listener(this, listener && !hunter); // online: the blind thing that hunts by sound
     if (this.hunt.on) this.status.set(hunter, 'hunter');
     if (story) this.mimic.graceT = story.grace;
     this.ambientEmitter = sfx.emitter();
@@ -147,6 +152,7 @@ export class Game {
     this.chat = new Chat(this);   // quick chat (online)
     this.haunt = new Haunt(this); // the dead reaching back (online)
     this.doorEm = sfx.emitter();
+    this.inc = new Incidents(this, !story && !tutorial); // power cuts, storms, alarms, lockdowns
     // Hunger: every couple of minutes it gets bolder, and lights die for good (in the same order for everyone).
     this.hungerT = 0;
     this.hungerSeen = 0;
@@ -276,6 +282,8 @@ export class Game {
     removeEventListener('mousedown', this.onClick);
     this.mimic.dispose();
     this.sw.dispose();
+    this.ls.dispose();
+    this.inc.dispose();
     this.hunt.dispose();
     this.chat.dispose();
     this.haunt.dispose();
@@ -324,6 +332,7 @@ export class Game {
         if (!d || (!this.alive(from) && from !== this.hunt.id)) break;
         if (d.jamUntil > this.t) { this.sendTo(from, { t: 'jammed' }); break; } // the traitor jammed it
         this.broadcast({ t: 'doorSet', i: d.i, open: !d.open, by: from });
+        this.ls.hear(d.x, d.z, 6, 'step');
         break;
       }
       case 'trapped': if (this.alive(from)) this.hostCatch(from); break; // the fake locker had them
@@ -351,6 +360,7 @@ export class Game {
         if (m.k === 'voice' && prop && d < Math.min(rad, 8)) this.mimic.foundHidden(prop, from);
         else this.mimic.hear(x, z, rad, m.k === 'voice' ? 'voice' : 'step');
         this.hunt.heard(x, z, rad);
+        this.ls.hear(x, z, rad, m.k === 'voice' ? 'voice' : 'step', from);
         break;
       }
       case 'take': {
@@ -394,7 +404,7 @@ export class Game {
 
   // Everyone: what happened.
   onNet(m) {
-    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m)) return;
+    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m)) return;
     switch (m.t) {
       case 'doorSet': {
         const d = this.level.idoors[m.i | 0];
@@ -445,6 +455,7 @@ export class Game {
         if (this.isHost) return;
         if (Array.isArray(m.m) && !(this.state === 'caught')) this.mimic.applySnap(m.m);
         if (m.sw && this.state !== 'caught') this.sw.applySnap(m.sw);
+        if (m.ls && this.state !== 'caught') this.ls.applySnap(m.ls);
         for (const row of m.p || []) {
           const r = this.remotes.get(row[0]);
           if (r) r.setState(row.slice(1).map((v) => num(v)));
@@ -518,7 +529,8 @@ export class Game {
       case 'power': this.powerOn(m.by); break;
       case 'caught': {
         this.status.set(m.id, 'dead');
-        if (m.id === this.me) this.caught(Array.isArray(m.sw) ? { x: num(m.sw[0]), z: num(m.sw[1]), ceiling: false, dropT: 0, sw: true } : null);
+        const at = Array.isArray(m.sw) ? m.sw : Array.isArray(m.ls) ? m.ls : null;
+        if (m.id === this.me) this.caught(at ? { x: num(at[0]), z: num(at[1]), ceiling: false, dropT: 0, sw: !!m.sw, ls: !!m.ls } : null);
         // Nobody else is told. Their voice just stops, as if they wandered off.
         else if (this.alive(this.me)) this.mp?.vc?.route(m.id, { on: false });
         this.checkEnd();
@@ -550,13 +562,14 @@ export class Game {
     this.broadcast({ t: 'end', st: Object.fromEntries(this.status), time: this.time, mode: this.hunt.id ? 'hunt' : this.traitor.on ? 'story' : 'normal', hunter: this.hunt.id, recap: this.recap.data(), ...this.traitor.result() });
   }
 
-  // Host: the mimic (or, by 'sw', the skinwalker) reached a player.
+  // Host: the mimic (or, by 'sw', the skinwalker; 'ls', the listener) reached a player.
   hostCatch(id, by = null) {
     if (!this.alive(id)) return;
     if (this.ab.hostSave(id)) return; // a medic's rescue: they tear free
     this.dropFuses(id);
     this.recap.event('caught', id, by);
     if (by === 'sw') { this.broadcast({ t: 'caught', id, sw: [+this.sw.x.toFixed(2), +this.sw.z.toFixed(2)] }); return; }
+    if (by === 'ls') { this.broadcast({ t: 'caught', id, ls: [+this.ls.x.toFixed(2), +this.ls.z.toFixed(2)] }); return; }
     this.mimic.shyT = 8; // it lets the others breathe for a moment
     this.mimic.state = 'wander';
     this.mimic.path = [];
@@ -624,6 +637,8 @@ export class Game {
     else if (this.mp || this.state === 'playing') this.mimic.update(dt, this.targets(), this.t);
     if (this.hunt.me) this.mimic.model.root.visible = false; // you're inside it
     this.sw.update(dt);
+    this.ls.update(dt);
+    if (this.state === 'playing' || this.state === 'spectate') this.inc.update(dt);
 
     const watching = this.state === 'spectate' ? this.specTarget() : null;
     const worn = this.mimic.wearId && this.remotes.get(this.mimic.wearId);
@@ -664,7 +679,7 @@ export class Game {
       const rows = [];
       if (mine) rows.push([this.me, ...mine]);
       for (const [id, r] of this.remotes) if (this.alive(id) && r.seen) rows.push([id, +r.tx.toFixed(2), +r.tz.toFixed(2), +r.tyaw.toFixed(2), +r.pitch.toFixed(2), r.crouch ? 1 : 0, r.flash ? 1 : 0, r.hidden]);
-      this.mp.net.broadcast({ t: 'snap', m: this.mimic.snap(), p: rows, sw: this.sw.on ? this.sw.snap() : undefined }, { self: false });
+      this.mp.net.broadcast({ t: 'snap', m: this.mimic.snap(), p: rows, sw: this.sw.on ? this.sw.snap() : undefined, ls: this.ls.on ? this.ls.snap() : undefined }, { self: false });
     } else if (mine) this.send({ t: 'st', s: mine });
   }
 
@@ -775,7 +790,7 @@ export class Game {
     const p = this.p;
     const run = p.speed > 4;
     this.sfx.footstep(null, { vol: p.crouch ? 0.3 : run ? 1.1 : 0.65, surface: this.level.theme.surface });
-    this.noise(p.crouch ? 1 : run ? this.ab.sprintNoise : 3, 'step');
+    this.noise((p.crouch ? 1 : run ? this.ab.sprintNoise : 3) * this.inc.stepScale, 'step');
   }
 
   // Something the mimic might hear, at my position.
@@ -785,6 +800,7 @@ export class Game {
       if (kind === 'voice' && p.hidden && Math.hypot(this.mimic.x - p.x, this.mimic.z - p.z) < Math.min(radius, 8)) this.mimic.foundHidden(p.hidden, this.me);
       else this.mimic.hear(p.x, p.z, radius, kind);
       this.hunt.heard(p.x, p.z, radius);
+      this.ls.hear(p.x, p.z, radius, kind, this.me);
     } else this.send({ t: 'noise', x: +p.x.toFixed(2), z: +p.z.toFixed(2), r: +radius.toFixed(1), k: kind });
   }
 
@@ -1020,6 +1036,7 @@ export class Game {
       this.broadcast({ t: 'say', keys, style });
       return 3;
     }
+    this.ls.hear(this.mimic.x, this.mimic.z, 16, 'voice'); // its lures draw the listener too
     if (!this.mp) return this.localSpeak(style, emitter);
     const wearing = this.mimic.wearId;
     const key = this.mp.pickKey(dead, wearing);
@@ -1098,7 +1115,7 @@ export class Game {
     const p = this.p, m = this.mimic;
     const d = Math.hypot(m.x - p.x, m.z - p.z);
     const vis = this.level.los(p.x, p.z, m.x, m.z);
-    let f = clamp(1 - d / 12, 0, 1) * (vis ? 1 : 0.45);
+    let f = Math.max(clamp(1 - d / 12, 0, 1) * (vis ? 1 : 0.45), this.ls.nearness(p.x, p.z) * 0.8);
     if ((m.state === 'chase' || m.state === 'hunt') && (!this.mp || d < 25)) f = Math.max(f, 0.45);
     this.fear += (f - this.fear) * (1 - Math.exp(-dt * 3));
     this.hud.fear.style.opacity = (this.fear * 0.85).toFixed(3);
@@ -1111,7 +1128,7 @@ export class Game {
     // Sound: a dread drone swells as it gets closer (even through walls), and the background
     // goes silent when it's near and quiet. A pounding pulse while it chases (you, online).
     const chasing = (m.state === 'chase' || m.state === 'hunt') && (!this.mp || m.targetId === this.me || d < 15);
-    const near = clamp(1 - d / 20, 0, 1);
+    const near = Math.max(clamp(1 - d / 20, 0, 1), this.ls.nearness(p.x, p.z));
     this.sfx.setDread(chasing ? 1 : near * near);
     this.sfx.setAmbient(d < 8 && !chasing ? 0.1 : 1);
     if (chasing) {
@@ -1167,6 +1184,7 @@ export class Game {
         if (this.power) lvl *= 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(t * 4.5));
       }
       if (this.blackout > 0 && Math.hypot(L.x - this.p.x, L.z - this.p.z) < 18) lvl = 0;
+      if (this.inc.dark() && !this.power) lvl = 0; // a power cut
       if (L.offUntil > t) lvl = 0; // put out by a scripted scare
       L.level = lvl;
       L.mat.emissiveIntensity = lvl * 1.5;
@@ -1232,7 +1250,7 @@ export class Game {
   // by: where the skinwalker got me (null = the mimic).
   caught(by = null) {
     if (this.state !== 'playing') return;
-    this.scareBy = by?.sw && this.sw.wearId ? this.sw : null;
+    this.scareBy = by?.sw && this.sw.wearId ? this.sw : by?.ls && this.ls.on ? this.ls : null;
     this.hb.stop();
     this.obj.repairing = null;
     this.obj.endSkill();
@@ -1259,7 +1277,7 @@ export class Game {
     const dx = m.x - p.x, dz = m.z - p.z, d = Math.hypot(dx, dz) || 1;
     const behind = (-Math.sin(p.yaw) * dx - Math.cos(p.yaw) * dz) / d < -0.3;
     this.scare = m.ceiling || m.dropT > 0 ? 'above' : behind ? 'behind' : Math.random() < 0.3 ? 'drag' : 'front';
-    if (this.scare === 'behind') this.sfx.sniff(by ? this.sw.emitter : m.emitter);
+    if (this.scare === 'behind') this.sfx.sniff(this.scareBy ? this.scareBy.emitter : m.emitter);
   }
 
   updateCaught(dt) {
@@ -1298,6 +1316,7 @@ export class Game {
       if (!this.mp) { this.end(false); return; }
       this.mimic.frozen = false;
       this.sw.posed = false;
+      this.ls.posed = false;
       this.startSpectate();
     }
   }

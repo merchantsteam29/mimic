@@ -48,7 +48,7 @@ export class Recap {
     const at = this.where(id);
     if (!at) return;
     this.add(this.paths[id] ||= [], at.x, at.z, true);
-    this.ev.push([kind, id, Math.round(at.x * 2) / 2, Math.round(at.z * 2) / 2, Math.round(this.g.time), by === 'sw' ? 'sw' : 0]);
+    this.ev.push([kind, id, Math.round(at.x * 2) / 2, Math.round(at.z * 2) / 2, Math.round(this.g.time), by === 'sw' || by === 'ls' ? by : 0]);
   }
 
   // The mimic used a clip (online: its key says whose; alone: yours).

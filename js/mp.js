@@ -35,6 +35,7 @@ export class Session {
     this.game = null;
     this.mode = 'normal';   // or 'story' (The Signal: maybe a traitor), or 'hunt' (one of you is the mimic)
     this.skinwalker = false; // Normal mode only: something that wears a living friend
+    this.listener = false;   // Normal mode only: the blind thing that hunts by sound
     this.traitorId = null;  // host only
     this.onRoster = () => {};
     this.onStart = () => {};   // ({ seed, theme, order })
@@ -42,7 +43,7 @@ export class Session {
     this.onClose = () => {};   // (reason)
     this.net.onRoster = (r) => {
       this.vc?.sync(r);
-      if (this.isHost) this.net.broadcast({ t: 'mode', mode: this.mode, sw: this.skinwalker }, { self: false }); // newcomers learn the mode
+      if (this.isHost) this.net.broadcast({ t: 'mode', mode: this.mode, sw: this.skinwalker, ls: this.listener }, { self: false }); // newcomers learn the mode
       this.onRoster(r);
     };
     this.net.onClose = (why) => { this.dispose(); this.onClose(why); };
@@ -118,7 +119,7 @@ export class Session {
       return;
     }
     if (m.t === 'start') { this.net.locked = true; this.onStart(m); return; }
-    if (m.t === 'mode') { if (from === 'h') { this.mode = ['story', 'hunt'].includes(m.mode) ? m.mode : 'normal'; this.skinwalker = !!m.sw; this.onRoster(this.roster); } return; }
+    if (m.t === 'mode') { if (from === 'h') { this.mode = ['story', 'hunt'].includes(m.mode) ? m.mode : 'normal'; this.skinwalker = !!m.sw; this.listener = !!m.ls; this.onRoster(this.roster); } return; }
     if (m.t === 'role') { if (from === 'h') this.game?.traitor.onNet(m); return; }
     if (m.t === 'class') { // a player picked a class (host keeps it in the roster)
       const r = this.isHost && this.roster.find((x) => x.id === from);
@@ -141,21 +142,21 @@ export class Session {
     this.traitorId = this.mode === 'story' && ids.length > 1 && Math.random() < 0.5 ? ids[Math.floor(Math.random() * ids.length)] : null;
     // Hunt: one of you is the mimic (it needs someone to hunt).
     const hunter = this.mode === 'hunt' && ids.length > 1 ? ids[Math.floor(Math.random() * ids.length)] : null;
-    this.net.broadcast({ t: 'start', theme, seed, order: ids, classes, mode: hunter ? 'hunt' : this.mode === 'hunt' ? 'normal' : this.mode, sw: this.mode === 'normal' && this.skinwalker, hunter });
+    this.net.broadcast({ t: 'start', theme, seed, order: ids, classes, mode: hunter ? 'hunt' : this.mode === 'hunt' ? 'normal' : this.mode, sw: this.mode === 'normal' && this.skinwalker, ls: this.mode === 'normal' && this.listener, hunter });
     if (this.traitorId && this.traitorId !== 'h') this.net.sendTo(this.traitorId, { t: 'role', traitor: true });
   }
 
   setMode(mode) {
     if (!this.isHost) return;
     this.mode = ['story', 'hunt'].includes(mode) ? mode : 'normal';
-    this.net.broadcast({ t: 'mode', mode: this.mode, sw: this.skinwalker }, { self: false });
+    this.net.broadcast({ t: 'mode', mode: this.mode, sw: this.skinwalker, ls: this.listener }, { self: false });
     this.onRoster(this.roster);
   }
 
   setSkinwalker(on) {
     if (!this.isHost) return;
     this.skinwalker = !!on;
-    this.net.broadcast({ t: 'mode', mode: this.mode, sw: this.skinwalker }, { self: false });
+    this.net.broadcast({ t: 'mode', mode: this.mode, sw: this.skinwalker, ls: this.listener }, { self: false });
     this.onRoster(this.roster);
   }
 
@@ -164,6 +165,13 @@ export class Session {
     if (this.isHost) { const r = this.roster.find((x) => x.id === this.id); if (r) { r.cls = c; this.net.sendRoster(); } }
     else this.net.send({ t: 'class', c });
   }
+  setListener(on) {
+    if (!this.isHost) return;
+    this.listener = !!on;
+    this.net.broadcast({ t: 'mode', mode: this.mode, sw: this.skinwalker, ls: this.listener }, { self: false });
+    this.onRoster(this.roster);
+  }
+
   backToLobby() { this.net.broadcast({ t: 'lobby' }); }
 
   dispose() {

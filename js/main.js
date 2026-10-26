@@ -573,7 +573,7 @@ function showRecap(r) {
     const e = rc.ev.find((q) => q[1] === id);
     if (id === r.hunter) return 'was the mimic';
     if (!e) return r.results?.find((q) => q.id === id)?.status === 'left' ? 'left' : 'still in there';
-    return e[0] === 'out' ? `got out at ${fmtTime(e[4])}` : `taken at ${fmtTime(e[4])}${e[5] === 'sw' ? ' (not by the mimic)' : ''}`;
+    return e[0] === 'out' ? `got out at ${fmtTime(e[4])}` : `taken at ${fmtTime(e[4])}${e[5] ? ' (not by the mimic)' : ''}`;
   };
   $('recapKey').innerHTML = order.map((id, i) => `<li><i style="background:${PLAYER_COLORS[i % 4]}"></i>${esc(name(id))}${r.mp && id === session?.id ? ' (you)' : ''}<span>${fate(id)}</span></li>`).join('')
     + '<li><i class="it"></i>It<span>its route</span></li>';
@@ -691,6 +691,12 @@ function renderLobby() {
   sw.querySelector('b').textContent = `Skinwalker: ${swOn ? 'on' : 'off'}`;
   sw.disabled = !session.isHost || session.mode !== 'normal';
   sw.onclick = () => session.setSkinwalker(!session.skinwalker);
+  // The blind listener: the same kind of switch.
+  const ls = $('btnListener'), lsOn = session.listener && session.mode === 'normal';
+  ls.classList.toggle('on', lsOn);
+  ls.querySelector('b').textContent = `Listener: ${lsOn ? 'on' : 'off'}`;
+  ls.disabled = !session.isHost || session.mode !== 'normal';
+  ls.onclick = () => session.setListener(!session.listener);
 }
 
 $('btnInvite').onclick = async () => {
@@ -719,7 +725,7 @@ function startMpRun(m) {
   const themeId = m.theme in THEMES ? m.theme : 'facility';
   game = new Game({
     renderer, vhs, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order, classes: m.classes || {},
-    mode: m.mode === 'story' ? 'story' : 'normal', traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw,
+    mode: m.mode === 'story' ? 'story' : 'normal', traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls,
     hunter: m.mode === 'hunt' && m.order?.includes(m.hunter) ? m.hunter : null,
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),

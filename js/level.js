@@ -1,4 +1,4 @@
-// Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house or a hospital.
+// Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house, a hospital or a mall.
 // Also holds the collision, line-of-sight and path-finding the player and the mimic use.
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
@@ -44,6 +44,16 @@ export const THEMES = {
     fog: 0x020302, fogDensity: 0.085, reverb: [2.4, 0.4],
     props: ['gurney', 'wheelchair', 'ivstand', 'curtain', 'medcabinet', 'gurney', 'desk'], hideProp: 'locker', surface: 'hard',
   },
+  // A shopping mall, closed for years: big shops off long halls, an echo, music still playing somewhere. Built like the
+  // facility (tube lights, metal doors, keycards). Hide in the fitting rooms. The mannequins move when you aren't looking.
+  mall: {
+    id: 'mall', look: 'facility', kicker: 'Closed shopping mall',
+    names: ['Westgate Mall · Lower Level', 'Crestview Galleria', 'Northfield Shopping Centre', 'The Arcade at Pine Hills'],
+    size: 30, roomSize: [4, 8], tries: 140, minRooms: 8,
+    light: 0xfff0dc, lightIntensity: 8, corridorLights: true, flicker: 0.45, broken: 0.35,
+    fog: 0x030202, fogDensity: 0.075, reverb: [3.4, 0.5],
+    props: ['mannequin', 'clothesrack', 'counter', 'bench', 'planter', 'shoerack', 'mannequin', 'clothesrack'], hideProp: 'fittingroom', surface: 'hard',
+  },
 };
 
 // Footprint (w across the front, d front-to-back) of each prop, in metres. Front faces +z.
@@ -52,6 +62,8 @@ const PROP_DEFS = {
   cabinet: { w: 0.9, d: 0.55 }, locker: { w: 1.0, d: 0.75 }, bed: { w: 1.4, d: 1.95 }, sofa: { w: 1.8, d: 0.85 },
   table: { w: 1.4, d: 0.9 }, generator: { w: 1.5, d: 0.95 }, bookshelf: { w: 1.6, d: 0.45 }, dresser: { w: 1.2, d: 0.55 }, wardrobe: { w: 1.25, d: 0.75 },
   gurney: { w: 0.9, d: 2.0 }, wheelchair: { w: 0.7, d: 0.8 }, ivstand: { w: 0.5, d: 0.5 }, curtain: { w: 1.9, d: 0.3 }, medcabinet: { w: 1.0, d: 0.45 },
+  mannequin: { w: 0.6, d: 0.5 }, clothesrack: { w: 1.6, d: 0.6 }, counter: { w: 1.8, d: 0.8 }, bench: { w: 1.6, d: 0.6 }, planter: { w: 1.0, d: 1.0 },
+  shoerack: { w: 1.6, d: 0.45 }, fittingroom: { w: 1.2, d: 1.0 },
 };
 
 // opts (story chapters): { size, tasks: { fuses, gens, tapes, keycard }, lore (tape count), broken (share of dead lights) }
@@ -654,6 +666,63 @@ function buildProp(type, M) {
       for (const y of [1.0, 1.3, 1.6]) for (let x = -0.35; x < 0.4; x += 0.14) if (r() < 0.55) g.add(cyl(0.035, 0.035, 0.12, M.bottles[Math.floor(r() * M.bottles.length)], x, y + 0.07, 0.05, 8));
       g.add(box(0.95, 0.02, 0.01, M.black, 0, 0.55, 0.23));
       break;
+    case 'mannequin': { // pale plastic, no face; its head and body turn when nobody's looking (scares.js)
+      g.add(cyl(0.18, 0.2, 0.03, M.metal, 0, 0.015, 0, 12), cyl(0.015, 0.015, 0.75, M.metal, 0, 0.4, 0, 6));
+      const body = new THREE.Group();
+      body.position.y = 0.75;
+      body.add(box(0.36, 0.55, 0.2, M.plastic, 0, 0.42, 0), box(0.3, 0.25, 0.18, M.plastic, 0, 0.1, 0));
+      if (r() < 0.6) body.add(box(0.4, 0.42, 0.23, M.clothes[Math.floor(r() * M.clothes.length)], 0, 0.45, 0));
+      const head = new THREE.Group();
+      head.position.y = 0.82;
+      const skull = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 10), M.plastic);
+      skull.scale.y = 1.25;
+      head.add(skull, cyl(0.04, 0.05, 0.1, M.plastic, 0, -0.13, 0, 8));
+      body.add(head);
+      for (const sx of [-1, 1]) { const a = box(0.07, 0.6, 0.07, M.plastic, sx * 0.22, 0.38, 0); a.rotation.z = sx * (0.08 + r() * 0.2); body.add(a); }
+      g.add(body);
+      g.userData.mannequin = { body, head };
+      break;
+    }
+    case 'clothesrack':
+      for (const x of [-0.75, 0.75]) g.add(box(0.04, 1.45, 0.04, M.metal, x, 0.72, 0), box(0.04, 0.03, 0.5, M.metal, x, 0.02, 0));
+      g.add(box(1.55, 0.03, 0.03, M.metal, 0, 1.45, 0));
+      for (let x = -0.65; x < 0.66; x += 0.11) if (r() < 0.75) {
+        const len = 0.6 + r() * 0.35, c = box(0.05, len, 0.42, M.clothes[Math.floor(r() * M.clothes.length)], x, 1.42 - len / 2, 0);
+        c.rotation.y = (r() - 0.5) * 0.3;
+        g.add(c);
+      }
+      break;
+    case 'counter': // a shop till: a glass-topped counter with the register still on it
+      g.add(box(1.8, 0.95, 0.7, M.white, 0, 0.475, 0), box(1.8, 0.02, 0.75, M.glass, 0, 0.96, 0));
+      g.add(box(0.4, 0.2, 0.35, M.black, -0.4, 1.07, -0.05), box(0.32, 0.15, 0.03, M.black, -0.4, 1.25, -0.2));
+      if (r() < 0.6) g.add(box(0.3, 0.02, 0.2, M.paper, 0.4, 0.98, 0.1));
+      break;
+    case 'bench':
+      for (const z of [-0.2, 0, 0.2]) g.add(box(1.6, 0.04, 0.16, M.wood, 0, 0.45, z));
+      for (const x of [-0.7, 0.7]) g.add(box(0.06, 0.45, 0.5, M.metal, x, 0.22, 0));
+      break;
+    case 'planter': { // a dead plant in a big square planter
+      g.add(box(0.95, 0.6, 0.95, M.white, 0, 0.3, 0), box(0.85, 0.02, 0.85, M.cardboard, 0, 0.6, 0));
+      g.add(cyl(0.04, 0.05, 1.2, M.darkWood, 0, 1.2, 0, 6));
+      for (let i = 0; i < 6; i++) {
+        const leaf = box(0.06, 0.5, 0.02, M.deadLeaf, 0, 1.6 + r() * 0.3, 0);
+        leaf.rotation.set((r() - 0.5) * 2.4, r() * 6, (r() - 0.5) * 2.4);
+        g.add(leaf);
+      }
+      break;
+    }
+    case 'shoerack':
+      g.add(box(1.6, 1.8, 0.04, M.white, 0, 0.9, -0.2));
+      for (const y of [0.1, 0.5, 0.9, 1.3, 1.7]) g.add(box(1.6, 0.03, 0.42, M.white, 0, y, 0));
+      for (const y of [0.12, 0.52, 0.92, 1.32]) for (let x = -0.62; x < 0.65; x += 0.31) if (r() < 0.7) g.add(box(0.26, 0.11, 0.3, M.clothes[Math.floor(r() * M.clothes.length)], x, y + 0.07, 0));
+      break;
+    case 'fittingroom': // a booth with a heavy curtain in front: you can hide in it
+      g.add(box(1.2, 2.2, 0.04, M.white, 0, 1.1, -0.48));
+      for (const x of [-0.58, 0.58]) g.add(box(0.04, 2.2, 1.0, M.white, x, 1.1, 0));
+      g.add(box(1.2, 0.03, 0.03, M.metal, 0, 2.05, 0.48));
+      for (let i = 0; i < 6; i++) g.add(box(0.19, 1.75, 0.02, M.booth, -0.48 + i * 0.193, 1.12, 0.47 + (i % 2) * 0.03));
+      g.add(box(0.5, 0.75, 0.02, M.mirror, 0, 1.4, -0.45));
+      break;
     case 'wardrobe':
       g.add(box(1.25, 2.2, 0.75, M.darkWood, 0, 1.1, 0));
       g.add(box(0.015, 2.0, 0.01, M.black, 0, 1.1, 0.376));
@@ -695,6 +764,10 @@ export function buildLevelScene(level) {
     curtain: new THREE.MeshStandardMaterial({ color: 0x7f9a8e, roughness: 1, side: THREE.DoubleSide }),
     bag: new THREE.MeshStandardMaterial({ color: 0x8a1010, roughness: 0.3, transparent: true, opacity: 0.8 }),
     bottles: [0x5a3a14, 0x8a8a80, 0x2a4a5a].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.2 })),
+    plastic: new THREE.MeshStandardMaterial({ color: 0xcfc6b8, roughness: 0.35 }),
+    clothes: [0x5a2230, 0x22344a, 0x3a3a36, 0x6a5a3a, 0x2a4a3a, 0x7a6a6a].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.95 })),
+    deadLeaf: new THREE.MeshStandardMaterial({ color: 0x3a3220, roughness: 1, side: THREE.DoubleSide }),
+    booth: new THREE.MeshStandardMaterial({ color: 0x4a1418, roughness: 1, side: THREE.DoubleSide }),
     books: [0x4a1c1c, 0x1c2f4a, 0x2f3a1c, 0x4a3b1c, 0x2a2a2a, 0x5a4a3a].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.9 })),
   };
 

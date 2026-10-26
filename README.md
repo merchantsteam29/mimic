@@ -53,13 +53,17 @@ Guess wrong, and it gets hungrier.
   pickups are it. A body on the floor isn't where you left it. Mirrors show it standing behind you (usually it isn't).
   It opens doors, slowly. It gets hungrier over time, and lights die for good. When the power comes back, it changes.
   Online, it can walk around as a friend it took. Old tapes from people who came before tell you what happened to them.
-- **Random maps:** each run is a research facility, an old house or an abandoned hospital, with a new layout every time.
+- **Random maps:** each run is a research facility, an old house, an abandoned hospital or a closed-down mall, with a new layout every time.
 - **Hunt** (online mode): one of you, picked at random, IS the mimic. You see in the dark, you see their flashlights, you
   see where they made noise through the walls, and you can call to them in any of their voices. Bite them, rip open their
   hiding spots, kill the lights. Everyone else plays the normal game against you. The mimic wins if fewer than half get out.
 - **Skinwalker** (online, Normal mode, the host switches it on in the lobby): something else is in there too, and it wears
   one of you who is still alive. Same body, same flashlight, same voice. If your friend is waiting for you at the end of a
   hallway, check where their voice is coming from. And don't stare at it too long.
+- **The Listener** (online, Normal mode, a lobby switch): something blind is in there too. It clicks as it walks.
+  It hears your footsteps, doors, and you talking on voice chat. Stand still, crouch, and keep quiet, and it can walk right past you.
+- **Things go wrong:** partway through a run the power can cut out, a storm can roll in (the rain covers your footsteps),
+  an alarm can go off somewhere, or the building can go into lockdown and seal doors around you.
 - **New here?** The first time you play alone, a short tutorial walks you through it (it's also under How to play).
 - **What happened:** after every round, the end screen replays it on a map: everyone's route, its route, where people
   were taken, and whose voice it used most.

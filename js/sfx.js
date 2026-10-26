@@ -567,6 +567,31 @@ export class Sfx {
       const mg = ctx.createGain(); mg.gain.value = 0.012;
       const mlp = ctx.createBiquadFilter(); mlp.type = 'lowpass'; mlp.frequency.value = 1800; // through a wall or two
       mon.connect(mlp).connect(mg).connect(bus); mon.start(); nodes.push(mon);
+    } else if (theme === 'mall') {
+      // Somewhere, the music never got switched off: a slow tune on a worn tape, through a few walls.
+      const sr = ctx.sampleRate, NOTES = [64, 67, 71, 69, 67, 64, 62, 64, 67, 66, 62, 59, 60, 64, 62, 0];
+      const len = 0.62, buf = ctx.createBuffer(1, Math.floor(sr * len * NOTES.length), sr), d = buf.getChannelData(0);
+      NOTES.forEach((n, k) => {
+        if (!n) return;
+        const f = 440 * 2 ** ((n - 69) / 12), off = Math.floor(k * len * sr);
+        for (let i = 0; i < len * sr * 1.6 && off + i < d.length; i++) {
+          const tt = i / sr, env = Math.min(1, tt / 0.03) * Math.exp(-tt * 2.6);
+          d[off + i] += env * (Math.sin(2 * Math.PI * f * tt) * 0.6 + Math.sin(4 * Math.PI * f * tt) * 0.15) * 0.5;
+        }
+      });
+      const mus = ctx.createBufferSource(); mus.buffer = buf; mus.loop = true; mus.playbackRate.value = 0.96;
+      const wow = ctx.createOscillator(); wow.frequency.value = 0.4;
+      const wowG = ctx.createGain(); wowG.gain.value = 0.012;
+      wow.connect(wowG).connect(mus.playbackRate);
+      const mlp = ctx.createBiquadFilter(); mlp.type = 'lowpass'; mlp.frequency.value = 1100;
+      const mg = ctx.createGain(); mg.gain.value = 0.05;
+      mus.connect(mlp).connect(mg).connect(bus);
+      mg.connect(this.send);
+      mus.start(); wow.start(); nodes.push(mus, wow);
+      // An escalator that's still running.
+      const o = ctx.createOscillator(); o.frequency.value = 43;
+      const g = ctx.createGain(); g.gain.value = 0.012;
+      o.connect(g).connect(bus); o.start(); nodes.push(o);
     } else if (theme === 'facility') {
       // Mains hum from dead machinery.
       [50, 100, 150.5].forEach((f, i) => {
@@ -602,7 +627,66 @@ export class Sfx {
     this.ambient = { nodes, bus, theme, dread, dreadLp, high };
   }
 
+  // ---------- the listener, and random events ----------
+  // The listener's clicks: a quick run of dry tongue clicks.
+  clicks(emitter, n = 3, vol = 1) {
+    const dest = emitter ? emitter.input : this.master, t = this.now;
+    let at = t;
+    for (let i = 0; i < n; i++) {
+      this._noise(dest, { t: at, dur: 0.03, freq: 2200 + Math.random() * 1200, q: 5, peak: 0.9 * vol, attack: 0.001 });
+      at += 0.06 + Math.random() * 0.05;
+    }
+  }
+
+  // Thunder: far (0..1) delays and softens it.
+  thunder(far = 0.5) {
+    const t = this.now;
+    if (far < 0.35) this._noise(this.master, { t, dur: 0.4, type: 'highpass', freq: 1200, q: 0.5, peak: 0.3 }); // the crack
+    this._noise(this.master, { t: t + far * 1.2, dur: 3.5 + far * 2, type: 'lowpass', freq: 200 - far * 70, q: 0.4, peak: 1 - far * 0.45, attack: 0.2, buffer: this.brown });
+    this._noise(this.send, { t: t + far * 1.2, dur: 3, type: 'lowpass', freq: 400, q: 0.4, peak: 0.25, attack: 0.3, buffer: this.brown });
+  }
+
+  // Rain on the roof and the windows, fading in and out.
+  rain(on) {
+    const ctx = this.ctx, t = this.now;
+    if (on && !this.rainNode) {
+      const src = ctx.createBufferSource(); src.buffer = this.white; src.loop = true;
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2200; bp.Q.value = 0.4;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5000;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.05, t + 5);
+      src.connect(bp).connect(lp).connect(g).connect(this.master);
+      src.start();
+      this.rainNode = { src, g };
+    } else if (!on && this.rainNode) {
+      const { src, g } = this.rainNode;
+      g.gain.setTargetAtTime(0, t, 1.5);
+      src.stop(t + 6);
+      this.rainNode = null;
+    }
+  }
+
+  // A security alarm going off somewhere, for a while.
+  siren(emitter, seconds = 14) {
+    const ctx = this.ctx, t = this.now;
+    const o = ctx.createOscillator(); o.type = 'square';
+    for (let i = 0; i < seconds / 0.5; i++) o.frequency.setValueAtTime(i % 2 ? 640 : 860, t + i * 0.5);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2200;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.35, t + 0.05);
+    g.gain.setValueAtTime(0.35, t + seconds - 0.1); g.gain.linearRampToValueAtTime(0, t + seconds);
+    o.connect(lp).connect(g).connect(emitter ? emitter.input : this.master);
+    o.start(t); o.stop(t + seconds + 0.1);
+  }
+
+  // A security shutter rolling down and slamming.
+  shutter(emitter) {
+    const dest = emitter ? emitter.input : this.master, t = this.now;
+    for (let i = 0; i < 26; i++) this._noise(dest, { t: t + i * 0.045, dur: 0.04, freq: 900 + Math.random() * 600, q: 2, peak: 0.35 });
+    this._noise(dest, { t: t + 1.2, dur: 0.5, type: 'lowpass', freq: 500, q: 0.6, peak: 1.2 });
+    this._tone(dest, { t: t + 1.2, freq: 90, to: 45, dur: 0.3, peak: 0.4 });
+  }
+
   stopAmbient() {
+    this.rain(false);
     if (!this.ambient) return;
     const { nodes, bus, dread, high } = this.ambient;
     bus.gain.setTargetAtTime(0, this.now, 0.3);

@@ -290,5 +290,28 @@ export class Scares {
     this.updateTalkBack(dt);
     this.updateBody(dt);
     this.updateDecoys(dt);
+    this.updateMannequins(dt);
+  }
+
+  // The mall's mannequins: when you aren't looking, one turns a little more toward you, or tilts its head.
+  updateMannequins(dt) {
+    const g = this.g;
+    this.manT = (this.manT ?? 1) - dt;
+    if (this.manT > 0) return;
+    this.manT = 0.5;
+    const c = g.camera.position, fwd = g.camera.getWorldDirection(this.fwd ||= new THREE.Vector3());
+    for (const pr of g.level.props) {
+      const mq = pr.mesh?.userData.mannequin;
+      if (!mq) continue;
+      const dx = pr.x - c.x, dz = pr.z - c.z, d = Math.hypot(dx, dz);
+      if (d > 14 || d < 1.5) continue;
+      const watched = (fwd.x * dx + fwd.z * dz) / d > 0.45 && g.level.los(c.x, c.z, pr.x, pr.z);
+      if (watched || Math.random() > (d < 6 ? 0.12 : 0.05)) continue;
+      const want = Math.atan2(-dx, -dz) - pr.mesh.rotation.y; // face the camera
+      const diff = Math.atan2(Math.sin(want - mq.body.rotation.y), Math.cos(want - mq.body.rotation.y));
+      mq.body.rotation.y += Math.sign(diff) * Math.min(Math.abs(diff), 0.6);
+      mq.head.rotation.z = (Math.random() - 0.5) * 0.7;
+      if (d < 7) g.sfx.creak(null, 0.05);
+    }
   }
 }

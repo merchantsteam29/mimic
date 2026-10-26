@@ -140,6 +140,16 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   friend's voice comes from elsewhere. Getting within 3.2 m, or lighting it up for 2.6 s, triggers `swReveal` -> `chase` (pale, long
   limbs, upside-down head, split mouth). A catch is `hostCatch(id, 'sw')` -> `caught` with `sw` (the jumpscare uses `sw.poseAt`). It
   leaves if the real friend could see it, and stops after power-on. Host state goes in `snap.sw`.
+- `listener.js`: the **blind listener**: online, **Normal mode only**, a host lobby toggle (`session.setListener`, `start` carries `ls`).
+  Eyeless, tall, clicks as it moves (`sfx.clicks`). The host calls `ls.hear(x, z, r, kind, from)` wherever the mimic hears something
+  (steps, voice chat via `noise`, doors, the mimic's own lures, alarms); it hears 1.35x further. States: roam / listen / rush / search.
+  It takes anyone it walks into (`hostCatch(id, 'ls')` -> `caught` with `ls`), and someone hiding only if it came for a sound they made
+  in there. Snapshots in `snap.ls`; `poseAt` for the jumpscare. Adds to fear / dread (`nearness`).
+- `incidents.js`: **random events** (not in the story or the tutorial). Every ~2.5-4.5 min before power-on the host broadcasts
+  `incident`: `cut` (all lights out ~22 s), `storm` (rain + thunder ~70 s; footstep noise x0.55; lightning flashes `game.hemi` except
+  underground), `alarm` (a siren far from everyone; the mimic and listener go to it), `lock` (4 doors near players shut, `jamUntil` 40 s).
+- **Mall** theme (`mall`, look `facility`): shops, fitting-room hiding spots (`fittingroom`), mannequins that turn toward you when
+  unseen (`scares.updateMannequins`, `userData.mannequin`), textures `mallWall` / `mallFloor`, ambience: far-off muzak + escalator hum.
 - `hunter.js`: online **Hunt** mode (lobby Mode; `start` carries `hunter`, picked at random). That player is the mimic in first
   person: status `hunter` (never `alive`, so survivors can't hear their voice), a red see-in-the-dark view (a hemisphere light only
   in their browser + a CSS filter), red rings through walls where survivors made noise (`heard`, from `game.noise` / host `noise`),
