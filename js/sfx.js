@@ -306,6 +306,8 @@ export class Sfx {
       if (!this.stranger || Math.random() < 0.2) this.stranger = [0.8, 0.86, 1.17, 1.24][Math.floor(Math.random() * 4)];
       rate = this.stranger; vol = 1.3; ws.curve = distortionCurve(5);
       hp.frequency.value = 350; lp.frequency.value = 3200; pk.frequency.value = 1500; pk.gain.value = 7;
+    } else if (style === 'phone') { // your own voice, down a telephone line
+      rate = rand(0.98, 1.0); vol = 1.5; ws.curve = distortionCurve(8); hp.frequency.value = 320; lp.frequency.value = 3300; pk.frequency.value = 1200; pk.gain.value = 6; wet.gain.value = 0.15;
     } else if (style === 'ellie') { rate = 1.2; vol = 1.2; ws.curve = distortionCurve(2); lp.frequency.value = 6000; wet.gain.value = 0.4; }
     else { rate = rand(0.955, 1.01); vol = 1.15; ws.curve = distortionCurve(3); }
     out.gain.value = vol;
@@ -659,6 +661,13 @@ export class Sfx {
     tone.start(); vib.start();
     nodes.push(tone, vib, dread, high);
     this.ambient = { nodes, bus, theme, dread, dreadLp, high };
+  }
+
+  // The shadow burning away in a flashlight: a hiss, and something like a breath let out.
+  hiss(emitter = null) {
+    const dest = emitter ? emitter.input : this.master, t = this.now;
+    this._noise(dest, { t, dur: 1.2, type: 'highpass', freq: 2500, q: 0.4, peak: 0.6, attack: 0.05 });
+    this._noise(dest, { t: t + 0.1, dur: 0.9, freq: 500, q: 1.2, peak: 0.4, attack: 0.2 });
   }
 
   // A tin can bouncing on a hard floor.

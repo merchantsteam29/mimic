@@ -1,5 +1,5 @@
 // Your stats: how you've done, saved on this device only (localStorage 'mimic.stats'). Nothing to unlock.
-import { storyProgress, CHAPTERS } from './story.js';
+import { storyProgress, STORIES } from './story.js';
 
 const KEY = 'mimic.stats';
 const fresh = () => ({ runs: 0, solo: 0, online: 0, escapes: 0, taken: 0, best: 0, longest: 0, time: 0, voices: 0, asMimic: 0, mimicWins: 0, places: {} });
@@ -38,7 +38,7 @@ export function statRows() {
     ['Longest before it got you', s.longest ? clock(s.longest) : '-'],
     ['Time spent in the dark', clock(s.time)],
     ['Times it used a voice on you', s.voices],
-    ['Story', `${storyProgress()} of ${CHAPTERS.length} chapters`],
+    ...STORIES.map((b) => [`Story: ${b.title}`, `${storyProgress(b)} of ${b.chapters.length} chapters`]),
   ];
   if (s.asMimic) rows.push(['Games as the mimic', `${s.asMimic} (won ${s.mimicWins})`]);
   const fav = Object.entries(s.places).sort((a, b) => b[1] - a[1])[0];

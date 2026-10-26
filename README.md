@@ -19,6 +19,8 @@ The microphone only works on `localhost` or `https`, not on `file://`. Use headp
 ## Story
 
 **Ellie** (solo, 8 chapters): your sister went into the Holloway house to film it and never came out. Find her tapes.
+
+**The Operator** (solo, 5 chapters): you're a 911 dispatcher. The calls come from places that have been closed for years, in a voice you know.
 Chapters unlock as you finish them (saved on your device).
 
 **The Signal** (online, pick Story in the lobby): half the time, one of you is secretly working for it. They can jam
@@ -87,6 +89,7 @@ Guess wrong, and it gets hungrier.
   to play that exact building again, or send it to a friend.
 - **Quick Play:** no friends online? It finds you a public room with strangers, or opens one they can find.
 - **Dead, but not done:** press R to drift around the building on your own instead of watching through a friend's eyes.
+- **The Shadow** (online, Normal mode, a lobby switch): it lives where the lights are dead. Stay in the light, and keep your flashlight on it.
 - **New here?** The first time you play alone, a short tutorial walks you through it (it's also under How to play).
 - **What happened:** after every round, the end screen replays it on a map: everyone's route, its route, where people
   were taken, and whose voice it used most.

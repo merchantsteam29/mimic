@@ -11,7 +11,7 @@ import { Session } from './mp.js';
 import { newCode, cleanCode, cleanName, QUICK_CODES, probe } from './net.js';
 import { CLASSES, CLASS_ORDER } from './classes.js';
 import { VERSION } from './version.js';
-import { CHAPTERS, SIGNAL, storyProgress, finishChapter } from './story.js';
+import { STORIES, SIGNAL, storyProgress, finishChapter } from './story.js';
 import { controls, initControls, bindsChanged, editTouchLayout } from './controls.js';
 import { ACTIONS, binds, resetBinds, keyName, padName } from './binds.js';
 import { initTitle } from './title.js';
@@ -442,9 +442,15 @@ $('btnStory').onclick = () => voiceCheck(() => openStory());
 
 // ---------- story: chapter select ----------
 let storyIdx = null; // the chapter being played (null = a normal run)
+let book = STORIES[0]; // which story
 function openStory() {
-  const done = storyProgress();
-  $('chapters').innerHTML = CHAPTERS.map((c, i) => {
+  // The two stories, as tabs.
+  $('storyTabs').innerHTML = STORIES.map((b) => `<button data-book="${b.id}" class="${b === book ? 'on' : ''}">${esc(b.title)}</button>`).join('');
+  $('storyTabs').querySelectorAll('button').forEach((b) => { b.onclick = () => { book = STORIES.find((x) => x.id === b.dataset.book); openStory(); }; });
+  $('storyTitle').textContent = book.title;
+  $('storyBlurb').textContent = `${book.blurb} Chapters unlock as you finish them (saved on this device).`;
+  const done = storyProgress(book);
+  $('chapters').innerHTML = book.chapters.map((c, i) => {
     const open = i <= done;
     return `<button data-ch="${i}" ${open ? '' : 'disabled'}><b>Chapter ${i + 1}</b><span>${open ? esc(c.title) : '???'}</span>${i < done ? '<i>finished</i>' : ''}</button>`;
   }).join('');
@@ -462,7 +468,7 @@ $('btnSkipMic').onclick = () => finishVoiceCheck();
 function startRun(si = null, code = null) {
   game?.dispose();
   storyIdx = si;
-  const story = si === null ? null : { ...CHAPTERS[si], index: si };
+  const story = si === null ? null : { ...book.chapters[si], index: si, book: book.id, voice: book.voice };
   const themeId = story ? story.theme : code ? code.theme : params.get('theme') in THEMES ? params.get('theme') : randomTheme();
   const seed = story ? story.seed : code ? code.seed : params.has('seed') ? Number(params.get('seed')) : Math.floor(Math.random() * 2 ** 31);
   game = new Game({
@@ -620,10 +626,10 @@ function endRun(r) {
     }
     if (session && !session.isHost) $('endSub').textContent += ' Waiting for the host…';
   } else if (r.story) {
-    const ch = r.story, last = ch.index === CHAPTERS.length - 1;
-    if (r.won) finishChapter(ch.index);
+    const ch = r.story, sb = STORIES.find((x) => x.id === ch.book) || STORIES[0], last = ch.index === sb.chapters.length - 1;
+    if (r.won) finishChapter(ch.index, sb);
     $('endTitle').textContent = r.won ? (last ? 'The end.' : `Chapter ${ch.index + 1} complete`) : 'It got you.';
-    $('endSub').textContent = r.won ? ch.ending.map(lineText).join(' ') : 'Ellie is still in there somewhere.';
+    $('endSub').textContent = r.won ? ch.ending.map(lineText).join(' ') : sb.lost;
     $('endPlayers').hidden = true;
     $('btnAgain').hidden = false;
     $('btnAgain').textContent = r.won ? (last ? 'Back to chapters' : 'Next chapter') : 'Try again';
@@ -869,6 +875,11 @@ function renderLobby() {
   sk.querySelector('b').textContent = `Stalker: ${skOn ? 'on' : 'off'}`;
   sk.disabled = !session.isHost || session.mode !== 'normal';
   sk.onclick = () => session.setStalker(!session.stalker);
+  const sd = $('btnShadow'), sdOn = session.shadow && session.mode === 'normal';
+  sd.classList.toggle('on', sdOn);
+  sd.querySelector('b').textContent = `Shadow: ${sdOn ? 'on' : 'off'}`;
+  sd.disabled = !session.isHost || session.mode !== 'normal';
+  sd.onclick = () => session.setShadow(!session.shadow);
 }
 
 // The waiting room: a small house to walk around in with everyone while you wait.
@@ -930,7 +941,7 @@ function startMpRun(m) {
   const themeId = m.theme in THEMES ? m.theme : 'facility';
   game = new Game({
     renderer, vhs, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order, classes: m.classes || {},
-    mode: m.mode === 'story' ? 'story' : 'normal', traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, difficulty: m.diff, custom: m.cs, teams: m.mode === 'versus' && m.teams && typeof m.teams === 'object' ? m.teams : null,
+    mode: m.mode === 'story' ? 'story' : 'normal', traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, shadow: !!m.sd, difficulty: m.diff, custom: m.cs, teams: m.mode === 'versus' && m.teams && typeof m.teams === 'object' ? m.teams : null,
     hunter: m.mode === 'hunt' && m.order?.includes(m.hunter) ? m.hunter : null,
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),

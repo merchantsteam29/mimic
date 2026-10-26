@@ -512,3 +512,4 @@ body.input-touch #objective { top: 112px; left: 20px; }
 .tape-plain { display: block; margin-top: 2px; font-size: 12px; color: var(--dim); }
 .tape-whisper { margin: 18px 0 14px; text-align: right; font: 14px "Special Elite", monospace; color: #b8525f; opacity: 0; animation: lineIn 2s ease-out 5.5s forwards; }
 .tape-close { width: 100%; }
+.story-tabs { margin: 6px 0 12px; }

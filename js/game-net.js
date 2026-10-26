@@ -104,7 +104,7 @@ export const NetPart = {
 
   // Everyone: what happened.
   onNet(m) {
-    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m) || this.radio.onNet(m) || this.rec.onNet(m) || this.thr.onNet(m) || this.sig.onNet(m) || this.revival.onNet(m)) return;
+    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m) || this.radio.onNet(m) || this.rec.onNet(m) || this.thr.onNet(m) || this.sig.onNet(m) || this.revival.onNet(m) || this.sd.onNet(m)) return;
     switch (m.t) {
       case 'doorSet': {
         const d = this.level.idoors[m.i | 0];
@@ -157,6 +157,7 @@ export const NetPart = {
         if (m.sw && this.state !== 'caught') this.sw.applySnap(m.sw);
         if (m.ls && this.state !== 'caught') this.ls.applySnap(m.ls);
         if (m.sk && this.state !== 'caught') this.sk.applySnap(m.sk);
+        if (m.sd && this.state !== 'caught') this.sd.applySnap(m.sd);
         for (const row of m.p || []) {
           const r = this.remotes.get(row[0]);
           if (r) r.setState(row.slice(1).map((v) => num(v)));
@@ -233,8 +234,8 @@ export const NetPart = {
       case 'power': this.powerOn(m.by); break;
       case 'caught': {
         this.status.set(m.id, 'dead');
-        const at = Array.isArray(m.sw) ? m.sw : Array.isArray(m.ls) ? m.ls : Array.isArray(m.sk) ? m.sk : null;
-        if (m.id === this.me && this.state !== 'intro') this.caught(at ? { x: num(at[0]), z: num(at[1]), ceiling: false, dropT: 0, sw: !!m.sw, ls: !!m.ls, sk: !!m.sk } : null);
+        const at = Array.isArray(m.sw) ? m.sw : Array.isArray(m.ls) ? m.ls : Array.isArray(m.sk) ? m.sk : Array.isArray(m.sd) ? m.sd : null;
+        if (m.id === this.me && this.state !== 'intro') this.caught(at ? { x: num(at[0]), z: num(at[1]), ceiling: false, dropT: 0, sw: !!m.sw, ls: !!m.ls, sk: !!m.sk, sd: !!m.sd } : null);
         // Nobody else is told. Their voice just stops, as if they wandered off.
         else if (this.alive(this.me)) this.mp?.vc?.route(m.id, { on: false });
         this.checkEnd();
@@ -284,6 +285,7 @@ export const NetPart = {
     if (by === 'sw') { this.broadcast({ t: 'caught', id, sw: [+this.sw.x.toFixed(2), +this.sw.z.toFixed(2)] }); return; }
     if (by === 'ls') { this.broadcast({ t: 'caught', id, ls: [+this.ls.x.toFixed(2), +this.ls.z.toFixed(2)] }); return; }
     if (by === 'sk') { this.broadcast({ t: 'caught', id, sk: [+this.sk.x.toFixed(2), +this.sk.z.toFixed(2)] }); return; }
+    if (by === 'sd') { this.broadcast({ t: 'caught', id, sd: [+this.sd.x.toFixed(2), +this.sd.z.toFixed(2)] }); return; }
     this.mimic.shyT = 8; // it lets the others breathe for a moment
     this.mimic.state = 'wander';
     this.mimic.path = [];

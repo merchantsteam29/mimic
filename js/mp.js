@@ -46,6 +46,7 @@ export class Session {
     this.listener = false;   // Normal mode only: the blind thing that hunts by sound
     this.difficulty = 'normal';
     this.stalker = false;    // Normal mode only: the thing that only moves when nobody's looking
+    this.shadow = false;     // Normal mode only: the thing that lives in the dark
     this.custom = { voices: 'nearby', dark: 'normal', jobs: 'normal', events: true, battery: 'normal', speed: 'normal' }; // the host's game settings
     this.traitorId = null;  // host only
     this.onRoster = () => {};
@@ -167,7 +168,7 @@ export class Session {
       return;
     }
     if (m.t === 'start') { this.net.locked = true; this.lastStart = m; this.onStart(m); return; }
-    if (m.t === 'mode') { if (from === 'h') { this.mode = ['story', 'hunt', 'versus'].includes(m.mode) ? m.mode : 'normal'; this.skinwalker = !!m.sw; this.listener = !!m.ls; this.stalker = !!m.sk; this.custom = cleanCustom(m.cs); this.difficulty = ['easy', 'nightmare'].includes(m.diff) ? m.diff : 'normal'; this.onRoster(this.roster); } return; }
+    if (m.t === 'mode') { if (from === 'h') { this.mode = ['story', 'hunt', 'versus'].includes(m.mode) ? m.mode : 'normal'; this.skinwalker = !!m.sw; this.listener = !!m.ls; this.stalker = !!m.sk; this.shadow = !!m.sd; this.custom = cleanCustom(m.cs); this.difficulty = ['easy', 'nightmare'].includes(m.diff) ? m.diff : 'normal'; this.onRoster(this.roster); } return; }
     if (m.t === 'role') { if (from === 'h') this.game?.traitor.onNet(m); return; }
     if (m.t === 'class') { // a player picked a class (host keeps it in the roster)
       const r = this.isHost && this.roster.find((x) => x.id === from);
@@ -197,7 +198,7 @@ export class Session {
       for (let i = sh.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [sh[i], sh[j]] = [sh[j], sh[i]]; }
       teams = Object.fromEntries(sh.map((id, i) => [id, i % 2]));
     }
-    this.net.broadcast({ t: 'start', theme, seed, order: ids, classes, mode: hunter ? 'hunt' : teams ? 'versus' : ['hunt', 'versus'].includes(this.mode) ? 'normal' : this.mode, teams, sw: this.mode === 'normal' && this.skinwalker, ls: this.mode === 'normal' && this.listener, sk: this.mode === 'normal' && this.stalker, hunter, diff: this.difficulty, cs: this.custom });
+    this.net.broadcast({ t: 'start', theme, seed, order: ids, classes, mode: hunter ? 'hunt' : teams ? 'versus' : ['hunt', 'versus'].includes(this.mode) ? 'normal' : this.mode, teams, sw: this.mode === 'normal' && this.skinwalker, ls: this.mode === 'normal' && this.listener, sk: this.mode === 'normal' && this.stalker, sd: this.mode === 'normal' && this.shadow, hunter, diff: this.difficulty, cs: this.custom });
     if (this.traitorId && this.traitorId !== 'h') this.net.sendTo(this.traitorId, { t: 'role', traitor: true });
   }
 
@@ -235,7 +236,14 @@ export class Session {
   }
 
   // The lobby's settings, to everyone else.
-  sendMode() { this.net.broadcast({ t: 'mode', mode: this.mode, sw: this.skinwalker, ls: this.listener, sk: this.stalker, diff: this.difficulty, cs: this.custom }, { self: false }); }
+  sendMode() { this.net.broadcast({ t: 'mode', mode: this.mode, sw: this.skinwalker, ls: this.listener, sk: this.stalker, sd: this.shadow, diff: this.difficulty, cs: this.custom }, { self: false }); }
+
+  setShadow(on) {
+    if (!this.isHost) return;
+    this.shadow = !!on;
+    this.sendMode();
+    this.onRoster(this.roster);
+  }
 
   setCustom(key, value) {
     if (!this.isHost) return;

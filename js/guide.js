@@ -16,6 +16,9 @@ const SECTIONS = [
     { name: 'The stalker', file: 'Subject 04', what: 'Online, if the host lets it in. Pale, cracked, like an old doll. It only moves when nobody can see it.',
       tells: 'Stone dragging on stone, when you aren\'t looking. Every time you look back, it\'s closer and standing differently.',
       survive: 'Someone keeps it in view, in the light, while the others work. Don\'t turn your flashlight off near it.' },
+    { name: 'The shadow', file: 'Subject 05', what: 'Online, if the host lets it in. A shape of darkness with two pale eyes. It lives where the lights are dead and can\'t step into a working light.',
+      tells: 'Whispering, close by, in a dark room. Two small eyes where there shouldn\'t be any.',
+      survive: 'Stay under working lights. Hold your flashlight on it and it burns away, for a while. Power cuts belong to it.' },
   ]],
   ['hiding', 'Where to hide', [
     { name: 'Lockers, wardrobes, fitting rooms', file: 'Hiding 01', what: 'If it saw you go in, it comes to the door and listens.',
@@ -61,7 +64,7 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'alpha1-2026-10-26';
+export const RELEASE = 'alpha1-2026-10-26b';
 const NOTES = [
   ['They built a school, and a hotel. Someone is still answering the phones.', 'Two new places: a school at night and an old hotel.'],
   ['Subject 04 doesn\'t move. Not while you\'re looking.', 'Online creatures: the Stalker, and the blind Listener.'],
@@ -70,6 +73,8 @@ const NOTES = [
   ['You can hear each other properly now. So can it.', 'Voice chat is much clearer and louder.'],
   ['The dead are watching. Some of them are trying to help.', 'The dead see where it is and can leave marks for you.'],
   ['We wrote down everything we know.', 'A field guide is on the title screen.'],
+  ['Subject 05 doesn\'t like the light. It likes the dark very much.', 'A fifth creature online: the Shadow.'],
+  ['A new caller. She sounds like you.', 'A second story: The Operator, 5 chapters.'],
   ['Strangers found the building too.', 'Quick Play finds you a public room. The dead can drift around on their own (R).'],
 ];
 

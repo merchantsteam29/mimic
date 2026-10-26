@@ -211,6 +211,14 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   them in turn; full or started ones refuse), and if none take you, you host a free one (`session.public`, shown in the lobby).
 - **Drifting** (the dead): R in spectate toggles `game.freeCam` ({x, z, y, yaw, pitch}; `updateFreeCam`, walls still stop you; Space / E
   goes back to watching). Haunting then reaches the living player nearest the camera (`nearestLiving`), and a mark goes where you look.
+- `shadow.js`: the **shadow**: online, **Normal mode only**, a host lobby toggle (`session.setShadow`, `start` carries `sd`). A shape of
+  darkness with two pale eyes; it lives where the lights are dead (`lit()`: `isLit` and no power cut) and won't step into a working light.
+  It goes for the nearest living player standing in the dark (hiding doesn't help). A flashlight beam on it (`inBeam`) shoves it back and
+  after 1.8 s burns it away (`shadowBurnt`, `sfx.hiss`). Gone for good after power-on. `hostCatch(id, 'sd')`, `snap.sd`.
+- **Two solo stories** (`STORIES` in story.js: `{ id, title, key, chapters, voice, blurb, lost }`): Ellie (`CHAPTERS`, 8) and **The Operator**
+  (`OPERATOR`, 5: a 911 dispatcher; hospital, facility, school, hotel, mall). The story screen has a tab per story; progress is per
+  story (`storyProgress(book)` / `finishChapter(i, book)`, localStorage `book.key`). A story's lures use `book.voice` (`ellie`, or
+  `phone`: your voice down a telephone line).
 - `radio.js`: **walkie-talkies** (online). Hold B (pad D-pad down, touch Radio): intent `radio` {on} -> broadcast `radioOn`; listeners route
   that voice through `vc.route(id, { radio: true })` (a band-limited, distorted chain in `vc.js`) at full volume, anywhere. While anyone
   transmits, the host makes noise at every OTHER living player's position (the mimic / listener can hear the radios). Max 12 s a press.

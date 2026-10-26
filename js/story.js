@@ -1,4 +1,4 @@
-// Story modes. Solo: "Ellie", eight chapters (6-8 happen after she gets out of the house) that unlock in order (saved on this device; it's story
+// Story modes. Solo: "Ellie", eight chapters; "The Operator", five more (see OPERATOR below); (6-8 happen after she gets out of the house) that unlock in order (saved on this device; it's story
 // progress, not a reward). Online: "The Signal", where one of you might be working for it.
 //
 // Each chapter: a fixed seed and theme, level options (gen: forced objectives, size, darkness), the
@@ -277,10 +277,186 @@ export const SIGNAL = {
   ],
 };
 
-// Story progress: how many solo chapters are finished (saved on this device only).
-export function storyProgress() {
-  try { return Math.max(0, Math.min(CHAPTERS.length, Number(localStorage.getItem('mimic.story')) || 0)); } catch { return 0; }
+// ---------- the second story: The Operator ----------
+// Dana Reyes, a 911 dispatcher for Holloway County. The calls come in at night, from places that have been closed for
+// years, in a voice she knows. Its lures sound like a phone line (voice style 'phone').
+export const OPERATOR = [
+  {
+    title: 'The Call', theme: 'hospital', seed: 9101,
+    gen: { size: 24, tasks: { fuses: true }, broken: 0.35 },
+    grace: 70, hunger: false,
+    intro: [
+      'Holloway County 911, 2:13 a.m. You\'re the only one on shift. The line lights up: St. Agnes Hospital, Ward 4.',
+      'St. Agnes has been closed for a year. The caller is whispering: "Please. It\'s in here with me. Please come."',
+      'You know the voice. You can\'t place it. You get in your car.',
+    ],
+    tapeLabel: 'Call recordings',
+    tapes: [
+      { who: '911 call, 2:13 a.m.', lines: [
+        'Holloway County 911, what is the address of your emergency?',
+        '(Breathing.) St. Agnes. Ward 4. It\'s in here with me.',
+        'Ma\'am, St. Agnes is closed. Ma\'am? (The line goes dead.)',
+      ] },
+      { who: 'Night porter\'s phone, last year', lines: [
+        'This is the porter. Somebody keeps calling the ward phones from inside the ward.',
+        'I pick up, and it\'s me. Me, asking if anybody\'s there.',
+        'I\'ve stopped picking up.',
+      ] },
+      { who: '911 call, 2:51 a.m.', lines: [
+        'Holloway County 911, what is the address of your emergency?',
+        'It\'s me. I\'m still here. Why haven\'t you come?',
+        '(Your own voice says, very quietly:) "I\'m coming."',
+      ] },
+    ],
+    ending: [
+      'The ward phone is off its hook, swinging on its cord. Something on the other end is breathing.',
+      'You pick it up. A recording: your own voice, from the dispatch desk, an hour ago. "I\'m coming."',
+    ],
+  },
+  {
+    title: 'Dispatch', theme: 'facility', seed: 9203,
+    gen: { size: 26, tasks: { gens: 2, tapes: 3 }, broken: 0.4 },
+    grace: 55, hunger: false,
+    intro: [
+      'Under the dispatch centre there are three floors nobody uses: the old call archive. Every 911 call since 1971, on tape.',
+      'Tonight the archive is running. The reels are turning on their own, playing old calls into empty rooms.',
+      'It\'s been listening to the calls for years. Every frightened voice in the county. Find out how long.',
+    ],
+    tapeLabel: 'Archive reels',
+    tapes: [
+      { who: 'Archive reel, 1987', lines: [
+        'Holloway County 911.',
+        '(A child\'s voice.) There\'s someone in the house who sounds like Mummy.',
+        'But Mummy\'s here with me. Mummy\'s holding my hand.',
+      ] },
+      { who: 'Supervisor\'s memo, read aloud', lines: [
+        'Effective immediately: if a caller\'s voice matches a previous caller\'s voice exactly, end the call.',
+        'Do not dispatch. Do not call back.',
+        'Do not, under any circumstances, say your own name on the line.',
+      ] },
+      { who: 'Archive reel, last month', lines: [
+        'Holloway County 911, this is Dana, what is the address of your emergency?',
+        '(Your voice, exactly:) "Holloway County 911, this is Dana."',
+        '(Again. And again. Each time a little closer.)',
+      ] },
+    ],
+    ending: [
+      'The last reel has your name on the label in handwriting you don\'t recognise.',
+      'On the desk, the dispatch phone rings. The display says the call is coming from a school.',
+    ],
+  },
+  {
+    title: 'The Payphone', theme: 'school', seed: 9307,
+    gen: { size: 26, tasks: { fuses: true, keycard: true }, broken: 0.4 },
+    grace: 45, hunger: true,
+    intro: [
+      'Holloway County High. There\'s an old payphone by the gym, and it has been calling 911 every night for a week.',
+      'The caller always says the same thing, in the voice of a different child.',
+      '"Can you come and get me? It\'s dark and the teacher won\'t stop talking."',
+    ],
+    tapeLabel: 'Tapes',
+    tapes: [
+      { who: 'School PA log', lines: [
+        'The PA keeps switching itself on after hours. No announcement. Just breathing, and a register being read.',
+        'It reads the names of every child in the school.',
+        'And then it reads my name.',
+      ] },
+      { who: '911 call, from the payphone', lines: [
+        'Holloway County 911.',
+        '"Dana? Is that Dana? I know your voice. You took my call before."',
+        '"You told me to stay on the line. I\'m still on the line."',
+      ] },
+      { who: 'Caretaker\'s answering machine', lines: [
+        'If you\'re hearing this, unplug the phones. All of them.',
+        'It learns from the phones. It practises on the phones.',
+        'It\'s leaving. It\'s found somewhere with more rooms and more phones.',
+      ] },
+    ],
+    ending: [
+      'The payphone receiver hangs off the hook. On the other end, a hotel switchboard: "Front desk. How can I help?"',
+      'A pause. "Room 314 has been asking for you, Dana."',
+    ],
+  },
+  {
+    title: 'Room 314', theme: 'hotel', seed: 9411,
+    gen: { size: 28, tasks: { fuses: true, gens: 2 }, broken: 0.5 },
+    grace: 35, hunger: true,
+    intro: [
+      'The Grand Ashby closed in the spring. Every phone in every room still has a dial tone.',
+      'Room 314 has called the front desk four hundred times since March.',
+      'Go up. Find out what\'s in 314. Don\'t answer the phones. Whatever they say.',
+    ],
+    tapeLabel: 'Front desk recordings',
+    tapes: [
+      { who: 'Front desk, March', lines: [
+        '"Front desk." "Hi, this is 314, could I get some towels?" "Of course."',
+        'Nobody was checked into 314.',
+        'The towels were gone in the morning. The door was locked from the inside.',
+      ] },
+      { who: 'Guest\'s phone message', lines: [
+        'Honey, it\'s me, I\'m at the hotel, call me back.',
+        '(Then, in the same voice, a minute later:) Honey, it\'s me, I\'m at the hotel, call me back.',
+        '(And again. The same breath before every word.)',
+      ] },
+      { who: '911 call, from Room 314', lines: [
+        '"Holloway County 911, this is Dana, what is the address of your emergency?"',
+        'It\'s your voice asking. It\'s your voice answering.',
+        '"The Westgate Mall. The security office. Come and see what I found."',
+      ] },
+    ],
+    ending: [
+      'Room 314 is empty except for a phone, and dozens of cassettes, every one labelled DANA.',
+      'It wasn\'t practising other voices any more. Just one.',
+    ],
+  },
+  {
+    title: 'Hold Music', theme: 'mall', seed: 9521,
+    gen: { size: 30, tasks: { fuses: true, gens: 2, tapes: 3 }, broken: 0.55 },
+    grace: 25, hunger: true,
+    intro: [
+      'Westgate Mall. The music never stopped. It\'s the hold music from the county phone line.',
+      'In the security office, the switchboard routes every phone in Holloway County. All of them ring here first.',
+      'Smash its tapes. Turn the power on. Shut the line down. Then get out before it calls you by your name.',
+    ],
+    tapeLabel: 'Security office tapes',
+    tapes: [
+      { who: 'Security guard, night log', lines: [
+        'The switchboard rings and rings. When I pick up, I hear my wife calling me for dinner.',
+        'My wife died in 2019.',
+        'I keep picking up.',
+      ] },
+      { who: 'Recording, unlabelled', lines: [
+        '(A hundred voices at once, all saying:) "Holloway County 911, what is the address of your emergency?"',
+        '(One by one, they drop away, until only one is left.)',
+        '(It\'s yours.)',
+      ] },
+      { who: 'Dana, a message to herself', lines: [
+        'If you\'re hearing this, it\'s me. The real me. I recorded this before I came in.',
+        'If it ever calls you in my voice, ask it what we had for breakfast. It wasn\'t there.',
+        { playerClip: true, text: '(your voice) "I found something. Come here."' },
+      ] },
+    ],
+    ending: [
+      'The switchboard goes dark. For the first time in years, every phone in Holloway County is silent.',
+      'You drive back to dispatch as the sun comes up. The night shift log says you took a call at 2:13 a.m.',
+      'You listen to the recording. The caller sounds frightened. The caller sounds like you.',
+      { playerClip: true, text: 'It\'s your voice.' },
+    ],
+  },
+];
+
+// The two solo stories, and where each one's progress is saved (chapters finished, on this device).
+export const STORIES = [
+  { id: 'ellie', title: 'Ellie', key: 'mimic.story', chapters: CHAPTERS, voice: 'ellie',
+    blurb: 'Your sister went into the Holloway house and never came out.', lost: 'Ellie is still in there somewhere.' },
+  { id: 'operator', title: 'The Operator', key: 'mimic.story.operator', chapters: OPERATOR, voice: 'phone',
+    blurb: 'You\'re a 911 dispatcher. The calls come from places that have been closed for years, in a voice you know.', lost: 'The line is still open.' },
+];
+
+// Story progress: how many chapters of a story are finished (saved on this device only).
+export function storyProgress(book = STORIES[0]) {
+  try { return Math.max(0, Math.min(book.chapters.length, Number(localStorage.getItem(book.key)) || 0)); } catch { return 0; }
 }
-export function finishChapter(i) {
-  try { if (i + 1 > storyProgress()) localStorage.setItem('mimic.story', String(i + 1)); } catch { /* private mode */ }
+export function finishChapter(i, book = STORIES[0]) {
+  try { if (i + 1 > storyProgress(book)) localStorage.setItem(book.key, String(i + 1)); } catch { /* private mode */ }
 }

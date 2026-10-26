@@ -44,7 +44,7 @@ export const WorldPart = {
     // bad phone line), a sentence stitched from two recordings, or, in the story, Ellie.
     if (!this.mp && (style === 'lure' || style === 'distant') && this.voice.started && this.voice.clips.length) {
       const r = Math.random();
-      if (this.story) { if (r < 0.7) style = 'ellie'; }
+      if (this.story) { if (r < 0.7) style = this.story.voice || 'ellie'; }
       else if (r < 0.4) style = 'stranger';
       else if (r < 0.7 && this.voice.clips.length > 1) {
         const a = this.voice.pick(), b = this.voice.pick();
@@ -107,7 +107,7 @@ export const WorldPart = {
     const p = this.p, m = this.mimic;
     const d = Math.hypot(m.x - p.x, m.z - p.z);
     const vis = this.level.los(p.x, p.z, m.x, m.z);
-    let f = Math.max(clamp(1 - d / 12, 0, 1) * (vis ? 1 : 0.45), this.ls.nearness(p.x, p.z) * 0.8, this.sk.nearness(p.x, p.z) * 0.7);
+    let f = Math.max(clamp(1 - d / 12, 0, 1) * (vis ? 1 : 0.45), this.ls.nearness(p.x, p.z) * 0.8, this.sk.nearness(p.x, p.z) * 0.7, this.sd.nearness(p.x, p.z) * 0.8);
     if ((m.state === 'chase' || m.state === 'hunt') && (!this.mp || d < 25)) f = Math.max(f, 0.45);
     this.fear += (f - this.fear) * (1 - Math.exp(-dt * 3));
     this.hud.fear.style.opacity = (this.fear * 0.85).toFixed(3);
