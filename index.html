@@ -6,6 +6,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Mimic</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="preconnect" href="https://0.peerjs.com">
 <meta name="theme-color" content="#050505">
 <meta name="description" content="A free first-person horror game in your browser. It records your voice and uses it to lure you, and your friends, into the dark.">
 <!-- Link previews (Discord, iMessage, X...) -->
@@ -30,105 +33,117 @@
 <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=VT323&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script>window.MIMIC_VERSION = '20261026140344';</script>
+<script>window.MIMIC_VERSION = '20261026141249';</script>
 <script type="importmap">
 {
   "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
     "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-    "./js/abilities.js": "./js/abilities.js?v=20261026140344",
-    "./js/binds.js": "./js/binds.js?v=20261026140344",
-    "./js/captions.js": "./js/captions.js?v=20261026140344",
-    "./js/chat.js": "./js/chat.js?v=20261026140344",
-    "./js/classes.js": "./js/classes.js?v=20261026140344",
-    "./js/clip.js": "./js/clip.js?v=20261026140344",
-    "./js/controls.js": "./js/controls.js?v=20261026140344",
-    "./js/director.js": "./js/director.js?v=20261026140344",
-    "./js/events.js": "./js/events.js?v=20261026140344",
-    "./js/game.js": "./js/game.js?v=20261026140344",
-    "./js/hand.js": "./js/hand.js?v=20261026140344",
-    "./js/haunt.js": "./js/haunt.js?v=20261026140344",
-    "./js/heartbeat.js": "./js/heartbeat.js?v=20261026140344",
-    "./js/hunter.js": "./js/hunter.js?v=20261026140344",
-    "./js/incidents.js": "./js/incidents.js?v=20261026140344",
-    "./js/level.js": "./js/level.js?v=20261026140344",
-    "./js/listener.js": "./js/listener.js?v=20261026140344",
-    "./js/lore.js": "./js/lore.js?v=20261026140344",
-    "./js/main.js": "./js/main.js?v=20261026140344",
-    "./js/mimic.js": "./js/mimic.js?v=20261026140344",
-    "./js/mp.js": "./js/mp.js?v=20261026140344",
-    "./js/net.js": "./js/net.js?v=20261026140344",
-    "./js/objectives.js": "./js/objectives.js?v=20261026140344",
-    "./js/radio.js": "./js/radio.js?v=20261026140344",
-    "./js/recap.js": "./js/recap.js?v=20261026140344",
-    "./js/recorder.js": "./js/recorder.js?v=20261026140344",
-    "./js/remote.js": "./js/remote.js?v=20261026140344",
-    "./js/revive.js": "./js/revive.js?v=20261026140344",
-    "./js/samples.js": "./js/samples.js?v=20261026140344",
-    "./js/scares.js": "./js/scares.js?v=20261026140344",
-    "./js/sfx.js": "./js/sfx.js?v=20261026140344",
-    "./js/signals.js": "./js/signals.js?v=20261026140344",
-    "./js/skinwalker.js": "./js/skinwalker.js?v=20261026140344",
-    "./js/stalker.js": "./js/stalker.js?v=20261026140344",
-    "./js/stats.js": "./js/stats.js?v=20261026140344",
-    "./js/story.js": "./js/story.js?v=20261026140344",
-    "./js/textures.js": "./js/textures.js?v=20261026140344",
-    "./js/title.js": "./js/title.js?v=20261026140344",
-    "./js/traitor.js": "./js/traitor.js?v=20261026140344",
-    "./js/tutorial.js": "./js/tutorial.js?v=20261026140344",
-    "./js/vc.js": "./js/vc.js?v=20261026140344",
-    "./js/version.js": "./js/version.js?v=20261026140344",
-    "./js/vhs.js": "./js/vhs.js?v=20261026140344",
-    "./js/voice.js": "./js/voice.js?v=20261026140344"
+    "./js/abilities.js": "./js/abilities.js?v=20261026141249",
+    "./js/binds.js": "./js/binds.js?v=20261026141249",
+    "./js/captions.js": "./js/captions.js?v=20261026141249",
+    "./js/chat.js": "./js/chat.js?v=20261026141249",
+    "./js/classes.js": "./js/classes.js?v=20261026141249",
+    "./js/clip.js": "./js/clip.js?v=20261026141249",
+    "./js/controls.js": "./js/controls.js?v=20261026141249",
+    "./js/director.js": "./js/director.js?v=20261026141249",
+    "./js/events.js": "./js/events.js?v=20261026141249",
+    "./js/game-death.js": "./js/game-death.js?v=20261026141249",
+    "./js/game-net.js": "./js/game-net.js?v=20261026141249",
+    "./js/game-player.js": "./js/game-player.js?v=20261026141249",
+    "./js/game-room.js": "./js/game-room.js?v=20261026141249",
+    "./js/game-shared.js": "./js/game-shared.js?v=20261026141249",
+    "./js/game-world.js": "./js/game-world.js?v=20261026141249",
+    "./js/game.js": "./js/game.js?v=20261026141249",
+    "./js/hand.js": "./js/hand.js?v=20261026141249",
+    "./js/haunt.js": "./js/haunt.js?v=20261026141249",
+    "./js/heartbeat.js": "./js/heartbeat.js?v=20261026141249",
+    "./js/hunter.js": "./js/hunter.js?v=20261026141249",
+    "./js/incidents.js": "./js/incidents.js?v=20261026141249",
+    "./js/level.js": "./js/level.js?v=20261026141249",
+    "./js/listener.js": "./js/listener.js?v=20261026141249",
+    "./js/lore.js": "./js/lore.js?v=20261026141249",
+    "./js/main.js": "./js/main.js?v=20261026141249",
+    "./js/mimic.js": "./js/mimic.js?v=20261026141249",
+    "./js/mp.js": "./js/mp.js?v=20261026141249",
+    "./js/net.js": "./js/net.js?v=20261026141249",
+    "./js/objectives.js": "./js/objectives.js?v=20261026141249",
+    "./js/radio.js": "./js/radio.js?v=20261026141249",
+    "./js/recap.js": "./js/recap.js?v=20261026141249",
+    "./js/recorder.js": "./js/recorder.js?v=20261026141249",
+    "./js/remote.js": "./js/remote.js?v=20261026141249",
+    "./js/revive.js": "./js/revive.js?v=20261026141249",
+    "./js/samples.js": "./js/samples.js?v=20261026141249",
+    "./js/scares.js": "./js/scares.js?v=20261026141249",
+    "./js/sfx.js": "./js/sfx.js?v=20261026141249",
+    "./js/signals.js": "./js/signals.js?v=20261026141249",
+    "./js/skinwalker.js": "./js/skinwalker.js?v=20261026141249",
+    "./js/stalker.js": "./js/stalker.js?v=20261026141249",
+    "./js/stats.js": "./js/stats.js?v=20261026141249",
+    "./js/story.js": "./js/story.js?v=20261026141249",
+    "./js/textures.js": "./js/textures.js?v=20261026141249",
+    "./js/title.js": "./js/title.js?v=20261026141249",
+    "./js/traitor.js": "./js/traitor.js?v=20261026141249",
+    "./js/tutorial.js": "./js/tutorial.js?v=20261026141249",
+    "./js/vc.js": "./js/vc.js?v=20261026141249",
+    "./js/version.js": "./js/version.js?v=20261026141249",
+    "./js/vhs.js": "./js/vhs.js?v=20261026141249",
+    "./js/voice.js": "./js/voice.js?v=20261026141249"
   }
 }
 </script>
 <!-- Fetch every game module in parallel (must come after the import map). Add new js files here too. -->
 <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js">
-<link rel="modulepreload" href="js/main.js?v=20261026140344">
-<link rel="modulepreload" href="js/game.js?v=20261026140344">
-<link rel="modulepreload" href="js/level.js?v=20261026140344">
-<link rel="modulepreload" href="js/mimic.js?v=20261026140344">
-<link rel="modulepreload" href="js/director.js?v=20261026140344">
-<link rel="modulepreload" href="js/sfx.js?v=20261026140344">
-<link rel="modulepreload" href="js/voice.js?v=20261026140344">
-<link rel="modulepreload" href="js/textures.js?v=20261026140344">
-<link rel="modulepreload" href="js/net.js?v=20261026140344">
-<link rel="modulepreload" href="js/vc.js?v=20261026140344">
-<link rel="modulepreload" href="js/mp.js?v=20261026140344">
-<link rel="modulepreload" href="js/remote.js?v=20261026140344">
-<link rel="modulepreload" href="js/classes.js?v=20261026140344">
-<link rel="modulepreload" href="js/objectives.js?v=20261026140344">
-<link rel="modulepreload" href="js/abilities.js?v=20261026140344">
-<link rel="modulepreload" href="js/heartbeat.js?v=20261026140344">
-<link rel="modulepreload" href="js/scares.js?v=20261026140344">
-<link rel="modulepreload" href="js/lore.js?v=20261026140344">
-<link rel="modulepreload" href="js/story.js?v=20261026140344">
-<link rel="modulepreload" href="js/traitor.js?v=20261026140344">
-<link rel="modulepreload" href="js/samples.js?v=20261026140344">
-<link rel="modulepreload" href="js/events.js?v=20261026140344">
-<link rel="modulepreload" href="js/hand.js?v=20261026140344">
-<link rel="modulepreload" href="js/vhs.js?v=20261026140344">
-<link rel="modulepreload" href="js/skinwalker.js?v=20261026140344">
-<link rel="modulepreload" href="js/title.js?v=20261026140344">
-<link rel="modulepreload" href="js/hunter.js?v=20261026140344">
-<link rel="modulepreload" href="js/binds.js?v=20261026140344">
-<link rel="modulepreload" href="js/chat.js?v=20261026140344">
-<link rel="modulepreload" href="js/haunt.js?v=20261026140344">
-<link rel="modulepreload" href="js/captions.js?v=20261026140344">
-<link rel="modulepreload" href="js/tutorial.js?v=20261026140344">
-<link rel="modulepreload" href="js/recap.js?v=20261026140344">
-<link rel="modulepreload" href="js/listener.js?v=20261026140344">
-<link rel="modulepreload" href="js/incidents.js?v=20261026140344">
-<link rel="modulepreload" href="js/radio.js?v=20261026140344">
-<link rel="modulepreload" href="js/clip.js?v=20261026140344">
-<link rel="modulepreload" href="js/stats.js?v=20261026140344">
-<link rel="modulepreload" href="js/stalker.js?v=20261026140344">
-<link rel="modulepreload" href="js/recorder.js?v=20261026140344">
-<link rel="modulepreload" href="js/signals.js?v=20261026140344">
-<link rel="modulepreload" href="js/revive.js?v=20261026140344">
-<link rel="modulepreload" href="js/controls.js?v=20261026140344">
-<link rel="modulepreload" href="js/version.js?v=20261026140344">
+<link rel="modulepreload" href="js/main.js?v=20261026141249">
+<link rel="modulepreload" href="js/game.js?v=20261026141249">
+<link rel="modulepreload" href="js/level.js?v=20261026141249">
+<link rel="modulepreload" href="js/mimic.js?v=20261026141249">
+<link rel="modulepreload" href="js/director.js?v=20261026141249">
+<link rel="modulepreload" href="js/sfx.js?v=20261026141249">
+<link rel="modulepreload" href="js/voice.js?v=20261026141249">
+<link rel="modulepreload" href="js/textures.js?v=20261026141249">
+<link rel="modulepreload" href="js/net.js?v=20261026141249">
+<link rel="modulepreload" href="js/vc.js?v=20261026141249">
+<link rel="modulepreload" href="js/mp.js?v=20261026141249">
+<link rel="modulepreload" href="js/remote.js?v=20261026141249">
+<link rel="modulepreload" href="js/classes.js?v=20261026141249">
+<link rel="modulepreload" href="js/objectives.js?v=20261026141249">
+<link rel="modulepreload" href="js/abilities.js?v=20261026141249">
+<link rel="modulepreload" href="js/heartbeat.js?v=20261026141249">
+<link rel="modulepreload" href="js/scares.js?v=20261026141249">
+<link rel="modulepreload" href="js/lore.js?v=20261026141249">
+<link rel="modulepreload" href="js/story.js?v=20261026141249">
+<link rel="modulepreload" href="js/traitor.js?v=20261026141249">
+<link rel="modulepreload" href="js/samples.js?v=20261026141249">
+<link rel="modulepreload" href="js/events.js?v=20261026141249">
+<link rel="modulepreload" href="js/hand.js?v=20261026141249">
+<link rel="modulepreload" href="js/vhs.js?v=20261026141249">
+<link rel="modulepreload" href="js/skinwalker.js?v=20261026141249">
+<link rel="modulepreload" href="js/title.js?v=20261026141249">
+<link rel="modulepreload" href="js/hunter.js?v=20261026141249">
+<link rel="modulepreload" href="js/binds.js?v=20261026141249">
+<link rel="modulepreload" href="js/chat.js?v=20261026141249">
+<link rel="modulepreload" href="js/haunt.js?v=20261026141249">
+<link rel="modulepreload" href="js/captions.js?v=20261026141249">
+<link rel="modulepreload" href="js/tutorial.js?v=20261026141249">
+<link rel="modulepreload" href="js/recap.js?v=20261026141249">
+<link rel="modulepreload" href="js/listener.js?v=20261026141249">
+<link rel="modulepreload" href="js/incidents.js?v=20261026141249">
+<link rel="modulepreload" href="js/radio.js?v=20261026141249">
+<link rel="modulepreload" href="js/clip.js?v=20261026141249">
+<link rel="modulepreload" href="js/stats.js?v=20261026141249">
+<link rel="modulepreload" href="js/stalker.js?v=20261026141249">
+<link rel="modulepreload" href="js/recorder.js?v=20261026141249">
+<link rel="modulepreload" href="js/signals.js?v=20261026141249">
+<link rel="modulepreload" href="js/revive.js?v=20261026141249">
+<link rel="modulepreload" href="js/game-shared.js?v=20261026141249">
+<link rel="modulepreload" href="js/game-room.js?v=20261026141249">
+<link rel="modulepreload" href="js/game-net.js?v=20261026141249">
+<link rel="modulepreload" href="js/game-player.js?v=20261026141249">
+<link rel="modulepreload" href="js/game-world.js?v=20261026141249">
+<link rel="modulepreload" href="js/game-death.js?v=20261026141249">
+<link rel="modulepreload" href="js/controls.js?v=20261026141249">
+<link rel="modulepreload" href="js/version.js?v=20261026141249">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -175,6 +190,8 @@
 <!-- Quick chat: the list (when open) and what people said (online). Outside the HUD so the dead see it too. -->
 <div id="chat" hidden></div>
 <div id="chatFeed"></div>
+<!-- Lost the host mid-game: trying to get back in. -->
+<div id="rejoining" hidden><p>Connection lost</p><span>Getting you back in…</span></div>
 <!-- Hand signals: the list (when open). -->
 <div id="signals" hidden></div>
 <!-- Walkie-talkie: who's on the radio. -->
@@ -235,6 +252,7 @@
   <div class="panel title-panel">
     <h1 class="logo" data-text="MIMIC">MIMIC</h1>
     <p class="tag">It learns your voice.</p>
+    <div id="loading" aria-live="polite"><span>Loading the tape…</span><i></i></div>
     <div class="buttons">
       <button id="btnStory" class="primary">Story</button>
       <button id="btnPlay" class="primary">Play alone</button>
@@ -414,23 +432,35 @@
     <p class="kicker">Room code</p>
     <h2 id="lobbyCode" class="code"></h2>
     <button id="btnInvite" class="small">Copy invite link</button>
+    <!-- Tabs, so it fits on a phone. -->
+    <div class="seg lobby-tabs" id="lobbyTabs">
+      <button data-tab="players" class="on">Players</button><button data-tab="mode">Mode</button><button data-tab="creatures">Creatures</button><button data-tab="settings">Settings</button>
+    </div>
+    <div class="ltab" data-tab="players">
     <ul id="lobbyList" class="players"></ul>
-    <p class="kicker pick-title">Mode</p>
+    <p class="kicker pick-title">Your class</p>
+    <div class="class-pick" data-for="lobby"></div>
+    </div>
+    <div class="ltab" data-tab="mode" hidden>
     <div class="mode-pick">
       <button data-mode="normal">Normal</button>
       <button data-mode="story">Story: The Signal <span>one of you might be working for it</span></button>
       <button data-mode="hunt" class="mode-hunt">Hunt <span>one of you is the mimic, in first person, with everyone's voices</span></button>
     </div>
+    <p class="kicker pick-title">Difficulty</p>
+    <div class="seg diff-pick" data-for="lobby"><button data-d="easy">Easy</button><button data-d="normal">Normal</button><button data-d="nightmare">Nightmare</button></div>
+    </div>
+    <div class="ltab" data-tab="creatures" hidden>
+    <p class="fine">Extra things in there with you (Normal mode only).</p>
     <div class="mode-pick sw-pick">
       <button id="btnSkinwalker"><b>Skinwalker: off</b> <span>Normal mode only. Something else is in there, wearing one of you. One of you who is still alive.</span></button>
       <button id="btnStalker"><b>Stalker: off</b> <span>Normal mode only. It only moves when nobody can see it. Keep it in your light.</span></button>
       <button id="btnListener"><b>Listener: off</b> <span>Normal mode only. Something blind is in there too. It hears footsteps, and it hears you talking.</span></button>
     </div>
-    <details class="custom-box"><summary class="kicker">Game settings</summary><div id="customList"></div></details>
-    <p class="kicker pick-title">Difficulty</p>
-    <div class="seg diff-pick" data-for="lobby"><button data-d="easy">Easy</button><button data-d="normal">Normal</button><button data-d="nightmare">Nightmare</button></div>
-    <p class="kicker pick-title">Your class</p>
-    <div class="class-pick" data-for="lobby"></div>
+    </div>
+    <div class="ltab" data-tab="settings" hidden>
+    <div id="customList" class="custom-box"></div>
+    </div>
     <p class="fine">Voice chat is on. In the waiting room you hear everyone; in the game, only players near you can. Dead players can only talk to each other.</p>
     <p id="lobbyStatus" class="whisper"></p>
     <div class="buttons">
@@ -533,6 +563,6 @@
   </div>
 </section>
 
-<script type="module" src="js/main.js?v=20261026140344"></script>
+<script type="module" src="js/main.js?v=20261026141249"></script>
 </body>
 </html>

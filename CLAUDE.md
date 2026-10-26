@@ -38,12 +38,25 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - `recap.js`: the **end-of-round recap**. The host samples everyone's and the mimic's position every 2 s, plus catches / escapes
   (`event`) and whose clips it used (`voice`); `end` carries `recap` (alone, `end()` passes it). `drawRecap` replays it on a map of
   the level on the end screen (`#recap`).
+- **Rejoining after a drop** (online): the host keeps a dropped player's place for 45 s during a game (`net.away`; `welcome` gives
+  each player a `secret`). The client's `Session.dropped` retries for ~30 s (`#rejoining` overlay) with `join(code, name, {id, secret})`;
+  the host (`net.onRejoin`) sends the `start` again, then everything in `game.log` (the host logs every broadcast in `LOGGED`: items,
+  fuses, doors, power, catches...), then `resume` (where they were, their status). Catching up never plays a jumpscare.
+- **Lobby tabs** (`#lobbyTabs`, `.ltab`): Players (list, class) / Mode (mode, difficulty) / Creatures / Settings (game settings).
+- **Loading**: the title's buttons wait for `body.ready` (set at the end of main.js) behind `#loading`. `sw.js` caches, cache-first,
+  only the pinned CDN libraries and `textures/` / `sounds/` files (**bump `KEEP` in sw.js if you replace one of those files**).
+- Voice clips (`voice.js`): 0.4 s pre-roll, 0.75 s hangover with a softer threshold once talking (fewer cut-off words), a ~90 Hz
+  high-pass, and levelled by the speech's RMS (not its peak).
 - `title.js`: the title screen as found footage: camcorder text, scanlines and grain, whispered lines surfacing at the edges, eyes
   that vanish when the cursor nears, a tagline that slips, and after 25 s idle it plays one of your clips (once per visit).
 - Sharing and installing: Open Graph / Twitter tags in `index.html` point at `og.png` (1200x630) on GitHub Pages;
   `manifest.webmanifest` + `icons/` + `sw.js` (a pass-through service worker that caches nothing, only there for installing).
-- `game.js`: one run. Player movement, collision, stamina, flashlight battery, interactables (fuses,
-  batteries, fuse box, hiding spots, exit), the light pool, fear / heartbeat, power-on, jumpscare, win.
+- `game.js`: one run: the constructor, lifecycle and main loop. The rest of `Game` is split into parts mixed into
+  `Game.prototype` (`Object.assign` at the bottom of game.js): `game-net.js` (send / broadcast / hostHandle / onNet, catches, the end
+  check), `game-player.js` (movement, camera, flashlight, interaction, hiding, power, HUD), `game-world.js` (its voice, fear, ambience,
+  lights, doors, hunger, wearing the dead), `game-death.js` (jumpscares, spectating, `revive`, end / finish), `game-room.js` (the
+  waiting room). Shared constants and helpers (`EYE`, `clamp`, `LOGGED`, `CUSTOM`, `ROOM`...) are in `game-shared.js`. Methods in
+  the parts are object-literal methods (commas between them), and use `this` exactly as before.
 - `level.js`: grid map generator (2 m cells, `WALL/FLOOR/PROP/EXIT`) with rooms, spanning-tree corridors
   plus loops, props that never disconnect the map, fuse / battery / exit / fuse box placement, and the lights.
   `Level` has `collide`, `los` (walls block sight, furniture doesn't), `clearWalk`, `findPath` (BFS).

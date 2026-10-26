@@ -5,6 +5,7 @@
 const PREFIX = 'mimic-v1-';
 export const MAX_PLAYERS = 4;
 const TIMEOUT_MS = 12000;
+const AWAY_MS = 45000;    // host: how long a dropped player's place is kept during a game
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 export function newCode() {
@@ -27,6 +28,9 @@ export class Net {
     this.locked = false;     // host: game started, no new players
     this.closed = false;
     this.nextId = 1;
+    this.secrets = new Map(); // host: player id -> the secret that lets them back in after a drop
+    this.away = new Map();    // host: player id -> timer, while their place is kept
+    this.secret = null;       // client: mine
     this.onMessage = () => {};  // (message, fromPlayerId)
     this.onRoster = () => {};
     this.onClose = () => {};    // (reason)
@@ -72,24 +76,50 @@ export class Net {
       conn.lastSeen = Date.now();
       if (!m || typeof m !== 'object' || m.t === 'ping') return;
       if (m.t === 'hello' && !conn.pid) {
+        // Back after a drop: same player, same place.
+        const back = m.rejoin && this.away.has(m.rejoin.id) && this.secrets.get(m.rejoin.id) === m.rejoin.secret ? m.rejoin.id : null;
+        if (back) {
+          clearTimeout(this.away.get(back));
+          this.away.delete(back);
+          conn.pid = back;
+          this.conns.set(back, conn);
+          const r = this.roster.find((x) => x.id === back);
+          if (r) r.peer = conn.peer;
+          conn.send({ t: 'welcome', id: back, code: this.code, secret: m.rejoin.secret, rejoined: true });
+          this.sendRoster();
+          this.onRejoin?.(back);
+          return;
+        }
         const refuse = this.locked ? 'That game has already started.' : this.roster.length >= MAX_PLAYERS ? 'That room is full.' : null;
         if (refuse) { conn.send({ t: 'refused', why: refuse }); setTimeout(() => conn.close(), 500); return; }
         conn.pid = 'p' + this.nextId++;
         this.conns.set(conn.pid, conn);
         this.roster.push({ id: conn.pid, name: cleanName(m.name), peer: conn.peer });
-        conn.send({ t: 'welcome', id: conn.pid, code: this.code });
+        this.secrets.set(conn.pid, Math.random().toString(36).slice(2));
+        conn.send({ t: 'welcome', id: conn.pid, code: this.code, secret: this.secrets.get(conn.pid) });
         this.sendRoster();
       } else if (conn.pid) this.onMessage(m, conn.pid);
     });
     const drop = () => {
       if (!conn.pid || this.conns.get(conn.pid) !== conn) return;
       this.conns.delete(conn.pid);
-      this.roster = this.roster.filter((r) => r.id !== conn.pid);
-      this.sendRoster();
-      this.onMessage({ t: 'quit', id: conn.pid }, 'h'); // internal: the game turns it into 'left'
+      // During a game, keep their place for a while: they may be back.
+      if (this.locked && !this.closed) {
+        const id = conn.pid;
+        this.away.set(id, setTimeout(() => { this.away.delete(id); this.gone(id); }, AWAY_MS));
+        return;
+      }
+      this.gone(conn.pid);
     };
     conn.on('close', drop);
     conn.on('error', drop);
+  }
+
+  // Host: a player is gone for good.
+  gone(id) {
+    this.roster = this.roster.filter((r) => r.id !== id);
+    this.sendRoster();
+    this.onMessage({ t: 'quit', id }, 'h'); // internal: the game turns it into 'left'
   }
 
   sendRoster() {
@@ -97,7 +127,8 @@ export class Net {
     this.onRoster(this.roster);
   }
 
-  join(code, name) {
+  // rejoin: { id, secret } to get back into a game after a drop.
+  join(code, name, rejoin = null) {
     return new Promise((resolve, reject) => {
       const peer = new Peer();
       this.peer = peer;
@@ -107,7 +138,7 @@ export class Net {
       peer.on('open', () => {
         const conn = peer.connect(PREFIX + code, { reliable: true });
         this.hostConn = conn;
-        conn.on('open', () => conn.send({ t: 'hello', name: cleanName(name) }));
+        conn.on('open', () => conn.send({ t: 'hello', name: cleanName(name), rejoin }));
         conn.on('data', (m) => {
           this.lastHostMsg = Date.now();
           if (!m || typeof m !== 'object' || m.t === 'ping') return;
@@ -117,6 +148,7 @@ export class Net {
             clearTimeout(timer);
             this.id = m.id;
             this.code = code;
+            this.secret = m.secret || null;
             this.pinger = setInterval(() => {
               if (conn.open) conn.send({ t: 'ping' });
               if (Date.now() - this.lastHostMsg > TIMEOUT_MS) this.lost('Lost connection to the host.');
@@ -127,7 +159,7 @@ export class Net {
           if (m.t === 'roster') { this.roster = m.roster; this.onRoster(this.roster); return; }
           this.onMessage(m, 'h');
         });
-        conn.on('close', () => this.lost('The host left the game.'));
+        conn.on('close', () => this.lost('Lost connection to the host.'));
       });
       peer.on('disconnected', () => { if (done && !this.closed) try { peer.reconnect(); } catch { /* ignore */ } });
       peer.on('error', (e) => {
@@ -167,6 +199,7 @@ export class Net {
     this.closed = true;
     clearInterval(this.reaper);
     clearInterval(this.pinger);
+    for (const t of this.away.values()) clearTimeout(t);
     try { this.peer?.destroy(); } catch { /* already gone */ }
   }
 }

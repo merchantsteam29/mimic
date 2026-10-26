@@ -406,3 +406,22 @@ body.input-touch #signals li { pointer-events: auto; padding: 8px 6px; }
 .custom-box summary { cursor: pointer; text-align: center; }
 #customList .row { margin: 6px 0; font-size: 13px; }
 #customList .seg { max-width: 260px; }
+
+/* ---------- rejoining after a drop ---------- */
+#rejoining { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,.82);
+  font: 28px "Special Elite", monospace; color: var(--ink); letter-spacing: .3em; text-transform: uppercase; }
+#rejoining[hidden] { display: none; }
+#rejoining span { margin-top: 10px; font-size: 14px; letter-spacing: .1em; text-transform: none; color: var(--dim); animation: blink 1.2s steps(2) infinite; }
+@keyframes blink { 50% { opacity: .3; } }
+
+/* ---------- lobby tabs ---------- */
+.lobby-tabs { margin: 12px 0 8px; }
+.lobby-tabs button { font-size: 11px; padding: 7px 4px; }
+#lobby .ltab { min-height: 140px; }
+
+/* ---------- loading (until main.js is running) ---------- */
+#loading { margin: 18px auto 0; width: 220px; text-align: center; font: 13px "Special Elite", monospace; color: var(--dim); }
+#loading i { display: block; height: 2px; margin-top: 8px; background: linear-gradient(90deg, transparent, var(--red), transparent); background-size: 50% 100%; background-repeat: no-repeat; animation: loadbar 1.1s linear infinite; }
+@keyframes loadbar { from { background-position: -100% 0; } to { background-position: 200% 0; } }
+body.ready #loading { display: none; }
+body:not(.ready) #title .buttons { opacity: .35; pointer-events: none; }

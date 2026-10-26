@@ -700,6 +700,7 @@ function newSession() {
   try { localStorage.setItem('mimic.name', name); } catch { /* ignore */ }
   const s = new Session({ sfx, voice });
   s.onVoiceChat = (vc) => applyVoiceChat(vc);
+  s.onRejoining = (on) => { $('rejoining').hidden = !on; };
   s.onRoster = () => renderLobby();
   s.onStart = (m) => startMpRun(m);
   s.onLobby = () => backToLobby();
@@ -813,6 +814,14 @@ $('btnRoom').onclick = () => {
   if (usesLock()) lock();
 };
 
+// Lobby tabs.
+document.querySelectorAll('#lobbyTabs button').forEach((b) => {
+  b.onclick = () => {
+    document.querySelectorAll('#lobbyTabs button').forEach((x) => x.classList.toggle('on', x === b));
+    document.querySelectorAll('#lobby .ltab').forEach((t) => { t.hidden = t.dataset.tab !== b.dataset.tab; });
+  };
+});
+
 $('btnInvite').onclick = async () => {
   const link = `${location.origin}${location.pathname}?join=${session?.code}`;
   try { await navigator.clipboard.writeText(link); $('btnInvite').textContent = 'Copied!'; }
@@ -888,5 +897,8 @@ if (params.has('autostart')) {
     window.__game = game;
   })();
 }
+// Everything's loaded: the title's buttons work now.
+document.body.classList.add('ready');
+
 // For automated multiplayer tests.
 window.__mimic = { get game() { return game; }, get session() { return session; } };

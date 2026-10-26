@@ -4,8 +4,9 @@
 // same clips can be sent to peers, and the same stream can feed proximity voice chat.
 
 const CHUNK = 1024;        // samples per worklet message
-const PREROLL = 0.25;      // seconds kept before speech starts, so the first syllable isn't cut
-const HANGOVER = 0.55;     // seconds of quiet that end a clip
+const PREROLL = 0.4;       // seconds kept before speech starts, so the first syllable isn't cut
+const HANGOVER = 0.75;     // seconds of quiet that end a clip (pauses between words don't)
+const SOFT = 6;            // dB: once talking, quieter sounds than the threshold still count (soft word endings)
 const MAX_CLIP = 7;        // seconds; longer speech is split
 const MIN_VOICED = 0.3;    // seconds of actual speech needed to keep a clip
 const MAX_CLIPS = 60;
@@ -89,7 +90,8 @@ export class Voice {
     const sec = this.chunkSec;
     if (this.rec) {
       this.rec.chunks.push(data);
-      if (loud) { this.rec.silent = 0; this.rec.voiced += sec; } else this.rec.silent += sec;
+      if (loud) { this.rec.silent = 0; this.rec.voiced += sec; } else if (db > thr - SOFT) this.rec.silent = Math.max(0, this.rec.silent - sec * 0.5);
+      else this.rec.silent += sec;
       if (this.rec.silent > HANGOVER || this.rec.chunks.length * sec > MAX_CLIP) this.finish();
     } else {
       this.pre.push(data);
@@ -110,12 +112,20 @@ export class Voice {
     const chunks = r.chunks.slice(0, r.chunks.length - drop);
     const len = chunks.length * CHUNK;
     const out = new Float32Array(len);
-    let peak = 0;
-    chunks.forEach((c, i) => {
-      out.set(c, i * CHUNK);
-      for (let j = 0; j < c.length; j++) peak = Math.max(peak, Math.abs(c[j]));
-    });
-    const gain = Math.min(8, 0.9 / (peak || 1));
+    chunks.forEach((c, i) => out.set(c, i * CHUNK));
+    // Take out rumble and mic handling (a high-pass at ~90 Hz), then level it by how loud the speech is (not by
+    // its loudest click), so quiet talkers come out as loud as everyone else.
+    const a = Math.exp((-2 * Math.PI * 90) / this.ctx.sampleRate);
+    let px = 0, py = 0, peak = 0, sum = 0, n = 0;
+    for (let i = 0; i < len; i++) {
+      const y = a * (py + out[i] - px);
+      px = out[i]; py = y; out[i] = y;
+      const v = Math.abs(y);
+      peak = Math.max(peak, v);
+      if (v > 0.01) { sum += y * y; n++; }
+    }
+    const rms = Math.sqrt(sum / (n || 1)) || 1e-4;
+    const gain = Math.min(10, 0.14 / rms, 0.95 / (peak || 1));
     const fade = Math.floor(this.ctx.sampleRate * 0.008);
     for (let i = 0; i < len; i++) {
       let g = gain;

@@ -52,13 +52,47 @@ export class Session {
     this.onStart = () => {};   // ({ seed, theme, order })
     this.onLobby = () => {};   // host sent everyone back to the lobby
     this.onClose = () => {};   // (reason)
+    this.wire();
+  }
+
+  wire() {
     this.net.onRoster = (r) => {
       this.vc?.sync(r);
       if (this.isHost) this.sendMode(); // newcomers learn the mode
       this.onRoster(r);
     };
-    this.net.onClose = (why) => { this.dispose(); this.onClose(why); };
+    this.net.onClose = (why) => this.dropped(why);
     this.net.onMessage = (m, from) => this.handle(m, from);
+    // Host: someone came back mid-game. Give them the game again, everything that happened since, and where they were.
+    this.net.onRejoin = (id) => {
+      if (!this.lastStart) return;
+      this.net.sendTo(id, this.lastStart);
+      for (const m of this.game?.log || []) this.net.sendTo(id, m);
+      this.net.sendTo(id, { t: 'resume', ...this.game?.resumeFor(id) });
+    };
+  }
+
+  // Lost the host. During a game, try to get back in for a while before giving up.
+  async dropped(why) {
+    if (this.isHost || !this.game || this.game.room || !this.net.secret || this.closing) { this.dispose(); this.onClose(why); return; }
+    const old = this.net, code = old.code, name = old.roster.find((r) => r.id === old.id)?.name || 'Player', rejoin = { id: old.id, secret: old.secret };
+    this.onRejoining?.(true);
+    this.vc?.dispose(); this.vc = null;
+    for (let tries = 0; tries < 8 && !this.closing; tries++) {
+      await new Promise((r) => setTimeout(r, tries ? 4000 : 1000));
+      const net = new Net();
+      try {
+        await net.join(code, name, rejoin);
+        this.net = net;
+        this.wire();
+        this.ready(true);
+        this.onRejoining?.(false);
+        return;
+      } catch { net.destroy(); }
+    }
+    this.onRejoining?.(false);
+    this.dispose();
+    this.onClose(why);
   }
 
   get isHost() { return this.net.isHost; }
@@ -69,10 +103,11 @@ export class Session {
   async host(code, name) { await this.net.host(code, name); this.ready(); }
   async join(code, name) { await this.net.join(code, name); this.ready(); }
 
-  ready() {
+  ready(again = false) {
     this.vc = new VoiceChat(this.net, this.sfx, this.voice.stream);
     this.onVoiceChat?.(this.vc);
     this.vc.sync(this.net.roster);
+    if (again) return; // back after a drop: everything else is still set up
     // Share every clip I already have (the voice check), then new ones as they come.
     for (const c of this.voice.clips) this.shareClip(c);
     this.voice.onClip = (c) => this.shareClip(c);
@@ -131,7 +166,7 @@ export class Session {
       this.receiveClip(m);
       return;
     }
-    if (m.t === 'start') { this.net.locked = true; this.onStart(m); return; }
+    if (m.t === 'start') { this.net.locked = true; this.lastStart = m; this.onStart(m); return; }
     if (m.t === 'mode') { if (from === 'h') { this.mode = ['story', 'hunt'].includes(m.mode) ? m.mode : 'normal'; this.skinwalker = !!m.sw; this.listener = !!m.ls; this.stalker = !!m.sk; this.custom = cleanCustom(m.cs); this.difficulty = ['easy', 'nightmare'].includes(m.diff) ? m.diff : 'normal'; this.onRoster(this.roster); } return; }
     if (m.t === 'role') { if (from === 'h') this.game?.traitor.onNet(m); return; }
     if (m.t === 'class') { // a player picked a class (host keeps it in the roster)
@@ -139,7 +174,7 @@ export class Session {
       if (r && CLASSES[m.c]) { r.cls = m.c; this.net.sendRoster(); }
       return;
     }
-    if (m.t === 'lobby') { this.net.locked = false; this.onLobby(); return; }
+    if (m.t === 'lobby') { this.net.locked = false; this.lastStart = null; this.onLobby(); return; }
     if (this.isHost && HOST_TYPES.has(m.t)) this.game?.hostHandle(m, from);
     else if (this.isHost && m.t === 'quit') { if (from === 'h') this.game?.hostHandle(m, from); }
     else if (!HOST_TYPES.has(m.t)) this.game?.onNet(m);
@@ -209,9 +244,10 @@ export class Session {
     this.onRoster(this.roster);
   }
 
-  backToLobby() { this.net.broadcast({ t: 'lobby' }); }
+  backToLobby() { this.lastStart = null; this.net.broadcast({ t: 'lobby' }); }
 
   dispose() {
+    this.closing = true;
     clearInterval(this.lobbyT);
     if (this.voice.onClip) this.voice.onClip = null;
     this.vc?.dispose();
