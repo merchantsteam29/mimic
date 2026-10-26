@@ -375,3 +375,10 @@ body.touch-edit .t-btn { outline: 1px dashed rgba(233,228,218,.5); cursor: grab;
 #recapKey span { color: var(--dim); }
 #recap .small { margin-top: 6px; padding: 4px 12px; font-size: 11px; }
 body:has(.screen:not([hidden])) #coach, body:has(.screen:not([hidden])) #captions { display: none; }
+
+/* ---------- walkie-talkie ---------- */
+#radio { position: fixed; right: 24px; bottom: 92px; z-index: 5; pointer-events: none; padding: 5px 12px; background: rgba(0,0,0,.6);
+  border: 1px solid #3a4a3a; font: 14px "Special Elite", monospace; color: #a8d8a0; text-shadow: 0 0 6px rgba(120,255,120,.35); }
+#radio b { color: #c8ffc0; font-weight: 400; letter-spacing: .12em; margin-right: 6px; }
+#radio span { color: var(--dim); text-shadow: none; }
+.t-radio { right: calc(150px + env(safe-area-inset-right)); top: 56px; width: 64px; height: 44px; border-radius: 22px; }

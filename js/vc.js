@@ -40,10 +40,17 @@ export class VoiceChat {
 
   setup(call) {
     const ctx = this.sfx.ctx;
-    const e = { call, peer: call.peer, gain: ctx.createGain(), flat: ctx.createGain(), pos: ctx.createGain(), emitter: this.sfx.emitter(), level: () => 0 };
+    const e = { call, peer: call.peer, gain: ctx.createGain(), flat: ctx.createGain(), pos: ctx.createGain(), radio: ctx.createGain(), emitter: this.sfx.emitter(), level: () => 0 };
     e.gain.gain.value = 0;
+    e.radio.gain.value = 0;
     e.gain.connect(e.flat).connect(this.sfx.master);
     e.gain.connect(e.pos).connect(e.emitter.input);
+    // The walkie-talkie: thin, boxy and a little broken up.
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 450;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2900;
+    const pk = ctx.createBiquadFilter(); pk.type = 'peaking'; pk.frequency.value = 1700; pk.gain.value = 8;
+    const ws = ctx.createWaveShaper(); ws.curve = this.sfx.radioCurve();
+    e.gain.connect(e.radio).connect(hp).connect(pk).connect(lp).connect(ws).connect(this.sfx.master);
     this.calls.set(call.peer, e);
     call.on('stream', (remote) => {
       if (e.src) return;
@@ -77,7 +84,7 @@ export class VoiceChat {
 
   drop(e) {
     try { e.call.close(); } catch { /* already closed */ }
-    try { e.src?.disconnect(); e.gain.disconnect(); e.flat.disconnect(); e.pos.disconnect(); } catch { /* ignore */ }
+    try { e.src?.disconnect(); e.gain.disconnect(); e.flat.disconnect(); e.pos.disconnect(); e.radio.disconnect(); } catch { /* ignore */ }
     e.emitter.dispose();
     if (e.audio) { e.audio.pause(); e.audio.srcObject = null; }
   }
@@ -87,16 +94,17 @@ export class VoiceChat {
     return peer ? this.calls.get(peer) : null;
   }
 
-  // How a player's voice reaches me. opts: { on, pos: {x,y,z} | null (2D), volume, occluded }
-  route(playerId, { on, pos = null, volume = 1, occluded = false }) {
+  // How a player's voice reaches me. opts: { on, pos: {x,y,z} | null (2D), volume, occluded, radio (over the walkie-talkie) }
+  route(playerId, { on, pos = null, volume = 1, occluded = false, radio = false }) {
     const e = this.entryFor(playerId);
     if (!e) return;
     const now = this.sfx.now;
     // Cutting a voice is instant (no fade), so a scream never gets through.
     if (!on) { e.gain.gain.cancelScheduledValues(now); e.gain.gain.setValueAtTime(0, now); return; }
     e.gain.gain.setTargetAtTime(volume, now, 0.05);
-    e.flat.gain.value = pos ? 0 : 1;
-    e.pos.gain.value = pos ? 1 : 0;
+    e.flat.gain.value = pos || radio ? 0 : 1;
+    e.pos.gain.value = pos && !radio ? 1 : 0;
+    e.radio.gain.value = radio ? 1.4 : 0;
     if (pos) { e.emitter.setPos(pos.x, pos.y, pos.z); e.emitter.setOcclusion(occluded); }
   }
 

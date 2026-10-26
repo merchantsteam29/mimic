@@ -18,7 +18,7 @@ The microphone only works on `localhost` or `https`, not on `file://`. Use headp
 
 ## Story
 
-**Ellie** (solo, 5 chapters): your sister went into the Holloway house to film it and never came out. Find her tapes.
+**Ellie** (solo, 8 chapters): your sister went into the Holloway house to film it and never came out. Find her tapes.
 Chapters unlock as you finish them (saved on your device).
 
 **The Signal** (online, pick Story in the lobby): half the time, one of you is secretly working for it. They can jam
@@ -64,6 +64,9 @@ Guess wrong, and it gets hungrier.
   It hears your footsteps, doors, and you talking on voice chat. Stand still, crouch, and keep quiet, and it can walk right past you.
 - **Things go wrong:** partway through a run the power can cut out, a storm can roll in (the rain covers your footsteps),
   an alarm can go off somewhere, or the building can go into lockdown and seal doors around you.
+- **Walkie-talkies** (online): hold `B` to talk to everyone, wherever they are. But every other radio crackles out loud
+  while you talk, and it can hear that. It has a radio too. If a friend calls you over the radio, check they're still alive.
+- **Waiting room:** while you wait for the host, walk around a small house together and talk.
 - **New here?** The first time you play alone, a short tutorial walks you through it (it's also under How to play).
 - **What happened:** after every round, the end screen replays it on a map: everyone's route, its route, where people
   were taken, and whose voice it used most.

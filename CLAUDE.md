@@ -82,7 +82,7 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - Mimic: crawls on the **ceiling** (`ceiling`, drops when it chases) and has a **second form** (`enrage` -> `transform` -> `setForm(2)`: an
   extra pair of arms, a split mouth, red eyes, faster). Snapshots carry ceiling / form / wearId / hunger.
 - **Syntax check with `node tools/check.mjs`.** Plain `node --check` silently skips ES-module files.
-- `story.js`: solo story **Ellie** (5 `CHAPTERS`: fixed seed and theme, `gen` level options (`size`, forced `tasks`, `broken`),
+- `story.js`: solo story **Ellie** (8 `CHAPTERS`; 6-7 in the hospital, 8 back at Kestrel: fixed seed and theme, `gen` level options (`size`, forced `tasks`, `broken`),
   `tapes` that must all be heard (shown as `lore` items, `objectives.storyNeed`), `intro` / `ending` text; a line `{ playerClip }` plays
   your own voice-check clip via `game.playOwnVoice`). Progress is `localStorage mimic.story` (chapters finished), story progress only.
   `generateLevel(seed, theme, opts)` takes the `gen` options. Online story: `SIGNAL`.
@@ -140,6 +140,15 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   friend's voice comes from elsewhere. Getting within 3.2 m, or lighting it up for 2.6 s, triggers `swReveal` -> `chase` (pale, long
   limbs, upside-down head, split mouth). A catch is `hostCatch(id, 'sw')` -> `caught` with `sw` (the jumpscare uses `sw.poseAt`). It
   leaves if the real friend could see it, and stops after power-on. Host state goes in `snap.sw`.
+- `radio.js`: **walkie-talkies** (online). Hold B (pad D-pad down, touch Radio): intent `radio` {on} -> broadcast `radioOn`; listeners route
+  that voice through `vc.route(id, { radio: true })` (a band-limited, distorted chain in `vc.js`) at full volume, anywhere. While anyone
+  transmits, the host makes noise at every OTHER living player's position (the mimic / listener can hear the radios). Max 12 s a press.
+  It fakes calls too: `radioFake` {key, as} plays a clip (prefers the dead) as `playVoice(..., 'radio')` with that owner's name on
+  the display (`#radio`). Not in Hunt, not after power-on.
+- **Waiting room** (`game.room`, `ROOM` in game.js): as soon as you host or join, `openRoom()` (main.js) builds a small house with
+  no mimic, jobs or scares (`setupRoom` / `simulateRoom`), under the lobby menu (`menuOpen`). "Walk around while you wait" walks in;
+  Esc / pause shows the lobby again. Voices are positional but never quieter than 35%. `renderLobby` calls `syncRoster` for joins and
+  leaves. Start disposes it; Back to lobby rebuilds it.
 - `listener.js`: the **blind listener**: online, **Normal mode only**, a host lobby toggle (`session.setListener`, `start` carries `ls`).
   Eyeless, tall, clicks as it moves (`sfx.clicks`). The host calls `ls.hear(x, z, r, kind, from)` wherever the mimic hears something
   (steps, voice chat via `noise`, doors, the mimic's own lures, alarms); it hears 1.35x further. States: roam / listen / rush / search.

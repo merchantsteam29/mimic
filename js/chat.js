@@ -21,7 +21,7 @@ export class Chat {
 
   can() {
     const g = this.g;
-    return !!g.mp && !g.hunt.me && (g.state === 'playing' || g.state === 'spectate');
+    return !!g.mp && !g.hunt.me && (g.state === 'playing' || g.state === 'spectate') && !g.menuOpen;
   }
 
   toggle() {

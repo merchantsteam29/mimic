@@ -1,6 +1,6 @@
 // Menus, settings, the voice check, rooms and lobbies, and starting / ending runs.
 import * as THREE from 'three';
-import { Game } from './game.js';
+import { Game, ROOM } from './game.js';
 import { Sfx } from './sfx.js';
 import { Samples } from './samples.js';
 import { VHS } from './vhs.js';
@@ -441,6 +441,7 @@ document.addEventListener('fullscreenchange', () => {
 
 function openPause() {
   if (!game || game.paused || !(game.state === 'playing' || game.state === 'spectate')) return;
+  if (game.room) { game.pause(); show('lobby'); renderLobby(); return; } // the waiting room: back to the lobby menu
   game.pause();
   $('pauseClips').textContent = session
     ? 'The game keeps going while this menu is open.'
@@ -640,6 +641,7 @@ $('btnHost').onclick = async () => {
       session = s;
       s.setClass(myClass);
       mpBusy(false);
+      openRoom();
       show('lobby');
       renderLobby();
       return;
@@ -661,6 +663,7 @@ $('btnJoin').onclick = async () => {
     session = s;
     s.setClass(myClass);
     mpBusy(false);
+    openRoom();
     show('lobby');
     renderLobby();
   } catch (e) {
@@ -672,6 +675,7 @@ $('mpCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btnJo
 
 function renderLobby() {
   if (!session) return;
+  if (game?.room) game.syncRoster(session.roster.map((r) => r.id));
   $('lobbyCode').textContent = session.code;
   $('lobbyList').innerHTML = session.roster.map((r) =>
     `<li data-id="${esc(r.id)}"><span class="dot"></span>${esc(r.name)}${r.id === session.id ? ' (you)' : ''}<span class="ptag">${CLASSES[r.cls]?.name || ''}${r.id === 'h' ? ' · host' : ''}</span></li>`).join('');
@@ -699,6 +703,26 @@ function renderLobby() {
   ls.onclick = () => session.setListener(!session.listener);
 }
 
+// The waiting room: a small house to walk around in with everyone while you wait.
+function openRoom() {
+  if (!session) return;
+  game?.dispose();
+  game = new Game({
+    renderer, vhs, sfx, voice, settings, hud, themeId: ROOM.theme, seed: ROOM.seed, mp: session, room: true,
+    order: session.roster.map((r) => r.id), classes: {}, noLock: params.has('autostart'), onEnd: () => {},
+  });
+  session.game = game;
+  game.pause(); // the lobby menu is on top until you walk in
+}
+$('btnRoom').onclick = () => {
+  if (!game?.room) openRoom();
+  ensureAudio();
+  show(null);
+  game.resume();
+  if (controls.mode === 'touch') goLandscape();
+  if (usesLock()) lock();
+};
+
 $('btnInvite').onclick = async () => {
   const link = `${location.origin}${location.pathname}?join=${session?.code}`;
   try { await navigator.clipboard.writeText(link); $('btnInvite').textContent = 'Copied!'; }
@@ -715,6 +739,7 @@ $('btnStart').onclick = () => {
 $('btnLeave').onclick = () => { leaveSession(); show('title'); };
 
 function leaveSession() {
+  if (game?.room) { game.dispose(); game = null; }
   const s = session;
   session = null;
   s?.dispose();
@@ -722,6 +747,8 @@ function leaveSession() {
 
 function startMpRun(m) {
   game?.dispose();
+  game = null;
+  document.exitPointerLock?.(); // you may have been walking around the waiting room
   const themeId = m.theme in THEMES ? m.theme : 'facility';
   game = new Game({
     renderer, vhs, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order, classes: m.classes || {},
@@ -749,6 +776,7 @@ function backToLobby() {
   game = null;
   if (session) session.game = null;
   document.exitPointerLock?.();
+  openRoom();
   show('lobby');
   renderLobby();
 }

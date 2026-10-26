@@ -1,4 +1,4 @@
-// Story modes. Solo: "Ellie", five chapters that unlock in order (saved on this device; it's story
+// Story modes. Solo: "Ellie", eight chapters (6-8 happen after she gets out of the house) that unlock in order (saved on this device; it's story
 // progress, not a reward). Online: "The Signal", where one of you might be working for it.
 //
 // Each chapter: a fixed seed and theme, level options (gen: forced objectives, size, darkness), the
@@ -165,6 +165,104 @@ export const CHAPTERS = [
       'In the car, your phone buzzes. A voice message, from Ellie\'s number.',
       'You play it.',
       { playerClip: true, text: 'It\'s your voice.' },
+    ],
+  },
+  // ---------- after: St. Agnes ----------
+  {
+    title: 'St. Agnes', theme: 'hospital', seed: 6631,
+    gen: { size: 28, tasks: { fuses: true, keycard: true }, broken: 0.35 },
+    grace: 40, hunger: true,
+    intro: [
+      'Three weeks later, the hospital calls. A girl was found walking along the road near the Holloway house, barefoot, in the rain.',
+      'She won\'t say her name. She won\'t say anything of her own. She only repeats what the nurses say to her.',
+      'St. Agnes, Ward 4, bed 12. You get there after midnight. The power is out, and the ward is empty.',
+    ],
+    tapeLabel: 'Ward 4 notes',
+    tapes: [
+      { who: 'Nurse Adeyemi, ward notes', lines: [
+        'Bed 12 still not speaking. When I say good morning, she says good morning back. In my voice.',
+        'Not like me. In my voice. I had to sit down.',
+        'Dr. Hale says it\'s trauma. Dr. Hale hasn\'t heard her do his.',
+      ] },
+      { who: 'Night porter, intercom log', lines: [
+        'Three a.m. Bed 12 is empty. Window shut, door locked from the outside.',
+        'But I can still hear her in there, saying "Is anybody there?"',
+        'In the voice of the woman in bed 11. Who died on Tuesday.',
+      ] },
+      { who: 'Ellie, tape 10', lines: [
+        'It\'s me. The real me. I\'m in the walls, in the service ducts. I got out of that bed before it did.',
+        'It came out of the house wearing me. It wanted to be somewhere with more people. More voices.',
+        'Hospitals are full of voices. Nobody thinks it\'s strange when someone calls out at night.',
+      ] },
+    ],
+    ending: [
+      'Bed 12 is empty. On the pillow, Ellie\'s recorder, still warm.',
+      'The hospital speakers crackle on. A calm voice, a nurse\'s voice: "Visitor for bed 12. Please come down to the morgue."',
+    ],
+  },
+  {
+    title: 'The Morgue', theme: 'hospital', seed: 7741,
+    gen: { size: 24, tasks: { gens: 2, tapes: 3 }, broken: 0.55 },
+    grace: 30, hunger: true,
+    intro: [
+      'The basement of St. Agnes is colder than the rest of the hospital, on purpose.',
+      'The tape recorders are down here now. It brought them with it. It keeps every voice it has ever taken, and it plays them to itself in the dark.',
+      'Get the generators running. Smash its recordings. Somewhere down here, Ellie is keeping very, very quiet.',
+    ],
+    tapeLabel: 'Tapes',
+    tapes: [
+      { who: 'Coroner\'s log, drawer 9', lines: [
+        'Admitted: unknown female, found in the service duct. No pulse.',
+        'At 2:40 the drawer said "Let me out" in my wife\'s voice. I have never brought my wife here.',
+        'I opened it. It was empty. It has been empty ever since. It keeps asking.',
+      ] },
+      { who: 'Dr. Okafor, voicemail', lines: [
+        'If you\'re Ellie\'s family, I\'m sorry. I\'m the one who built it, and I\'m the one who moved it.',
+        'When they shut Kestrel down, they told me to take everything to St. Agnes for "storage". Everything.',
+        'The original recordings are still at Kestrel, in the deepest room. Everything it is started there. Wipe them, and it forgets how to be anyone.',
+      ] },
+      { who: 'Ellie, tape 11', lines: [
+        'It doesn\'t sleep. But it listens to itself for hours, all the voices, over and over. Practising.',
+        'I heard it practise yours. It\'s nearly got it.',
+        'I\'m going back to Kestrel. Please don\'t follow me. Please follow me.',
+      ] },
+    ],
+    ending: [
+      'Drawer 9 is open. Inside, scratched into the steel: KESTREL. THE FIRST ROOM.',
+      'From the corridor behind you, perfectly, in your own voice: "Wait for me."',
+    ],
+  },
+  {
+    title: 'The First Room', theme: 'facility', seed: 8853,
+    gen: { size: 34, tasks: { fuses: true, gens: 2, tapes: 3, keycard: true }, broken: 0.5 },
+    grace: 20, hunger: true,
+    intro: [
+      'Kestrel Labs, the lowest floor. The lift was waiting for you with its doors open.',
+      'Behind a locked door at the end of the wing is the first room: the first recordings, the first voices it ever learned.',
+      'Wipe them all, get the power on, and find your sister. Then get out, both of you. If it\'s really both of you.',
+    ],
+    tapeLabel: 'The first recordings',
+    tapes: [
+      { who: 'Recording 0001', lines: [
+        'Test, test. This is Dr. Okafor, voice sample one. The quick brown fox.',
+        '(The same sentence again, in the same voice. Slightly wrong.)',
+        '(Again. And again. Each time a little closer.)',
+      ] },
+      { who: 'Recording 0002', lines: [
+        'A child\'s voice, counting to ten. Okafor\'s daughter, visiting the lab one Saturday.',
+        'It learned to count from her. It still counts, when it\'s waiting for someone.',
+        'You\'ve heard it counting. You didn\'t know what it was.',
+      ] },
+      { who: 'Ellie, tape 12', lines: [
+        'I\'m in the first room. I wiped the last of its tapes. It\'s angry now. It can\'t remember how to be most of them.',
+        'It still has you. It still has me. We\'re the newest, and it remembers the newest best.',
+        'When you find me, ask me what you called me when we were kids. It never heard that. Nobody ever recorded it.',
+      ] },
+    ],
+    ending: [
+      'She\'s in the last room, with her back to the wall and her hands over her mouth.',
+      'You ask her. She tells you. Nobody ever recorded it. It\'s really her.',
+      'You walk out together into the morning. Behind you, in the dark, in both of your voices, it goes on practising.',
     ],
   },
 ];

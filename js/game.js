@@ -23,9 +23,12 @@ import { Tutorial, TUTORIAL } from './tutorial.js';
 import { Recap } from './recap.js';
 import { Listener } from './listener.js';
 import { Incidents } from './incidents.js';
+import { Radio } from './radio.js';
 import { mulberry32 } from './level.js';
 import { keyLabel, rumble } from './controls.js';
 
+// The waiting room (online, before a game): a small house, the same for everyone, where you can walk around and talk.
+export const ROOM = { theme: 'house', seed: 2604, gen: { size: 18, tasks: { fuses: true }, lore: 0, broken: 0 } };
 const POOL = 6;              // real point lights, moved to the nearest fixtures (fewer on lower graphics settings)
 const QUALITY = { lowest: { lights: 2, shadow: 0 }, low: { lights: 3, shadow: 512 }, medium: { lights: 4, shadow: 768 }, high: { lights: POOL, shadow: 1024 } };
 const EYE = 1.62, EYE_CROUCH = 1.0;
@@ -37,8 +40,8 @@ const angleDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 const num = (v, d = 0) => (Number.isFinite(v) ? v : d);
 
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false }) {
-    Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs });
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false }) {
+    Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs, room });
     this.distort = 0;    // camcorder distortion, 0..1
     this.peekHud = 0;    // seconds the HUD stays visible after something changes
     this.tabDown = false;
@@ -46,7 +49,7 @@ export class Game {
     this.classes = classes || { [this.me]: 'runner' }; // player id -> class
     this.isHost = !mp || mp.isHost;
     this.order = order || [this.me];
-    const level = this.level = generateLevel(seed, themeId, story ? { ...story.gen, lore: story.tapes.length } : tutorial ? TUTORIAL.gen : {});
+    const level = this.level = generateLevel(seed, themeId, story ? { ...story.gen, lore: story.tapes.length } : tutorial ? TUTORIAL.gen : room ? ROOM.gen : {});
     const th = level.theme;
 
     const scene = this.scene = new THREE.Scene();
@@ -151,8 +154,9 @@ export class Game {
     this.traitor = new Traitor(this, { mode, traitorId });
     this.chat = new Chat(this);   // quick chat (online)
     this.haunt = new Haunt(this); // the dead reaching back (online)
+    this.radio = new Radio(this); // walkie-talkies (online)
     this.doorEm = sfx.emitter();
-    this.inc = new Incidents(this, !story && !tutorial); // power cuts, storms, alarms, lockdowns
+    this.inc = new Incidents(this, !story && !tutorial && !room); // power cuts, storms, alarms, lockdowns
     // Hunger: every couple of minutes it gets bolder, and lights die for good (in the same order for everyone).
     this.hungerT = 0;
     this.hungerSeen = 0;
@@ -165,6 +169,7 @@ export class Game {
       for (const sl of this.world.fuseBox.slots) { sl.emissive.setHex(0x000000); sl.color.setHex(0x111111); }
       this.fusesIn = 4;
     }
+    if (room) this.setupRoom();
     sfx.setReverb(...th.reverb);
     sfx.startAmbient(th.id);
 
@@ -173,6 +178,7 @@ export class Game {
     this.onKeyDown = (e) => {
       if (this.menuOpen) return;
       const live = this.state === 'playing' || this.state === 'spectate';
+      if (!e.repeat && this.radio.onKey(e.code, true)) return;
       if (live && !e.repeat && (this.chat.onKey(e.code) || this.haunt.onKey(e.code))) { if (e.code === 'Tab') e.preventDefault(); return; }
       if (this.state === 'spectate' && !e.repeat && (e.code === 'Space' || e.code === 'KeyE')) { this.specIdx++; return; }
       if (e.code === 'Tab') { e.preventDefault(); this.tabDown = true; return; } // hold Tab to see the HUD
@@ -186,7 +192,7 @@ export class Game {
       if (e.code === 'KeyE') this.interact();
       if (e.code === 'KeyG') this.ab.use();
     };
-    this.onKeyUp = (e) => { this.keys.delete(e.code); if (e.code === 'Tab') this.tabDown = false; };
+    this.onKeyUp = (e) => { this.keys.delete(e.code); if (e.code === 'Tab') this.tabDown = false; this.radio.onKey(e.code, false); };
     this.onBlur = () => this.keys.clear();
     this.onMouse = (e) => {
       if (this.state !== 'playing' || this.menuOpen || (!document.pointerLockElement && !this.noLock)) return;
@@ -213,7 +219,7 @@ export class Game {
       this.worker.onmessage = () => { if (performance.now() - (this.last || 0) > 200) this.simulate(0.05); };
     }
 
-    this.state = 'intro';
+    this.state = room ? 'playing' : 'intro';
     this.updateCamera();
     this.renderer.setAnimationLoop((now) => this.frame(now));
   }
@@ -286,6 +292,7 @@ export class Game {
     this.inc.dispose();
     this.hunt.dispose();
     this.chat.dispose();
+    this.radio.dispose();
     this.haunt.dispose();
     this.tut.dispose();
     this.ambientEmitter.dispose();
@@ -315,6 +322,48 @@ export class Game {
     this.hud.fear.style.opacity = 0;
   }
 
+  // ---------- the waiting room ----------
+  // Nothing in here can hurt you: no mimic, no jobs, no scares. Hiding spots and doors still work.
+  setupRoom() {
+    for (const it of this.items) if (it && !['hide', 'idoor'].includes(it.type)) { it.active = false; it.mesh?.removeFromParent(); }
+    for (const t of this.world.tapes) t.mesh.removeFromParent();
+    this.world.fuseBox.mesh.visible = false;
+    this.world.keycard?.mesh.removeFromParent();
+    for (const d of this.world.doors) d.mesh.removeFromParent();
+    this.level.doorsLocked = false; this.level.doors.length = 0; this.level.doorCells.clear();
+    this.mimic.model.root.visible = false;
+    this.mimic.x = this.mimic.z = -500;
+    this.radio.fakeT = Infinity;
+    this.hud.root.hidden = true;
+    this.hud.cam.hidden = false;
+  }
+
+  simulateRoom(dt) {
+    this.t += dt;
+    if (!this.menuOpen) { this.updatePlayer(dt); this.updateFocus(); }
+    else this.setPrompt(null);
+    this.updateDoors(dt);
+    this.chat.update(dt);
+    this.radio.update(dt);
+    for (const [id, r] of this.remotes) {
+      if (!this.alive(id)) r.status = 'gone';
+      r.update(dt, this.level.theme.surface, false);
+    }
+    if (this.mp) { this.netTick(dt); this.routeVoices(); }
+  }
+
+  // Someone joined or left the room.
+  syncRoster(ids) {
+    ids.forEach((id) => {
+      if (!this.order.includes(id) && id === this.me) { this.order.push(id); this.status.set(id, 'alive'); return; } // (joined before the roster arrived)
+      if (id === this.me || this.remotes.has(id)) { if (this.status.get(id) === 'left') this.status.set(id, 'alive'); return; }
+      this.order.push(id);
+      this.status.set(id, 'alive');
+      this.remotes.set(id, new RemotePlayer(this.scene, this.sfx, this.order.indexOf(id)));
+    });
+    for (const id of this.order) if (!ids.includes(id)) this.status.set(id, 'left');
+  }
+
   // ---------- networking glue ----------
   send(m) { if (this.mp) this.mp.send(m); else this.hostHandle(m, this.me); }
   broadcast(m) { if (this.mp) this.mp.broadcast(m); else this.onNet(m); }
@@ -325,7 +374,7 @@ export class Game {
   // Host: a player's intent.
   hostHandle(m, from) {
     const r = this.remotes.get(from);
-    if (this.hunt.hostHandle(m, from) || this.chat.hostHandle(m, from) || this.haunt.hostHandle(m, from) || this.obj.hostHandle(m, from) || this.ab.hostHandle(m, from) || this.traitor.hostHandle(m, from)) return;
+    if (this.hunt.hostHandle(m, from) || this.chat.hostHandle(m, from) || this.radio.hostHandle(m, from) || this.haunt.hostHandle(m, from) || this.obj.hostHandle(m, from) || this.ab.hostHandle(m, from) || this.traitor.hostHandle(m, from)) return;
     switch (m.t) {
       case 'door': { // open / close a real door
         const d = this.level.idoors[m.i | 0];
@@ -404,7 +453,7 @@ export class Game {
 
   // Everyone: what happened.
   onNet(m) {
-    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m)) return;
+    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m) || this.radio.onNet(m)) return;
     switch (m.t) {
       case 'doorSet': {
         const d = this.level.idoors[m.i | 0];
@@ -602,6 +651,7 @@ export class Game {
 
   simulate(dt) {
     if (this.state === 'ended' || this.state === 'paused') return;
+    if (this.room) { this.simulateRoom(dt); return; }
     this.t += dt;
     if (this.state === 'playing' && this.hunt.me) {
       this.time += dt;
@@ -623,6 +673,7 @@ export class Game {
     this.updateDoor(dt);
     this.chat.update(dt);
     this.haunt.update(dt);
+    this.radio.update(dt);
     if (!this.hunt.me) { this.ab.update(dt); if (!this.tut.quiet) this.scares.update(dt); }
     this.traitor.update(dt);
     this.updateDoors(dt);
@@ -698,7 +749,12 @@ export class Game {
     const meAlive = this.alive(this.me), c = this.camera.position;
     for (const [id, r] of this.remotes) {
       if (!this.alive(id)) { vc.route(id, { on: !meAlive }); continue; }
+      if (this.radio.routes(id)) { vc.route(id, { on: true, radio: true }); continue; } // on the walkie-talkie
       const d = Math.hypot(r.x - c.x, r.z - c.z);
+      if (this.room) { // the waiting room: from where they stand, but you can always hear them
+        vc.route(id, { on: true, volume: clamp(1.3 - d / 14, 0.35, 1), pos: { x: r.x, y: r.eye, z: r.z } });
+        continue;
+      }
       const volume = clamp(1.25 - d / 24, 0, 1);
       vc.route(id, { on: volume > 0, volume, pos: { x: r.x, y: r.eye, z: r.z }, occluded: !this.level.los(c.x, c.z, r.x, r.z) });
     }

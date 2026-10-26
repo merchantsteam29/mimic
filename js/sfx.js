@@ -284,7 +284,9 @@ export class Sfx {
     if (style === 'scream') { rate = rand(1.12, 1.28); vol = 1.5; ws.curve = distortionCurve(30); }
     else if (style === 'distant') { rate = rand(0.955, 1.0); vol = 0.95; ws.curve = distortionCurve(3); lp.frequency.value = 2300; wet.gain.value = 0.9; }
     else if (style === 'whisper') { rate = rand(0.96, 0.99); vol = 0.6; ws.curve = distortionCurve(1); hp.frequency.value = 380; lp.frequency.value = 4200; wet.gain.value = 0; }
-    else if (style === 'echo') { rate = 0.78; vol = 1.2; ws.curve = distortionCurve(2); lp.frequency.value = 2600; wet.gain.value = 1; }
+    else if (style === 'radio') { // over a walkie-talkie
+      rate = 1; vol = 1.4; ws.curve = this.radioCurve(); hp.frequency.value = 450; lp.frequency.value = 2900; pk.frequency.value = 1700; pk.gain.value = 8; wet.gain.value = 0;
+    } else if (style === 'echo') { rate = 0.78; vol = 1.2; ws.curve = distortionCurve(2); lp.frequency.value = 2600; wet.gain.value = 1; }
     else if (style === 'stranger') { // someone else: pitched, over a bad line. Mostly the same someone.
       if (!this.stranger || Math.random() < 0.2) this.stranger = [0.8, 0.86, 1.17, 1.24][Math.floor(Math.random() * 4)];
       rate = this.stranger; vol = 1.3; ws.curve = distortionCurve(5);
@@ -625,6 +627,16 @@ export class Sfx {
     tone.start(); vib.start();
     nodes.push(tone, vib, dread, high);
     this.ambient = { nodes, bus, theme, dread, dreadLp, high };
+  }
+
+  // ---------- walkie-talkies ----------
+  radioCurve() { return (this._radioCurve ||= distortionCurve(14)); }
+
+  // The click and hiss of a radio key going down (or up: end).
+  squelch(end = false) {
+    const t = this.now;
+    this._noise(this.master, { t, dur: end ? 0.18 : 0.09, type: 'bandpass', freq: 2600, q: 0.7, peak: end ? 0.14 : 0.1 });
+    this._tone(this.master, { t, type: 'square', freq: end ? 1400 : 1900, dur: 0.04, peak: 0.03 });
   }
 
   // ---------- the listener, and random events ----------
