@@ -137,6 +137,7 @@ function loop(now) {
 
 // ---------- gamepad ----------
 const prev = [];
+const centred = new Map(); // pad index -> which axes have been seen at rest
 let navDir = null, navT = 0;
 
 function pollPad(dt, g) {
@@ -147,8 +148,12 @@ function pollPad(dt, g) {
   const now = pad.buttons.map((_, i) => btn(i));
   const down = (i) => i !== null && i !== undefined && now[i] && !prev[i];
   const up = (i) => i !== null && i !== undefined && !now[i] && prev[i];
-  const ax = (i) => { const v = pad.axes[i] || 0; return Math.abs(v) < DEAD ? 0 : (v - Math.sign(v) * DEAD) / (1 - DEAD); };
-  if (now.some(Boolean) || pad.axes.some((v) => Math.abs(v) > 0.5)) { setMode('pad'); lastPad = pad; }
+  // An axis only counts once it has been seen at rest: wheels, flight sticks and some "gaming" keyboards and mice show up
+  // as gamepads with an axis stuck at full tilt, which used to spin the camera nonstop (and kept forcing controller mode).
+  const rest = centred.get(pad.index) || centred.set(pad.index, []).get(pad.index);
+  pad.axes.forEach((v, i) => { if (Math.abs(v) < DEAD) rest[i] = true; });
+  const ax = (i) => { const v = pad.axes[i] || 0; return !rest[i] || Math.abs(v) < DEAD ? 0 : (v - Math.sign(v) * DEAD) / (1 - DEAD); };
+  if (now.some((v, i) => v && !prev[i]) || pad.axes.some((v, i) => rest[i] && Math.abs(v) > 0.5)) { setMode('pad'); lastPad = pad; }
   if (controls.mode !== 'pad') { prev.length = 0; prev.push(...now); return; }
 
   if (controls.capture?.kind === 'pad') { // settings: the next button pressed gets the binding
