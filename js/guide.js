@@ -21,7 +21,7 @@ const SECTIONS = [
       survive: 'Stay under working lights. Hold your flashlight on it and it burns away, for a while. Power cuts belong to it.' },
   ]],
   ['hiding', 'Where to hide', [
-    { name: 'Lockers, wardrobes, fitting rooms', file: 'Hiding 01', what: 'If it saw you go in, it comes to the door and listens.',
+    { name: 'Lockers, wardrobes, fitting rooms, confessionals', file: 'Hiding 01', what: 'If it saw you go in, it comes to the door and listens.',
       tells: 'A heartbeat on the screen.', survive: 'Tap on the beat. Don\'t make a sound. One of them, somewhere, isn\'t empty.' },
     { name: 'Under a bed', file: 'Hiding 02', what: 'Low, and dark.', tells: 'You can only see the floor.',
       survive: 'Half the time it doesn\'t think to look. If it does, the heartbeat.' },
@@ -42,6 +42,9 @@ const SECTIONS = [
     { name: 'Storm', file: 'Event 02', what: 'Rain and thunder for a minute.', tells: 'Lightning shows everything, for a moment.', survive: 'The rain covers your footsteps: the best time to move.' },
     { name: 'Alarm', file: 'Event 03', what: 'Something sets off an alarm, far from all of you.', tells: '', survive: 'It goes to look. That\'s your window.' },
     { name: 'Lockdown', file: 'Event 04', what: 'Shutters slam. The doors near you won\'t open for a while.', tells: '', survive: 'Find another way round. It doesn\'t care about locks.' },
+    { name: 'The bell', file: 'Event 05', what: 'In the church, now and then, the bell tolls. Once for every one of you it has taken.', tells: 'Count them.', survive: 'Nothing to do but listen. The statues move while you do.' },
+    { name: 'The night shift', file: 'Event 06', what: 'Midnight to six, no jobs, the doors chained. The bell tolls each hour.', tells: 'Each night it\'s faster, sees further and there are fewer lights.',
+      survive: 'Save your battery. Hide early, move when it\'s somewhere else. At 6 a.m. it lets go.' },
   ]],
 ];
 
@@ -64,8 +67,10 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'alpha1-2026-10-26b';
+export const RELEASE = 'alpha1-2026-10-26c';
 const NOTES = [
+  ['Midnight to six. They chained the doors behind you.', 'Night Shift (title screen, or a lobby Mode): hold on until 6 a.m. Every night you last, the next is worse.'],
+  ['The bell tolled three times. There were four of us.', 'A new place: an old church. Hide in the confessionals. Don\'t trust the statues.'],
   ['They built a school, and a hotel. Someone is still answering the phones.', 'Two new places: a school at night and an old hotel.'],
   ['Subject 04 doesn\'t move. Not while you\'re looking.', 'Online creatures: the Stalker, and the blind Listener.'],
   ['We found her recorder by the vent. It was still playing her voice.', 'Tape recorders you can use as a decoy, things to throw, and new places to hide: beds, vents, curtains.'],

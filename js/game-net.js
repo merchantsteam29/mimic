@@ -241,10 +241,11 @@ export const NetPart = {
         this.checkEnd();
         break;
       }
+      case 'hour': this.ns.onHour(num(m.h, 0)); break;
       case 'out': {
         this.status.set(m.id, 'out');
-        if (m.id === this.me) { if (this.state !== 'intro') { this.toast('You got out.'); this.startSpectate(); } }
-        else this.toast(`${this.nameOf(m.id)} got out`);
+        if (m.id === this.me) { if (this.state !== 'intro') { this.toast(m.dawn ? 'You lasted the night.' : 'You got out.'); this.startSpectate(); } }
+        else if (!m.dawn) this.toast(`${this.nameOf(m.id)} got out`);
         this.checkEnd();
         break;
       }
@@ -271,7 +272,7 @@ export const NetPart = {
     if ([...this.status.values()].some((s) => s === 'alive')) return;
     this.ended = true;
     if (!this.mp) return; // alone, the jumpscare / escape ends the run itself
-    this.broadcast({ t: 'end', st: Object.fromEntries(this.status), time: this.time, mode: this.hunt.id ? 'hunt' : this.traitor.on ? 'story' : this.vs.on ? 'versus' : 'normal', hunter: this.hunt.id, recap: this.recap.data(), ...this.traitor.result(), ...this.vs.result() });
+    this.broadcast({ t: 'end', st: Object.fromEntries(this.status), time: this.time, mode: this.hunt.id ? 'hunt' : this.traitor.on ? 'story' : this.vs.on ? 'versus' : this.ns.on ? 'nights' : 'normal', night: this.ns.night, hour: this.ns.hour, hunter: this.hunt.id, recap: this.recap.data(), ...this.traitor.result(), ...this.vs.result() });
   },
 
   // Host: the mimic (or, by 'sw', the skinwalker; 'ls', the listener) reached a player.

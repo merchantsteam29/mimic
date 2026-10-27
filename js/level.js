@@ -1,4 +1,4 @@
-// Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house, a hospital, a mall, a school or a hotel.
+// Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house, a hospital, a mall, a school, a hotel or a church.
 // Also holds the collision, line-of-sight and path-finding the player and the mimic use.
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
@@ -72,6 +72,16 @@ export const THEMES = {
     fog: 0x030201, fogDensity: 0.085, reverb: [1.2, 0.24],
     props: ['bed', 'bed', 'armchair', 'tvstand', 'dresser', 'luggagecart', 'table'], hideProp: 'wardrobe', surface: 'wood',
   },
+  // An old church and the rooms around it: the nave full of pews, side chapels, the vestry, the crypt stairs.
+  // Built like the house (candle lamps, wooden doors, a key). Hide in the confessionals. The statues watch you.
+  church: {
+    id: 'church', look: 'house', kicker: 'Abandoned church',
+    names: ['St. Agnes Parish Church', 'Holloway Chapel', 'Our Lady of the Marsh', 'The Old Kirk, Ashgrove'],
+    size: 28, roomSize: [4, 8], tries: 130, minRooms: 8,
+    light: 0xffb060, lightIntensity: 6, corridorLights: false, flicker: 0.5, broken: 0.4,
+    fog: 0x030202, fogDensity: 0.08, reverb: [4.2, 0.6],
+    props: ['pew', 'pew', 'pew', 'candelabra', 'statue', 'altar', 'lectern', 'pew'], hideProp: 'confessional', surface: 'hard',
+  },
 };
 
 // Footprint (w across the front, d front-to-back) of each prop, in metres. Front faces +z.
@@ -82,6 +92,8 @@ const PROP_DEFS = {
   gurney: { w: 0.9, d: 2.0 }, wheelchair: { w: 0.7, d: 0.8 }, ivstand: { w: 0.5, d: 0.5 }, curtain: { w: 1.9, d: 0.3 }, medcabinet: { w: 1.0, d: 0.45 },
   mannequin: { w: 0.6, d: 0.5 }, clothesrack: { w: 1.6, d: 0.6 }, counter: { w: 1.8, d: 0.8 }, bench: { w: 1.6, d: 0.6 }, planter: { w: 1.0, d: 1.0 },
   shoerack: { w: 1.6, d: 0.45 }, fittingroom: { w: 1.2, d: 1.0 }, vent: { w: 0.8, d: 0.12 },
+  pew: { w: 1.9, d: 0.75 }, altar: { w: 1.6, d: 0.9 }, candelabra: { w: 0.6, d: 0.6 }, lectern: { w: 0.7, d: 0.6 }, statue: { w: 0.7, d: 0.7 },
+  confessional: { w: 1.3, d: 1.0 },
   armchair: { w: 0.9, d: 0.85 }, tvstand: { w: 1.1, d: 0.5 }, luggagecart: { w: 1.1, d: 0.6 },
   schooldesk: { w: 1.2, d: 1.1 }, teacherdesk: { w: 1.6, d: 0.8 }, chalkboard: { w: 1.9, d: 0.2 }, cubbies: { w: 1.6, d: 0.45 }, trophycase: { w: 1.4, d: 0.5 },
 };
@@ -625,6 +637,50 @@ function buildProp(type, M) {
       g.add(box(0.5, 0.12, 0.35, M.sheet, -0.3, 0.68, -0.7));
       g.add(box(1.4, 1.0, 0.08, M.darkWood, 0, 0.5, -0.95));
       break;
+    case 'pew':
+      g.add(box(1.85, 0.06, 0.42, M.darkWood, 0, 0.45, 0.08), box(1.85, 0.62, 0.05, M.darkWood, 0, 0.78, -0.16));
+      for (const x of [-0.9, 0.9]) g.add(box(0.06, 0.95, 0.6, M.darkWood, x, 0.48, 0));
+      if (r() < 0.4) g.add(box(0.16, 0.04, 0.22, M.books[0], (r() - 0.5) * 1.2, 0.5, 0.1)); // a hymn book left behind
+      break;
+    case 'altar':
+      g.add(box(1.6, 0.95, 0.85, M.stone, 0, 0.475, 0), box(1.66, 0.03, 0.9, M.altarCloth, 0, 0.965, 0), box(1.3, 0.5, 0.02, M.altarCloth, 0, 0.72, 0.44));
+      for (const x of [-0.5, 0.5]) g.add(cyl(0.025, 0.025, 0.3, M.wax, x, 1.13, -0.2, 8), cyl(0.012, 0.004, 0.05, M.flame, x, 1.31, -0.2, 6));
+      break;
+    case 'candelabra':
+      g.add(cyl(0.18, 0.22, 0.05, M.brass, 0, 0.025, 0, 10), cyl(0.025, 0.025, 1.4, M.brass, 0, 0.72, 0, 6), box(0.5, 0.025, 0.025, M.brass, 0, 1.42, 0));
+      for (const x of [-0.24, 0, 0.24]) g.add(cyl(0.02, 0.02, 0.18, M.wax, x, 1.53, 0, 6), cyl(0.01, 0.003, 0.04, M.flame, x, 1.64, 0, 6));
+      break;
+    case 'lectern':
+      g.add(cyl(0.05, 0.08, 1.05, M.darkWood, 0, 0.53, 0, 8), box(0.5, 0.03, 0.38, M.darkWood, 0, 1.1, 0.02));
+      g.children[1].rotation.x = -0.35;
+      g.add(box(0.36, 0.04, 0.26, M.paper, 0, 1.13, 0.04));
+      break;
+    case 'statue': { // a robed figure on a plinth; like the mall's mannequins, it turns when you aren't looking (scares.js)
+      g.add(box(0.6, 0.5, 0.6, M.stone, 0, 0.25, 0));
+      const body = new THREE.Group();
+      body.position.y = 0.5;
+      const robe = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.3, 1.25, 10), M.stone);
+      robe.position.y = 0.62;
+      body.add(robe);
+      for (const sx of [-1, 1]) { const a = box(0.08, 0.5, 0.08, M.stone, sx * 0.08, 1.0, 0.14); a.rotation.x = -0.9; a.rotation.z = sx * 0.3; body.add(a); } // hands together
+      const head = new THREE.Group();
+      head.position.y = 1.4;
+      const skull = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), M.stone);
+      skull.scale.y = 1.2;
+      head.add(skull, new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), M.stone)); // the hood
+      head.children[1].position.set(0, 0.02, -0.02);
+      body.add(head);
+      g.add(body);
+      g.userData.mannequin = { body, head };
+      break;
+    }
+    case 'confessional': // a wooden booth with a lattice and a heavy curtain: you can hide in it
+      g.add(box(1.3, 2.3, 0.05, M.darkWood, 0, 1.15, -0.48), box(1.3, 0.08, 1.0, M.darkWood, 0, 2.3, 0));
+      for (const x of [-0.63, 0.63]) g.add(box(0.05, 2.3, 1.0, M.darkWood, x, 1.15, 0));
+      g.add(box(1.36, 0.12, 0.08, M.darkWood, 0, 2.18, 0.48));
+      for (let i = 0; i < 6; i++) g.add(box(0.2, 1.8, 0.02, M.booth, -0.5 + i * 0.2, 1.1, 0.47 + (i % 2) * 0.03));
+      for (let i = 0; i < 5; i++) g.add(box(0.02, 0.4, 0.02, M.darkWood, 0.62, 1.4, -0.3 + i * 0.12)); // the lattice
+      break;
     case 'armchair':
       g.add(box(0.85, 0.42, 0.8, M.fabric, 0, 0.21, 0), box(0.85, 0.6, 0.18, M.fabric, 0, 0.72, -0.31));
       for (const x of [-0.37, 0.37]) g.add(box(0.13, 0.25, 0.8, M.fabric, x, 0.53, 0));
@@ -870,6 +926,10 @@ export function buildLevelScene(level) {
     bottles: [0x5a3a14, 0x8a8a80, 0x2a4a5a].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.2 })),
     plastic: new THREE.MeshStandardMaterial({ color: 0xcfc6b8, roughness: 0.35 }),
     chalk: new THREE.MeshStandardMaterial({ map: tex.chalk, roughness: 0.9 }),
+    stone: new THREE.MeshStandardMaterial({ color: 0x7a766c, roughness: 0.95 }),
+    altarCloth: new THREE.MeshStandardMaterial({ color: 0x6a1418, roughness: 1 }),
+    wax: new THREE.MeshStandardMaterial({ color: 0xd8d0b8, roughness: 0.6 }),
+    flame: new THREE.MeshStandardMaterial({ color: 0x331100, emissive: 0xffa040, emissiveIntensity: 2.5 }),
     brass: new THREE.MeshStandardMaterial({ color: 0xb08a3a, roughness: 0.35, metalness: 0.8 }),
     clothes: [0x5a2230, 0x22344a, 0x3a3a36, 0x6a5a3a, 0x2a4a3a, 0x7a6a6a].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.95 })),
     deadLeaf: new THREE.MeshStandardMaterial({ color: 0x3a3220, roughness: 1, side: THREE.DoubleSide }),

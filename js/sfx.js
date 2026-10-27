@@ -593,6 +593,14 @@ export class Sfx {
       const mg = ctx.createGain(); mg.gain.value = 0.012;
       const mlp = ctx.createBiquadFilter(); mlp.type = 'lowpass'; mlp.frequency.value = 1800; // through a wall or two
       mon.connect(mlp).connect(mg).connect(bus); mon.start(); nodes.push(mon);
+    } else if (theme === 'church') {
+      // The organ, a long low chord held by nobody, breathing in and out.
+      [55, 82.4, 110, 164.8].forEach((f, i) => {
+        const o = ctx.createOscillator(); o.type = i ? 'triangle' : 'sawtooth'; o.frequency.value = f; o.detune.value = (Math.random() - 0.5) * 12;
+        const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 700;
+        const g = ctx.createGain(); g.gain.value = [0.012, 0.01, 0.008, 0.005][i];
+        o.connect(lp).connect(g).connect(bus); g.connect(this.send); o.start(); nodes.push(o);
+      });
     } else if (theme === 'hotel') {
       // The lift, somewhere, going up and down with nobody in it.
       const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = 62;
@@ -696,6 +704,16 @@ export class Sfx {
     const dest = emitter ? emitter.input : this.master, t = this.now;
     this._noise(dest, { t, dur: 0.4, type: 'lowpass', freq: 380, q: 0.8, peak: 1.2, attack: 0.05, buffer: this.brown });
     this._noise(dest, { t: t + 0.05, dur: 0.3, freq: 1800 + Math.random() * 600, q: 3, peak: 0.3, attack: 0.04 });
+  }
+
+  // The church bell: n slow tolls, far above.
+  bell(n = 1) {
+    const t = this.now;
+    for (let i = 0; i < n; i++) [[220, 0.5], [440, 0.25], [554, 0.12], [660, 0.1]].forEach(([f, v]) => {
+      this._tone(this.send, { t: t + i * 2.4, type: 'sine', freq: f, dur: 4, peak: v * 0.5, attack: 0.005 });
+      this._tone(this.master, { t: t + i * 2.4, type: 'sine', freq: f, dur: 3.5, peak: v * 0.25, attack: 0.005 });
+    });
+    return n * 2.4;
   }
 
   // An old phone ringing (four rings).

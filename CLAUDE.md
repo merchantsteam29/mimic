@@ -272,6 +272,15 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - **Mix** (measured 2026-10-26, loudest 100 ms RMS out of the final mix, 3 m away): its lures ~ -19 dB, its scream ~ -8, radio voice
   ~ -14, warnings you must hear (listener clicks, stalker scrape, phone, PA chime) -31 to -38, your own steps ~ -36, ambience ~ -36.
   New sounds should land near those for their kind. A re-run script plays every sound alone and measures the tap (`sfx.tap`).
+- **Church** theme (`church`, look `house`): pews, altars, candelabras, lecterns, statues (`userData.mannequin`, so they turn like the
+  mall's mannequins), confessionals to hide in (`box` kind); `churchWall` / `churchFloor`; ambience: a held organ chord; the bell
+  (`sfx.bell(n)`, `scares.updateBell`: every 2-3 min, once per player taken). Building code letter `C`.
+- `nightshift.js`: **Night Shift** (title > Night Shift = `pickClass(1)`, or lobby Mode `nights`; Game option `night`, `?autostart&night=N`).
+  No jobs (`nightLevel`: no tasks, `broken` rises), the panel and exit refuse until 6 a.m. Six hours of 60 s (`ns.t`, which keeps
+  counting while dead); the host broadcasts `hour` (the bell tolls it, the camcorder clock says `NIGHT n`); at 6 the host, 3.5 s later,
+  ends it alone (`end(true)`) or broadcasts `out` with `dawn` for everyone alive. `nightRules(n)` multiplies the difficulty (speed, sight,
+  hunger, battery, grace) up to night 8. Alone: the end screen offers the next night, or night 1 again; best in localStorage `mimic.nights`.
+  Online: `session.night` (sent with `mode`, `start.night`); the host's end screen calls `setNight` (next night if anyone lasted, else 1).
 - **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
   on touch the objectives sit below the pause / jobs buttons.
 

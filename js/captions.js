@@ -33,6 +33,7 @@ const SOUNDS = {
   clatter: [0, () => 'Something clatters'],
   hiss: [0, () => 'Something hisses in the light'],
   phone: [0, () => 'A phone ringing'],
+  bell: [-1, (n) => (n > 1 ? `A bell tolls ${n} times` : 'A bell tolls')],
   camFlash: [0, (e) => (e ? 'A camera flash' : null)],
   squelch: [-1, (end) => (end ? null : 'Radio crackles')],
   thunder: [-1, () => 'Thunder'],

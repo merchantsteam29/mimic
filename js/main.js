@@ -16,6 +16,7 @@ import { controls, initControls, bindsChanged, editTouchLayout } from './control
 import { ACTIONS, binds, resetBinds, keyName, padName } from './binds.js';
 import { initTitle } from './title.js';
 import { TitleScene } from './title3d.js';
+import { bestNight, recordNight } from './nightshift.js';
 import { COATS, HATS, LIGHTS, DEFAULT_LOOK, cleanLook } from './look.js';
 import { Captions } from './captions.js';
 import { TUTORIAL } from './tutorial.js';
@@ -384,7 +385,7 @@ function renderLook() {
 $('btnClassGo').onclick = () => {
   const text = $('codeSolo').value.trim(), code = text && storyIdx === null ? parseCode(text) : null;
   if (text && storyIdx === null && !code) { toastMenu('That building code isn\'t right. It looks like H-4F2K9A.'); return; }
-  startRun(storyIdx, code);
+  startRun(storyIdx, code, storyIdx === null ? nightNo : 0);
 };
 
 // ---------- voice check (before your first game, alone or online) ----------
@@ -436,7 +437,9 @@ function finishVoiceCheck() {
 // The first time you play alone, it offers the tutorial (once; How to play has it too).
 const tutorialSeen = () => { try { return !!localStorage.getItem('mimic.tutorial'); } catch { return true; } };
 const markTutorial = () => { try { localStorage.setItem('mimic.tutorial', '1'); } catch { /* ignore */ } };
-const pickClass = () => { storyIdx = null; renderClassPick(); show('classes'); };
+let nightNo = 0; // Night Shift alone: the night the class screen starts (0 = an ordinary run)
+const pickClass = (night = 0) => { storyIdx = null; nightNo = night; renderClassPick(); show('classes'); };
+$('btnNights').onclick = () => voiceCheck(() => pickClass(1));
 $('btnPlay').onclick = () => voiceCheck(() => (tutorialSeen() ? pickClass() : show('first')));
 $('btnFirstTut').onclick = () => { markTutorial(); startTutorial(); };
 $('btnFirstSkip').onclick = () => { markTutorial(); pickClass(); };
@@ -470,7 +473,7 @@ function openStory() {
     return `<button data-ch="${i}" ${open ? '' : 'disabled'}><b>Chapter ${i + 1}</b><span>${open ? esc(c.title) : '???'}</span>${i < done ? '<i>finished</i>' : ''}</button>`;
   }).join('');
   $('chapters').querySelectorAll('button').forEach((b) => {
-    b.onclick = () => { storyIdx = Number(b.dataset.ch); renderClassPick(); show('classes'); };
+    b.onclick = () => { storyIdx = Number(b.dataset.ch); nightNo = 0; renderClassPick(); show('classes'); };
   });
   show('story');
 }
@@ -480,18 +483,28 @@ $('btnSkipMic').onclick = () => finishVoiceCheck();
 
 // ---------- solo runs ----------
 // code: a building code ({ theme, seed }) to play that exact building.
-function startRun(si = null, code = null) {
+// night: the Night Shift's night (0 = an ordinary run).
+function startRun(si = null, code = null, night = 0) {
   game?.dispose();
   storyIdx = si;
   const story = si === null ? null : { ...book.chapters[si], index: si, book: book.id, voice: book.voice };
   const themeId = story ? story.theme : code ? code.theme : params.get('theme') in THEMES ? params.get('theme') : randomTheme();
   const seed = story ? story.seed : code ? code.seed : params.has('seed') ? Number(params.get('seed')) : Math.floor(Math.random() * 2 ** 31);
   game = new Game({
-    renderer, vhs, sfx, voice, settings, hud, themeId, seed, story, classes: { h: params.get('class') in CLASSES ? params.get('class') : myClass }, difficulty: settings.diff,
+    renderer, vhs, sfx, voice, settings, hud, themeId, seed, story, night, classes: { h: params.get('class') in CLASSES ? params.get('class') : myClass }, difficulty: settings.diff,
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),
   });
-  showIntro(themeId, story);
+  if (night) nightIntro(themeId, night);
+  else showIntro(themeId, story);
+}
+
+const NIGHT_INTRO = (n) => n === 1
+  ? ['You took the night shift. Midnight to six. They chained the doors behind you, and the power stays off until morning.', 'Something else is on shift tonight. Hold on until 6 a.m.']
+  : [`Night ${n}. Same doors, same chains. It remembers you from last night.`, 'It will be faster tonight, and there are fewer lights. Hold on until 6 a.m.'];
+function nightIntro(themeId, n) {
+  showIntro(themeId, null, NIGHT_INTRO(n));
+  $('introKicker').textContent = `Night Shift · night ${n}`;
 }
 
 const lineText = (l) => (typeof l === 'string' ? l : l.text);
@@ -642,7 +655,28 @@ function endRun(r) {
         ? ` ${r.traitor === session?.id ? 'You were' : `${r.traitorName} was`} working for it. The traitor ${r.traitorWins ? 'wins' : 'loses'}.`
         : ' Nobody was working for it. You did this to yourselves.';
     }
+    if (r.mode === 'nights' && r.night) { // the night shift, together: lasting it moves everyone on to the next night
+      const n = r.night;
+      stats.splice(2, 1, ['Night', n]);
+      $('endTitle').textContent = out ? '6 A.M.' : 'Nobody lasted the night.';
+      $('endSub').textContent = out ? `${out === r.results.length ? 'All of you' : `${out} of you`} lasted night ${n}. Night ${n + 1} is next, and it's worse.` : `Night ${n}, a little after ${r.hour || 12} A.M. Back to night 1.`;
+      if (session?.isHost) session.setNight(out ? n + 1 : 1);
+    }
     if (session && !session.isHost) $('endSub').textContent += ' Waiting for the host…';
+  } else if (r.night) { // the night shift, alone
+    const n = r.night;
+    if (r.won) recordNight(n);
+    const best = bestNight();
+    stats.splice(2, 1, ['Night', n]);
+    $('endTitle').textContent = r.won ? '6 A.M.' : 'It got you.';
+    $('endSub').textContent = r.won ? `You lasted night ${n}. Night ${n + 1} will be worse.`
+      : `Night ${n}, a little after ${r.hour || 12} A.M. ${best ? `Your longest: ${best} night${best > 1 ? 's' : ''}.` : 'You haven\'t lasted a night yet.'}`;
+    $('endPlayers').hidden = true;
+    $('btnAgain').hidden = false;
+    $('btnAgain').textContent = r.won ? `Night ${n + 1}` : 'Start again from night 1';
+    againAction = () => startRun(null, null, r.won ? n + 1 : 1);
+    $('btnToLobby').hidden = true;
+    $('btnMenu').textContent = 'Main menu';
   } else if (r.story) {
     const ch = r.story, sb = STORIES.find((x) => x.id === ch.book) || STORIES[0], last = ch.index === sb.chapters.length - 1;
     if (r.won) finishChapter(ch.index, sb);
@@ -906,6 +940,8 @@ function renderLobby() {
     b.disabled = !session.isHost;
     b.onclick = () => session.setMode(b.dataset.mode);
   });
+  const nb = document.querySelector('.mode-pick [data-mode="nights"] span');
+  if (nb) nb.textContent = session.night > 1 ? `next up: night ${session.night}. Lose everyone and it's back to night 1` : 'no way out: hold on until 6 a.m. Every night you last, the next is worse';
   // The skinwalker: a Normal-mode extra the host switches on.
   const sw = $('btnSkinwalker'), swOn = session.skinwalker && session.mode === 'normal';
   sw.classList.toggle('on', swOn);
@@ -989,7 +1025,7 @@ function startMpRun(m) {
   const themeId = m.theme in THEMES ? m.theme : 'facility';
   game = new Game({
     renderer, vhs, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order, classes: m.classes || {},
-    mode: m.mode === 'story' ? 'story' : 'normal', traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, shadow: !!m.sd, difficulty: m.diff, custom: m.cs, teams: m.mode === 'versus' && m.teams && typeof m.teams === 'object' ? m.teams : null,
+    mode: m.mode === 'story' ? 'story' : 'normal', night: m.mode === 'nights' ? Math.max(1, Math.min(99, m.night | 0)) : 0, traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, shadow: !!m.sd, difficulty: m.diff, custom: m.cs, teams: m.mode === 'versus' && m.teams && typeof m.teams === 'object' ? m.teams : null,
     hunter: m.mode === 'hunt' && m.order?.includes(m.hunter) ? m.hunter : null,
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),
@@ -1005,7 +1041,8 @@ function startMpRun(m) {
   } else if (game.hunt.on) {
     showIntro(themeId, null, ['One of you is not coming with you. It is already in here, somewhere, and it will use your voices.', 'Get the power back on, and get out.']);
     $('introKicker').textContent = 'Hunt';
-  } else showIntro(themeId);
+  } else if (m.mode === 'nights') nightIntro(themeId, game.ns.night);
+  else showIntro(themeId);
 }
 
 function backToLobby() {
@@ -1029,7 +1066,7 @@ if (params.has('autostart')) {
   (async () => {
     ensureAudio();
     if (!params.has('nomic')) await voice.start(ctx);
-    if (params.has('tutorial')) startTutorial(); else startRun();
+    if (params.has('tutorial')) startTutorial(); else startRun(null, null, Number(params.get('night')) || 0);
     show(null);
     game.begin();
     window.__game = game;

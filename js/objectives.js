@@ -128,7 +128,7 @@ export class Objectives {
         g.broadcast({ t: 'unlocked', by: from });
         return true;
       case 'lever':
-        if (g.power || !this.allDone()) return true;
+        if (g.power || !this.allDone() || g.ns?.on) return true;
         g.broadcast({ t: 'power', by: from });
         return true;
     }

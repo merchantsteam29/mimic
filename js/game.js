@@ -33,6 +33,7 @@ import { Throwables } from './throwables.js';
 import { Versus } from './versus.js';
 import { Shadow } from './shadow.js';
 import { LIGHTS, cleanLook } from './look.js';
+import { NightShift, nightLevel, nightRules } from './nightshift.js';
 
 import { mulberry32 } from './level.js';
 import { keyLabel, rumble } from './controls.js';
@@ -45,7 +46,7 @@ import { DeathPart } from './game-death.js';
 
 export { CUSTOM, ROOM } from './game-shared.js';
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null, teams = null, shadow = false }) {
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null, teams = null, shadow = false, night = 0 }) {
     Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs, room, custom, themeId, seed });
     this.distort = 0;    // camcorder distortion, 0..1
     this.peekHud = 0;    // seconds the HUD stays visible after something changes
@@ -54,7 +55,7 @@ export class Game {
     this.classes = classes || { [this.me]: 'runner' }; // player id -> class
     this.isHost = !mp || mp.isHost;
     this.order = order || [this.me];
-    const level = this.level = generateLevel(seed, themeId, story ? { ...story.gen, lore: story.tapes.length } : tutorial ? TUTORIAL.gen : room ? ROOM.gen : customLevel(custom));
+    const level = this.level = generateLevel(seed, themeId, story ? { ...story.gen, lore: story.tapes.length } : tutorial ? TUTORIAL.gen : room ? ROOM.gen : night ? nightLevel(night) : customLevel(custom));
     const th = level.theme;
 
     const scene = this.scene = new THREE.Scene();
@@ -148,6 +149,11 @@ export class Game {
     if (story) this.mimic.graceT = story.grace;
     const base = DIFFICULTY[difficulty] || DIFFICULTY.normal;
     this.diff = { ...base, speed: base.speed * (CUSTOM.speed[custom?.speed] || 1), battery: base.battery * (CUSTOM.battery[custom?.battery] || 1) };
+    this.ns = new NightShift(this, room ? 0 : night); // the night shift: hold on until 6 a.m., each night worse
+    if (this.ns.on) {
+      const r = nightRules(night);
+      Object.assign(this.diff, { speed: this.diff.speed * r.speed, sight: this.diff.sight * r.sight, hunger: this.diff.hunger * r.hunger, battery: this.diff.battery * r.battery, grace: this.diff.grace + r.grace });
+    }
     this.mimic.diff = this.diff;
     this.mimic.graceT = Math.max(6, this.mimic.graceT + this.diff.grace);
     this.ambientEmitter = sfx.emitter();
@@ -398,6 +404,7 @@ export class Game {
     this.sig.update(dt);
     if (!this.hunt.me) { this.ab.update(dt); if (!this.tut.quiet) this.scares.update(dt); }
     this.traitor.update(dt);
+    this.ns.update(dt);
     this.updateDoors(dt);
     this.applyHunger();
     if (this.isHost && this.mp && !this.hunt.on) this.updateWear();

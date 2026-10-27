@@ -314,6 +314,18 @@ export class Scares {
     this.updateMannequins(dt);
     this.updatePA(dt);
     this.updatePhone(dt);
+    this.updateBell(dt);
+  }
+
+  // The church: now and then the bell tolls, once for every one of you it has taken (or once, if it hasn't yet).
+  updateBell(dt) {
+    const g = this.g;
+    if (g.level.theme.id !== 'church') return;
+    this.bellT = (this.bellT ?? 60 + Math.random() * 40) - dt;
+    if (this.bellT > 0) return;
+    this.bellT = 120 + Math.random() * 80;
+    const taken = [...g.status.values()].filter((v) => v === 'dead').length;
+    g.sfx.bell(Math.max(1, taken));
   }
 
   // The hotel: a phone rings in a room nearby. It stops before you get there. Mostly.

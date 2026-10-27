@@ -187,6 +187,7 @@ export const PlayerPart = {
         break;
       case 'fusebox':
         if (this.revival.carry) { this.send({ t: 'revive' }); break; }
+        if (this.ns.on) { this.sfx.denied(); this.toast('The power stays off on the night shift. Hold on until 6 a.m.'); break; }
         if (this.fusesHeld && this.fusesIn < 4) { this.send({ t: 'insert' }); break; }
         if (this.obj.allDone()) { this.send({ t: 'lever' }); break; }
         this.sfx.denied();
@@ -195,7 +196,7 @@ export const PlayerPart = {
       case 'hide': this.enterHide(f.prop); break;
       case 'exit':
         this.sfx.denied();
-        this.toast('It won\'t open. There\'s no power.');
+        this.toast(this.ns.on ? 'Chained shut until 6 a.m.' : 'It won\'t open. There\'s no power.');
         break;
     }
   },
@@ -266,7 +267,7 @@ export const PlayerPart = {
       this.camSec = sec;
       const clock = 2 * 3600 + 13 * 60 + 7 + sec, h = Math.floor(clock / 3600) % 12 || 12;
       const two = (n) => String(n).padStart(2, '0');
-      this.hud.camStamp.textContent = `OCT 25 2026\n${two(h)}:${two(Math.floor(clock / 60) % 60)}:${two(clock % 60)} AM`;
+      this.hud.camStamp.textContent = this.ns.on ? this.ns.stamp() : `OCT 25 2026\n${two(h)}:${two(Math.floor(clock / 60) % 60)}:${two(clock % 60)} AM`;
       this.hud.camCounter.textContent = `SP ▶ ${Math.floor(sec / 3600)}:${two(Math.floor(sec / 60) % 60)}:${two(sec % 60)}`;
     }
     this.hud.camBat.style.width = `calc(${this.p.battery}% - 6px)`;
@@ -280,6 +281,10 @@ export const PlayerPart = {
     if (this.power) { o.textContent = 'THE EXIT IS OPEN. RUN.'; return; }
     if (!this.obj) return;
     const lines = [];
+    if (this.ns?.on) { // the night shift: nothing to do but last
+      o.textContent = [this.ns.line(), this.rec?.line(), this.thr?.line()].filter(Boolean).join('\n');
+      return;
+    }
     if (this.level.tasks.fuses) {
       lines.push(`Fuses found  ${this.fusesFound}/4  ·  in the panel  ${this.fusesIn}/4`);
       if (this.mp && this.fusesHeld) lines.push(`Carrying  ${this.fusesHeld}`);

@@ -272,6 +272,33 @@ function hotelFloor() {
   return toTexture(c);
 }
 
+// ---------- church ----------
+function churchWall() {
+  const [c, g] = canvas(256, 384); // one 2m x 3m wall face: old limewash over stone, darker where hands have touched it
+  g.fillStyle = '#9a9384'; g.fillRect(0, 0, 256, 384);
+  g.fillStyle = '#5e584c'; g.fillRect(0, 250, 256, 134);          // stone below
+  g.strokeStyle = 'rgba(30,28,24,.45)'; g.lineWidth = 2;
+  for (let y = 250; y < 384; y += 34) { g.beginPath(); g.moveTo(0, y); g.lineTo(256, y); g.stroke(); for (let x = (y / 34) % 2 ? 20 : 60; x < 256; x += 80) { g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + 34); g.stroke(); } }
+  // Sometimes the outline of a painted arch, mostly gone.
+  if (Math.random() < 0.5) { g.strokeStyle = 'rgba(110,40,30,.35)'; g.lineWidth = 6; g.beginPath(); g.moveTo(70, 240); g.lineTo(70, 120); g.arc(128, 120, 58, Math.PI, 0); g.lineTo(186, 240); g.stroke(); }
+  blotches(g, 256, 384, 8, 0.35);
+  streaks(g, 256, 250, 6, 'rgba(40,35,25,.35)');
+  stains(g, 256, 384, 4, 'rgba(30,25,15,.35)');
+  grain(g, 256, 384, 24);
+  return toTexture(c);
+}
+
+function churchFloor() {
+  const [c, g] = canvas(256); // one 2m cell: worn flagstones
+  g.fillStyle = '#2a2722'; g.fillRect(0, 0, 256, 256);
+  const stones = [[0, 0, 140, 110], [142, 0, 114, 110], [0, 112, 90, 144], [92, 112, 164, 70], [92, 184, 164, 72]];
+  for (const [x, y, w, h] of stones) { const v = Math.random() * 14; g.fillStyle = `rgb(${88 + v},${84 + v},${76 + v})`; g.fillRect(x + 2, y + 2, w - 4, h - 4); }
+  blotches(g, 256, 256, 6, 0.45);
+  stains(g, 256, 256, 3, 'rgba(20,15,10,.45)');
+  grain(g, 256, 256, 26);
+  return toTexture(c);
+}
+
 // ---------- house ----------
 const WALLPAPERS = [['#4d5a45', '#5f6d55'], ['#6e4f4f', '#7d5d5b'], ['#6f6141', '#7f7150'], ['#4a4f63', '#5a5f73']];
 
@@ -494,11 +521,11 @@ export function skinNormal() {
 }
 
 export function makeTextures(theme) {
-  const facility = theme === 'facility', hospital = theme === 'hospital', mall = theme === 'mall', school = theme === 'school', hotel = theme === 'hotel';
+  const facility = theme === 'facility', hospital = theme === 'hospital', mall = theme === 'mall', school = theme === 'school', hotel = theme === 'hotel', church = theme === 'church';
   const pair = (name) => [photo(`${name}_color`), photo(`${name}_normal`, false)];
-  const [wall, wallN] = facility ? pair('concreteWall') : [hospital ? hospitalWall() : mall ? mallWall() : school ? schoolWall() : hotel ? hotelWall() : houseWall(), photo('plaster_normal', false)];
+  const [wall, wallN] = facility ? pair('concreteWall') : [hospital ? hospitalWall() : mall ? mallWall() : school ? schoolWall() : hotel ? hotelWall() : church ? churchWall() : houseWall(), photo('plaster_normal', false)];
   const [floor, floorN] = hospital || mall || school ? [hospital ? hospitalFloor() : mall ? mallFloor() : schoolFloor(), photo('concreteFloor_normal', false)]
-    : hotel ? [hotelFloor(), photo('plaster_normal', false)] : pair(facility ? 'concreteFloor' : 'woodFloor');
+    : hotel ? [hotelFloor(), photo('plaster_normal', false)] : church ? [churchFloor(), photo('concreteFloor_normal', false)] : pair(facility ? 'concreteFloor' : 'woodFloor');
   const [ceiling, ceilingN] = pair(facility || hospital || mall || school ? 'officeCeiling' : 'plaster');
   const [woodC, woodN] = pair('wood');
   const [metalC, metalN] = pair('paintedMetal');
