@@ -272,6 +272,64 @@ function hotelFloor() {
   return toTexture(c);
 }
 
+// ---------- asylum ----------
+function asylumWall() {
+  const [c, g] = canvas(256, 384); // one 2m x 3m wall face: institutional green tiles, peeling paint, and the marks people left
+  g.fillStyle = '#8e9a86'; g.fillRect(0, 0, 256, 384);
+  for (let y = 180; y < 372; y += 16) for (let x = 0; x < 256; x += 16) {
+    const v = Math.random() * 12;
+    g.fillStyle = `rgb(${70 + v},${98 + v},${80 + v})`;
+    g.fillRect(x + 1, y + 1, 14, 14);
+  }
+  g.fillStyle = '#3a4a3e'; g.fillRect(0, 174, 256, 6);
+  g.fillStyle = '#222420'; g.fillRect(0, 372, 256, 12);
+  // Paint hanging off in strips.
+  for (let i = 0; i < 6; i++) { g.fillStyle = 'rgba(60,62,50,.6)'; const x = Math.random() * 240, y = Math.random() * 150; g.fillRect(x, y, 6 + Math.random() * 14, 10 + Math.random() * 30); }
+  // Tally marks, scratched in at hand height. Sometimes a lot of them.
+  if (Math.random() < 0.6) {
+    g.strokeStyle = 'rgba(30,30,24,.7)'; g.lineWidth = 2;
+    const n = 4 + Math.floor(Math.random() * 30), x0 = 30 + Math.random() * 120, y0 = 210 + Math.random() * 60;
+    for (let i = 0; i < n; i++) {
+      const grp = Math.floor(i / 5), k = i % 5, x = x0 + grp * 22 + k * 4;
+      g.beginPath();
+      if (k === 4) { g.moveTo(x - 18, y0 + 4); g.lineTo(x + 2, y0 + 18); } else { g.moveTo(x, y0); g.lineTo(x + 1, y0 + 22); }
+      g.stroke();
+    }
+  }
+  blotches(g, 256, 384, 9, 0.35);
+  streaks(g, 256, 180, 6, 'rgba(50,45,20,.35)');
+  stains(g, 256, 384, 4, 'rgba(40,30,15,.35)');
+  grain(g, 256, 384, 24);
+  return toTexture(c);
+}
+
+function asylumFloor() {
+  const [c, g] = canvas(256); // one 2m cell: small grey-and-white tiles, cracked
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
+    const v = Math.random() * 12, dark = (x + y) % 2;
+    g.fillStyle = dark ? `rgb(${80 + v},${84 + v},${80 + v})` : `rgb(${150 + v},${152 + v},${146 + v})`;
+    g.fillRect(x * 32 + 1, y * 32 + 1, 30, 30);
+  }
+  blotches(g, 256, 256, 7, 0.45);
+  stains(g, 256, 256, 3, 'rgba(45,35,15,.45)');
+  grain(g, 256, 256, 26);
+  return toTexture(c);
+}
+
+// Quilted padding for the isolation cells.
+function padded() {
+  const [c, g] = canvas(128);
+  g.fillStyle = '#c8c4b4'; g.fillRect(0, 0, 128, 128);
+  for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
+    const gr = g.createRadialGradient(x * 32 + 16, y * 32 + 16, 2, x * 32 + 16, y * 32 + 16, 22);
+    gr.addColorStop(0, 'rgba(255,255,245,.25)'); gr.addColorStop(1, 'rgba(60,55,40,.35)');
+    g.fillStyle = gr; g.fillRect(x * 32, y * 32, 32, 32);
+  }
+  stains(g, 128, 128, 2, 'rgba(60,45,20,.35)');
+  grain(g, 128, 128, 20);
+  return toTexture(c);
+}
+
 // ---------- church ----------
 function churchWall() {
   const [c, g] = canvas(256, 384); // one 2m x 3m wall face: old limewash over stone, darker where hands have touched it
@@ -521,16 +579,18 @@ export function skinNormal() {
 }
 
 export function makeTextures(theme) {
-  const facility = theme === 'facility', hospital = theme === 'hospital', mall = theme === 'mall', school = theme === 'school', hotel = theme === 'hotel', church = theme === 'church';
+  const facility = theme === 'facility', hospital = theme === 'hospital', mall = theme === 'mall', school = theme === 'school', hotel = theme === 'hotel', church = theme === 'church', asylum = theme === 'asylum';
   const pair = (name) => [photo(`${name}_color`), photo(`${name}_normal`, false)];
-  const [wall, wallN] = facility ? pair('concreteWall') : [hospital ? hospitalWall() : mall ? mallWall() : school ? schoolWall() : hotel ? hotelWall() : church ? churchWall() : houseWall(), photo('plaster_normal', false)];
-  const [floor, floorN] = hospital || mall || school ? [hospital ? hospitalFloor() : mall ? mallFloor() : schoolFloor(), photo('concreteFloor_normal', false)]
+  const [wall, wallN] = facility ? pair('concreteWall') : [hospital ? hospitalWall() : mall ? mallWall() : school ? schoolWall() : hotel ? hotelWall() : church ? churchWall() : asylum ? asylumWall() : houseWall(), photo('plaster_normal', false)];
+  const [floor, floorN] = hospital || mall || school || asylum ? [hospital ? hospitalFloor() : mall ? mallFloor() : asylum ? asylumFloor() : schoolFloor(), photo('concreteFloor_normal', false)]
     : hotel ? [hotelFloor(), photo('plaster_normal', false)] : church ? [churchFloor(), photo('concreteFloor_normal', false)] : pair(facility ? 'concreteFloor' : 'woodFloor');
-  const [ceiling, ceilingN] = pair(facility || hospital || mall || school ? 'officeCeiling' : 'plaster');
+  const [ceiling, ceilingN] = pair(facility || hospital || mall || school || asylum ? 'officeCeiling' : 'plaster');
   const [woodC, woodN] = pair('wood');
   const [metalC, metalN] = pair('paintedMetal');
   wall.repeat.set(1, 1.5); wallN.repeat.set(1, 1.5); // one 2m x 3m wall face
+  const pad = asylum ? padded() : null;
   return {
+    padded: pad,
     wall, wallN, floor, floorN, ceiling, ceilingN, woodN, metalN,
     wood: woodC,
     darkWood: photo('wood_color'),

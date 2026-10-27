@@ -593,6 +593,17 @@ export class Sfx {
       const mg = ctx.createGain(); mg.gain.value = 0.012;
       const mlp = ctx.createBiquadFilter(); mlp.type = 'lowpass'; mlp.frequency.value = 1800; // through a wall or two
       mon.connect(mlp).connect(mg).connect(bus); mon.start(); nodes.push(mon);
+    } else if (theme === 'asylum') {
+      // Old wiring humming in the walls, and water dripping somewhere, slow and steady.
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 50;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 300;
+      const hg = ctx.createGain(); hg.gain.value = 0.008;
+      o.connect(lp).connect(hg).connect(bus); o.start(); nodes.push(o);
+      const sr = ctx.sampleRate, drip = ctx.createBuffer(1, Math.floor(sr * 2.7), sr), d = drip.getChannelData(0);
+      for (let i = 0; i < sr * 0.12; i++) { const t = i / sr; d[i] = Math.sin(2 * Math.PI * (1400 - t * 4000) * t) * Math.exp(-t * 40); }
+      const src = ctx.createBufferSource(); src.buffer = drip; src.loop = true;
+      const dg = ctx.createGain(); dg.gain.value = 0.02;
+      src.connect(dg).connect(bus); dg.connect(this.send); src.start(); nodes.push(src);
     } else if (theme === 'church') {
       // The organ, a long low chord held by nobody, breathing in and out.
       [55, 82.4, 110, 164.8].forEach((f, i) => {

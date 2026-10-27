@@ -277,6 +277,15 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - **Church** theme (`church`, look `house`): pews, altars, candelabras, lecterns, statues (`userData.mannequin`, so they turn like the
   mall's mannequins), confessionals to hide in (`box` kind); `churchWall` / `churchFloor`; ambience: a held organ chord; the bell
   (`sfx.bell(n)`, `scares.updateBell`: every 2-3 min, once per player taken). Building code letter `C`.
+- **Asylum** theme (`asylum`, look `facility`): iron cots (`bunk`, hide kind `bed`), restraint chairs, hydrotherapy tubs, padded
+  isolation cells to hide in (`isolation`, `box` kind, `tex.padded`, null on other themes: dispose skips nulls); `asylumWall`
+  (tiles + tally marks) / `asylumFloor`; ambience: mains hum + a drip; `scares.updateCellDoor` (bangs on a shut door nearby, then
+  sometimes your voice from behind it). Building code letter `A`.
+- `double.js`: **the Double**: online, **Normal mode only**, a host lobby toggle (`session.setDouble`, `start` carries `db`). The host
+  records every living player's trail (4 Hz, last 150 s); every 60-110 s (first after ~2 min) it replays 50 s of one player's route
+  from a spot nobody can see, in their body (`RemotePlayer` with their look and flashlight) and now and then their clips (`dbSay`). It
+  ignores everything (walks through shut doors) until someone is within 2.5 m, holds a beam on it for 1.2 s, or the player it copies
+  sees it: `turn` (`dbTurn`, its head comes round) then `chase` at 5.2 m/s for 7 s. `hostCatch(id, 'db')`, `snap.db`.
 - `nightshift.js`: **Night Shift** (title > Night Shift = `pickClass(1)`, or lobby Mode `nights`; Game option `night`, `?autostart&night=N`).
   No jobs (`nightLevel`: no tasks, `broken` rises), the panel and exit refuse until 6 a.m. Six hours of 60 s (`ns.t`, which keeps
   counting while dead); the host broadcasts `hour` (the bell tolls it, the camcorder clock says `NIGHT n`); at 6 the host, 3.5 s later,

@@ -971,6 +971,11 @@ function renderLobby() {
   sd.querySelector('b').textContent = `Shadow: ${sdOn ? 'on' : 'off'}`;
   sd.disabled = !session.isHost || session.mode !== 'normal';
   sd.onclick = () => session.setShadow(!session.shadow);
+  const db = $('btnDouble'), dbOn = session.double && session.mode === 'normal';
+  db.classList.toggle('on', dbOn);
+  db.querySelector('b').textContent = `Double: ${dbOn ? 'on' : 'off'}`;
+  db.disabled = !session.isHost || session.mode !== 'normal';
+  db.onclick = () => session.setDouble(!session.double);
 }
 
 // The waiting room: a small house to walk around in with everyone while you wait.
@@ -1032,7 +1037,7 @@ function startMpRun(m) {
   const themeId = m.theme in THEMES ? m.theme : 'facility';
   game = new Game({
     renderer, vhs, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order, classes: m.classes || {},
-    mode: m.mode === 'story' ? 'story' : 'normal', night: m.mode === 'nights' ? Math.max(1, Math.min(99, m.night | 0)) : 0, traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, shadow: !!m.sd, difficulty: m.diff, custom: m.cs, teams: m.mode === 'versus' && m.teams && typeof m.teams === 'object' ? m.teams : null,
+    mode: m.mode === 'story' ? 'story' : 'normal', night: m.mode === 'nights' ? Math.max(1, Math.min(99, m.night | 0)) : 0, traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, shadow: !!m.sd, double: !!m.db, difficulty: m.diff, custom: m.cs, teams: m.mode === 'versus' && m.teams && typeof m.teams === 'object' ? m.teams : null,
     hunter: m.mode === 'hunt' && m.order?.includes(m.hunter) ? m.hunter : null,
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),

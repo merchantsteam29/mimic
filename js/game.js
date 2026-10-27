@@ -32,6 +32,7 @@ import { Revive } from './revive.js';
 import { Throwables } from './throwables.js';
 import { Versus } from './versus.js';
 import { Shadow } from './shadow.js';
+import { Double } from './double.js';
 import { LIGHTS, cleanLook } from './look.js';
 import { NightShift, nightLevel, nightRules } from './nightshift.js';
 
@@ -46,7 +47,7 @@ import { DeathPart } from './game-death.js';
 
 export { CUSTOM, ROOM } from './game-shared.js';
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null, teams = null, shadow = false, night = 0 }) {
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null, teams = null, shadow = false, night = 0, double = false }) {
     Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs, room, custom, themeId, seed });
     this.distort = 0;    // camcorder distortion, 0..1
     this.peekHud = 0;    // seconds the HUD stays visible after something changes
@@ -145,6 +146,7 @@ export class Game {
     this.ls = new Listener(this, listener && !hunter); // online: the blind thing that hunts by sound
     this.sk = new Stalker(this, stalker && !hunter);   // online: the thing that only moves when unseen
     this.sd = new Shadow(this, shadow && !hunter);     // online: the thing that lives in the dark
+    this.db = new Double(this, double && !hunter);     // online: the thing that walks where you walked
     if (this.hunt.on) this.status.set(hunter, 'hunter');
     if (story) this.mimic.graceT = story.grace;
     const base = DIFFICULTY[difficulty] || DIFFICULTY.normal;
@@ -330,6 +332,7 @@ export class Game {
     this.ls.dispose();
     this.sk.dispose();
     this.sd.dispose();
+    this.db.dispose();
     this.rec.dispose();
     this.thr.dispose();
     this.inc.dispose();
@@ -357,7 +360,7 @@ export class Game {
       const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
       mats.forEach((m) => { m.map?.dispose(); m.dispose(); });
     });
-    Object.values(this.world.textures).forEach((t) => t.dispose());
+    Object.values(this.world.textures).forEach((t) => t?.dispose()); // (some are theme-only: null elsewhere)
     this.flash.shadow.map?.dispose();
     this.hud.root.hidden = true;
     this.hud.locker.hidden = true;
@@ -421,6 +424,7 @@ export class Game {
     this.ls.update(dt);
     this.sk.update(dt);
     this.sd.update(dt);
+    this.db.update(dt);
     if (this.state === 'playing' || this.state === 'spectate') this.rec.update(dt);
     this.thr.update(dt);
     if (this.state === 'playing' || this.state === 'spectate') this.inc.update(dt);
@@ -465,7 +469,7 @@ export class Game {
       const rows = [];
       if (mine) rows.push([this.me, ...mine]);
       for (const [id, r] of this.remotes) if (this.alive(id) && r.seen) rows.push([id, +r.tx.toFixed(2), +r.tz.toFixed(2), +r.tyaw.toFixed(2), +r.pitch.toFixed(2), r.crouch ? 1 : 0, r.flash ? 1 : 0, r.hidden]);
-      this.mp.net.broadcast({ t: 'snap', m: this.mimic.snap(), p: rows, sw: this.sw.on ? this.sw.snap() : undefined, ls: this.ls.on ? this.ls.snap() : undefined, sk: this.sk.on ? this.sk.snap() : undefined, sd: this.sd.on ? this.sd.snap() : undefined }, { self: false });
+      this.mp.net.broadcast({ t: 'snap', m: this.mimic.snap(), p: rows, sw: this.sw.on ? this.sw.snap() : undefined, ls: this.ls.on ? this.ls.snap() : undefined, sk: this.sk.on ? this.sk.snap() : undefined, sd: this.sd.on ? this.sd.snap() : undefined, db: this.db.on ? this.db.snap() : undefined }, { self: false });
     } else if (mine) this.send({ t: 'st', s: mine });
   }
 

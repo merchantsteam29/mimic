@@ -1,4 +1,4 @@
-// Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house, a hospital, a mall, a school, a hotel or a church.
+// Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house, a hospital, a mall, a school, a hotel, a church or an asylum.
 // Also holds the collision, line-of-sight and path-finding the player and the mimic use.
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
@@ -82,6 +82,16 @@ export const THEMES = {
     fog: 0x030202, fogDensity: 0.08, reverb: [4.2, 0.6],
     props: ['pew', 'pew', 'pew', 'candelabra', 'statue', 'altar', 'lectern', 'pew'], hideProp: 'confessional', surface: 'hard',
   },
+  // A closed asylum: wards of iron cots off long tiled halls, treatment rooms, the isolation cells. Built like the
+  // facility (tube lights, metal doors, keycards). Hide under the cots or in a padded cell. Doors bang from the other side.
+  asylum: {
+    id: 'asylum', look: 'facility', kicker: 'Closed asylum',
+    names: ['Blackmoor State Hospital · Ward C', 'Holloway Asylum', 'Kestrel Hill · East Block', 'Ashgrove Mental Hospital'],
+    size: 28, roomSize: [3, 6], tries: 130, minRooms: 9,
+    light: 0xe8f0d8, lightIntensity: 7, corridorLights: true, flicker: 0.6, broken: 0.4,
+    fog: 0x020302, fogDensity: 0.085, reverb: [2.8, 0.45],
+    props: ['bunk', 'bunk', 'restraint', 'tub', 'bunk', 'wheelchair', 'medcabinet', 'restraint'], hideProp: 'isolation', surface: 'hard',
+  },
 };
 
 // Footprint (w across the front, d front-to-back) of each prop, in metres. Front faces +z.
@@ -92,6 +102,7 @@ const PROP_DEFS = {
   gurney: { w: 0.9, d: 2.0 }, wheelchair: { w: 0.7, d: 0.8 }, ivstand: { w: 0.5, d: 0.5 }, curtain: { w: 1.9, d: 0.3 }, medcabinet: { w: 1.0, d: 0.45 },
   mannequin: { w: 0.6, d: 0.5 }, clothesrack: { w: 1.6, d: 0.6 }, counter: { w: 1.8, d: 0.8 }, bench: { w: 1.6, d: 0.6 }, planter: { w: 1.0, d: 1.0 },
   shoerack: { w: 1.6, d: 0.45 }, fittingroom: { w: 1.2, d: 1.0 }, vent: { w: 0.8, d: 0.12 },
+  bunk: { w: 0.95, d: 1.95 }, restraint: { w: 0.8, d: 0.8 }, tub: { w: 0.9, d: 1.8 }, isolation: { w: 1.1, d: 1.0 },
   pew: { w: 1.9, d: 0.75 }, altar: { w: 1.6, d: 0.9 }, candelabra: { w: 0.6, d: 0.6 }, lectern: { w: 0.7, d: 0.6 }, statue: { w: 0.7, d: 0.7 },
   confessional: { w: 1.3, d: 1.0 },
   armchair: { w: 0.9, d: 0.85 }, tvstand: { w: 1.1, d: 0.5 }, luggagecart: { w: 1.1, d: 0.6 },
@@ -409,7 +420,7 @@ const center = (c) => (c + 0.5) * CELL;
 //   bed     under a bed: half the time it doesn't think to look; if it does, the heartbeat game
 //   vent    in the wall: it can't follow you in, but getting in and out is loud
 //   curtain behind a curtain: quick, but your feet show: if it comes close, it has you
-export const HIDE_KIND = { bed: 'bed', curtain: 'curtain', vent: 'vent' };
+export const HIDE_KIND = { bed: 'bed', bunk: 'bed', curtain: 'curtain', vent: 'vent' };
 
 export class Level {
   constructor(data) {
@@ -636,6 +647,35 @@ function buildProp(type, M) {
       g.add(box(1.36, 0.28, 0.02, M.sheet, 0, 0.3, 0.97)); // the sheet hanging down over the side
       g.add(box(0.5, 0.12, 0.35, M.sheet, -0.3, 0.68, -0.7));
       g.add(box(1.4, 1.0, 0.08, M.darkWood, 0, 0.5, -0.95));
+      break;
+    case 'bunk': // an iron cot, a thin stained mattress, the straps still on it; room underneath to lie flat
+      g.add(box(0.95, 0.04, 1.95, M.metal, 0, 0.42, 0));
+      for (const x of [-0.45, 0.45]) for (const z of [-0.93, 0.93]) g.add(cyl(0.022, 0.022, 0.44, M.metal, x, 0.22, z, 6));
+      g.add(box(0.9, 0.7, 0.04, M.metal, 0, 0.65, -0.95));
+      g.add(box(0.86, 0.12, 1.85, M.sheet, 0, 0.5, 0.02));
+      g.add(box(0.88, 0.22, 0.02, M.sheet, 0, 0.36, 0.97)); // the sheet hanging down at the foot
+      for (const z of [-0.3, 0.35]) g.add(box(0.98, 0.02, 0.07, M.strap, 0, 0.57, z));
+      break;
+    case 'restraint': // a heavy wooden chair bolted to the floor, with straps at the wrists and ankles
+      g.add(box(0.62, 0.08, 0.55, M.darkWood, 0, 0.48, 0), box(0.62, 0.9, 0.08, M.darkWood, 0, 0.95, -0.24));
+      for (const x of [-0.28, 0.28]) {
+        g.add(box(0.08, 0.48, 0.08, M.darkWood, x, 0.24, 0.22), box(0.08, 0.48, 0.08, M.darkWood, x, 0.24, -0.22));
+        g.add(box(0.08, 0.06, 0.5, M.darkWood, x, 0.72, 0), box(0.1, 0.03, 0.1, M.strap, x, 0.76, 0.12), box(0.1, 0.1, 0.03, M.strap, x, 0.12, 0.24));
+      }
+      g.add(box(0.66, 0.06, 0.04, M.strap, 0, 1.1, -0.19)); // across the chest
+      break;
+    case 'tub': // a deep iron bath for "hydrotherapy", the canvas cover half pulled back
+      g.add(box(0.85, 0.65, 1.75, M.white, 0, 0.33, 0));
+      g.add(box(0.7, 0.04, 1.6, M.black, 0, 0.64, 0));
+      g.add(box(0.88, 0.03, 0.9, M.canvas, 0, 0.67, -0.42));
+      g.add(cyl(0.03, 0.03, 0.4, M.metal, 0, 0.85, -0.83, 6));
+      break;
+    case 'isolation': // a padded cell: quilted walls, a heavy door with a slot to look through. You can hide in it
+      g.add(box(1.1, 2.3, 0.06, M.padded, 0, 1.15, -0.47), box(1.1, 0.06, 1.0, M.padded, 0, 2.3, 0));
+      for (const x of [-0.52, 0.52]) g.add(box(0.06, 2.3, 1.0, M.padded, x, 1.15, 0));
+      g.add(box(1.0, 2.1, 0.06, M.locker, 0, 1.05, 0.47)); // the door
+      g.add(box(0.3, 0.08, 0.02, M.black, 0, 1.6, 0.505)); // the slot
+      g.add(box(0.05, 0.22, 0.05, M.metal, 0.4, 1.05, 0.52)); // the bolt
       break;
     case 'pew':
       g.add(box(1.85, 0.06, 0.42, M.darkWood, 0, 0.45, 0.08), box(1.85, 0.62, 0.05, M.darkWood, 0, 0.78, -0.16));
@@ -927,6 +967,9 @@ export function buildLevelScene(level) {
     plastic: new THREE.MeshStandardMaterial({ color: 0xcfc6b8, roughness: 0.35 }),
     chalk: new THREE.MeshStandardMaterial({ map: tex.chalk, roughness: 0.9 }),
     stone: new THREE.MeshStandardMaterial({ color: 0x7a766c, roughness: 0.95 }),
+    strap: new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.8 }),
+    canvas: new THREE.MeshStandardMaterial({ color: 0x9a9278, roughness: 1 }),
+    padded: new THREE.MeshStandardMaterial({ map: tex.padded, color: 0xd8d4c4, roughness: 1 }),
     altarCloth: new THREE.MeshStandardMaterial({ color: 0x6a1418, roughness: 1 }),
     wax: new THREE.MeshStandardMaterial({ color: 0xd8d0b8, roughness: 0.6 }),
     flame: new THREE.MeshStandardMaterial({ color: 0x331100, emissive: 0xffa040, emissiveIntensity: 2.5 }),

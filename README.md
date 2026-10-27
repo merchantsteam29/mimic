@@ -55,7 +55,7 @@ Guess wrong, and it gets hungrier.
   pickups are it. A body on the floor isn't where you left it. Mirrors show it standing behind you (usually it isn't).
   It opens doors, slowly. It gets hungrier over time, and lights die for good. When the power comes back, it changes.
   Online, it can walk around as a friend it took. Old tapes from people who came before tell you what happened to them.
-- **Random maps:** each run is a research facility, an old house, an abandoned hospital, a closed-down mall, a school at night, an old hotel or an abandoned church, with a new layout every time.
+- **Random maps:** each run is a research facility, an old house, an abandoned hospital, a closed-down mall, a school at night, an old hotel, an abandoned church or a closed asylum, with a new layout every time.
 - **Hunt** (online mode): one of you, picked at random, IS the mimic. You see in the dark, you see their flashlights, you
   see where they made noise through the walls, and you can call to them in any of their voices. Bite them, rip open their
   hiding spots, kill the lights. Everyone else plays the normal game against you. The mimic wins if fewer than half get out.
@@ -93,6 +93,10 @@ Guess wrong, and it gets hungrier.
 - **New here?** The first time you play alone, a short tutorial walks you through it (it's also under How to play).
 - **What happened:** after every round, the end screen replays it on a map: everyone's route, its route, where people
   were taken, and whose voice it used most.
+- **The Double** (online, Normal mode, a lobby switch): it walks the routes one of you walked a minute ago, with their coat,
+  flashlight, footsteps and voice. Get too close, hold a light on it, or see your own double, and it turns round.
+- **The asylum:** iron cots to hide under, padded cells to hide in, restraint chairs, tally marks on the walls, and doors that
+  someone bangs on from the other side.
 - **Night Shift** (title screen, or a lobby Mode online): midnight to 6 a.m., no jobs, the doors chained. Each hour is a minute and
   the bell tolls it. Last the night and the next one is worse: faster, sharper-eyed, hungrier, with fewer lights. How many nights can you do?
 - **The church:** pews, candles, an altar, confessionals to hide in, statues that turn when you aren't looking, and a bell that

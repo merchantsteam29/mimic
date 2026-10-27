@@ -19,11 +19,14 @@ const SECTIONS = [
     { name: 'The shadow', file: 'Subject 05', what: 'Online, if the host lets it in. A shape of darkness with two pale eyes. It lives where the lights are dead and can\'t step into a working light.',
       tells: 'Whispering, close by, in a dark room. Two small eyes where there shouldn\'t be any.',
       survive: 'Stay under working lights. Hold your flashlight on it and it burns away, for a while. Power cuts belong to it.' },
+    { name: 'The double', file: 'Subject 06', what: 'Online, if the host lets it in. It walks the way one of you walked a minute or two ago: their coat, their light, their steps, sometimes their voice. It is not them.',
+      tells: 'It never looks at you. It walks through doors that are shut. Your friend is somewhere else, talking.',
+      survive: 'Let it pass. Don\'t walk up to it, don\'t hold your light on it, and if it\'s wearing you, don\'t look at it. Once it turns round, run: it gives up after a few seconds.' },
   ]],
   ['hiding', 'Where to hide', [
-    { name: 'Lockers, wardrobes, fitting rooms, confessionals', file: 'Hiding 01', what: 'If it saw you go in, it comes to the door and listens.',
+    { name: 'Lockers, wardrobes, fitting rooms, confessionals, padded cells', file: 'Hiding 01', what: 'If it saw you go in, it comes to the door and listens.',
       tells: 'A heartbeat on the screen.', survive: 'Tap on the beat. Don\'t make a sound. One of them, somewhere, isn\'t empty.' },
-    { name: 'Under a bed', file: 'Hiding 02', what: 'Low, and dark.', tells: 'You can only see the floor.',
+    { name: 'Under a bed (or a cot)', file: 'Hiding 02', what: 'Low, and dark.', tells: 'You can only see the floor.',
       survive: 'Half the time it doesn\'t think to look. If it does, the heartbeat.' },
     { name: 'Vents', file: 'Hiding 03', what: 'Low grates in the walls of the bigger buildings.', tells: 'They clang when you get in and out, and it hears that.',
       survive: 'It can\'t follow you in. It will wait outside the grate for a while.' },
@@ -67,8 +70,10 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'alpha1-2026-10-26c';
+export const RELEASE = 'alpha1-2026-10-26d';
 const NOTES = [
+  ['I saw you in the east hall. You were in the west hall. You were with me.', 'A sixth creature online: the Double. It walks where one of you walked, looking just like them.'],
+  ['Count the marks on the wall. Then count them again tomorrow.', 'A new place: a closed asylum. Hide under the cots or in a padded cell.'],
   ['Midnight to six. They chained the doors behind you.', 'Night Shift (title screen, or a lobby Mode): hold on until 6 a.m. Every night you last, the next is worse.'],
   ['The bell tolled three times. There were four of us.', 'A new place: an old church. Hide in the confessionals. Don\'t trust the statues.'],
   ['They built a school, and a hotel. Someone is still answering the phones.', 'Two new places: a school at night and an old hotel.'],

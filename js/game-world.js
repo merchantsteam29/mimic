@@ -107,7 +107,7 @@ export const WorldPart = {
     const p = this.p, m = this.mimic;
     const d = Math.hypot(m.x - p.x, m.z - p.z);
     const vis = this.level.los(p.x, p.z, m.x, m.z);
-    let f = Math.max(clamp(1 - d / 12, 0, 1) * (vis ? 1 : 0.45), this.ls.nearness(p.x, p.z) * 0.8, this.sk.nearness(p.x, p.z) * 0.7, this.sd.nearness(p.x, p.z) * 0.8);
+    let f = Math.max(clamp(1 - d / 12, 0, 1) * (vis ? 1 : 0.45), this.ls.nearness(p.x, p.z) * 0.8, this.sk.nearness(p.x, p.z) * 0.7, this.sd.nearness(p.x, p.z) * 0.8, this.db.nearness(p.x, p.z) * 0.8);
     if ((m.state === 'chase' || m.state === 'hunt') && (!this.mp || d < 25)) f = Math.max(f, 0.45);
     this.fear += (f - this.fear) * (1 - Math.exp(-dt * 3));
     this.hud.fear.style.opacity = (this.fear * 0.85).toFixed(3);

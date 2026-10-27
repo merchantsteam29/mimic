@@ -315,6 +315,25 @@ export class Scares {
     this.updatePA(dt);
     this.updatePhone(dt);
     this.updateBell(dt);
+    this.updateCellDoor(dt);
+  }
+
+  // The asylum: a shut door nearby gets hammered on from the other side. Then, sometimes, your voice, asking.
+  updateCellDoor(dt) {
+    const g = this.g;
+    if (g.level.theme.id !== 'asylum' || g.power) return;
+    this.cellT = (this.cellT ?? 50 + Math.random() * 40) - dt;
+    if (this.cellT > 0) return;
+    this.cellT = 90 + Math.random() * 70;
+    const doors = g.level.idoors.filter((d) => !d.open && Math.hypot(d.x - g.p.x, d.z - g.p.z) > 4 && Math.hypot(d.x - g.p.x, d.z - g.p.z) < 14);
+    const d = doors[Math.floor(Math.random() * doors.length)];
+    if (!d) return;
+    this.cellEm ||= g.sfx.emitter();
+    this.cellEm.setPos(d.x, 1.3, d.z);
+    this.cellEm.setOcclusion(!g.level.los(g.p.x, g.p.z, d.x, d.z));
+    const n = 3 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < n; i++) setTimeout(() => { if (g.state === 'playing') g.sfx.rec('bang', this.cellEm, { vol: 0.9 }); }, i * (260 + Math.random() * 120));
+    setTimeout(() => { if (g.state === 'playing' && Math.random() < 0.5) g.localSpeak('distant', this.cellEm); }, n * 380 + 1500);
   }
 
   // The church: now and then the bell tolls, once for every one of you it has taken (or once, if it hasn't yet).
