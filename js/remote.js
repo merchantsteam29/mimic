@@ -2,13 +2,14 @@
 // and smoothing between the host's snapshots.
 import * as THREE from 'three';
 import { poseSign } from './signals.js';
-
-const COLORS = [0x6b3a2a, 0x2a4a6b, 0x4a5a2a, 0x5a2a5a];
+import { COATS, LIGHTS, cleanLook } from './look.js';
 
 export class RemotePlayer {
-  constructor(scene, sfx, index) {
+  // look: their chosen coat, hat and flashlight colour (look.js); index: their place in the room (the default coat).
+  constructor(scene, sfx, index, look = null) {
     this.sfx = sfx;
-    const coat = new THREE.MeshStandardMaterial({ color: COLORS[index % COLORS.length], roughness: 0.85 });
+    this.index = index;
+    const coat = this.coat = new THREE.MeshStandardMaterial({ color: COATS[index % 4], roughness: 0.85 });
     const dark = new THREE.MeshStandardMaterial({ color: 0x1c1a18, roughness: 0.9 });
     const skin = new THREE.MeshStandardMaterial({ color: 0x9a7a62, roughness: 0.7 });
     const mesh = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; return m; };
@@ -21,7 +22,15 @@ export class RemotePlayer {
     this.head = new THREE.Group();
     this.head.position.y = 1.62;
     this.head.add(mesh(new THREE.SphereGeometry(0.13, 10, 8), skin, 0, 0, 0));
-    this.head.add(mesh(new THREE.BoxGeometry(0.27, 0.08, 0.27), dark, 0, 0.09, 0)); // hat
+    // Hats: one of these shows (setLook).
+    const knit = new THREE.MeshStandardMaterial({ color: 0x1c1a18, roughness: 1 });
+    this.knit = knit;
+    const beanie = mesh(new THREE.SphereGeometry(0.14, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), knit, 0, 0.02, 0);
+    const cap = new THREE.Group();
+    cap.add(mesh(new THREE.SphereGeometry(0.135, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), knit, 0, 0.03, 0), mesh(new THREE.BoxGeometry(0.2, 0.015, 0.12), knit, 0, 0.04, -0.15));
+    const hood = mesh(new THREE.SphereGeometry(0.17, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.62), coat, 0, -0.01, 0.02);
+    this.hats = { beanie, cap, hood };
+    this.head.add(beanie, cap, hood);
     this.body.add(this.head);
     this.legs = [-1, 1].map((s) => { const l = limb(0.14, 0.85, dark); l.position.set(s * 0.1, 0.87, 0); this.body.add(l); return l; });
     this.arms = [-1, 1].map((s) => { const a = limb(0.11, 0.62, coat); a.position.set(s * 0.27, 1.45, 0); this.body.add(a); return a; });
@@ -32,6 +41,7 @@ export class RemotePlayer {
     this.root.add(this.torch, this.torch.target);
     this.root.rotation.order = 'YXZ';
     scene.add(this.root);
+    this.setLook(look);
 
     this.emitter = sfx.emitter();
     this.x = 0; this.z = 0; this.tx = 0; this.tz = 0;
@@ -47,6 +57,14 @@ export class RemotePlayer {
     [this.tx, this.tz, this.tyaw, this.pitch] = s;
     this.crouch = !!s[4]; this.flash = !!s[5]; this.hidden = s[6];
     if (!this.seen) { this.x = this.tx; this.z = this.tz; this.yaw = this.tyaw; this.seen = true; }
+  }
+
+  setLook(look) {
+    const l = cleanLook(look);
+    this.coat.color.setHex(l.coat >= 0 ? COATS[l.coat] : COATS[this.index % 4]);
+    for (const [k, h] of Object.entries(this.hats)) h.visible = k === l.hat;
+    this.knit.color.setHex(l.coat >= 0 ? new THREE.Color(COATS[l.coat]).multiplyScalar(0.45).getHex() : 0x1c1a18);
+    this.torch.color.setHex(LIGHTS[l.light]);
   }
 
   get eye() { return this.crouch ? 1.0 : 1.62; }

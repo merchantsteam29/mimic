@@ -9,6 +9,7 @@
 import { Net } from './net.js';
 import { VoiceChat } from './vc.js';
 import { CLASSES } from './classes.js';
+import { cleanLook } from './look.js';
 
 const HOST_TYPES = new Set(['st', 'noise', 'take', 'insert', 'escaped', 'work', 'bang', 'smash', 'unlock', 'lever', 'flare', 'rescue', 'sniffRes', 'door', 'trapped', 'fakeDone', 'jam', 'sab', 'accuse', 'ballot', 'mst', 'bite', 'msay', 'mlight', 'chat', 'haunt', 'radio', 'recDrop', 'sig', 'revive', 'throw', 'camFlash']);
 const CLIP_RATE = 16000;
@@ -170,6 +171,11 @@ export class Session {
     if (m.t === 'start') { this.net.locked = true; this.lastStart = m; this.onStart(m); return; }
     if (m.t === 'mode') { if (from === 'h') { this.mode = ['story', 'hunt', 'versus'].includes(m.mode) ? m.mode : 'normal'; this.skinwalker = !!m.sw; this.listener = !!m.ls; this.stalker = !!m.sk; this.shadow = !!m.sd; this.custom = cleanCustom(m.cs); this.difficulty = ['easy', 'nightmare'].includes(m.diff) ? m.diff : 'normal'; this.onRoster(this.roster); } return; }
     if (m.t === 'role') { if (from === 'h') this.game?.traitor.onNet(m); return; }
+    if (m.t === 'look') { // a player changed their look (host keeps it in the roster)
+      const r = this.isHost && this.roster.find((x) => x.id === from);
+      if (r) { r.look = cleanLook(m.look); this.net.sendRoster(); }
+      return;
+    }
     if (m.t === 'class') { // a player picked a class (host keeps it in the roster)
       const r = this.isHost && this.roster.find((x) => x.id === from);
       if (r && CLASSES[m.c]) { r.cls = m.c; this.net.sendRoster(); }
@@ -214,6 +220,12 @@ export class Session {
     this.skinwalker = !!on;
     this.sendMode();
     this.onRoster(this.roster);
+  }
+
+  setLook(look) {
+    const l = cleanLook(look);
+    if (this.isHost) { const r = this.roster.find((x) => x.id === this.id); if (r) { r.look = l; this.net.sendRoster(); } }
+    else this.net.send({ t: 'look', look: l });
   }
 
   setClass(c) {

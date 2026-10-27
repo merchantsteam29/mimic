@@ -32,6 +32,7 @@ import { Revive } from './revive.js';
 import { Throwables } from './throwables.js';
 import { Versus } from './versus.js';
 import { Shadow } from './shadow.js';
+import { LIGHTS, cleanLook } from './look.js';
 
 import { mulberry32 } from './level.js';
 import { keyLabel, rumble } from './controls.js';
@@ -74,6 +75,7 @@ export class Game {
     const q = QUALITY[settings.quality === 'auto' ? settings.tier : settings.quality] || QUALITY.high;
     this.flash.castShadow = q.shadow > 0;
     this.flash.shadow.mapSize.set(q.shadow || 512, q.shadow || 512);
+    this.flash.color.setHex(LIGHTS[cleanLook(settings.look).light]);
     this.flash.shadow.bias = -0.0006;
     this.flash.shadow.camera.near = 0.1;
     this.flash.shadow.camera.far = 26;
@@ -124,7 +126,7 @@ export class Game {
     this.specIdx = 0;
 
     this.remotes = new Map();
-    this.order.forEach((id, i) => { if (id !== this.me) this.remotes.set(id, new RemotePlayer(scene, sfx, i)); });
+    this.order.forEach((id, i) => { if (id !== this.me) this.remotes.set(id, new RemotePlayer(scene, sfx, i, this.lookOf(id))); });
 
     this.mimic = new Mimic(level, scene, sfx, {
       speak: (style, emitter) => this.mimicSpeaks(style, emitter),
@@ -244,6 +246,9 @@ export class Game {
     this.updateCamera();
     this.renderer.setAnimationLoop((now) => this.frame(now));
   }
+
+  // A player's chosen look (look.js), from the room's roster.
+  lookOf(id) { return this.mp?.roster.find((r) => r.id === id)?.look || null; }
 
   // ---------- lifecycle ----------
   begin() {

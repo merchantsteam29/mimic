@@ -75,6 +75,7 @@ const NOTES = [
   ['We wrote down everything we know.', 'A field guide is on the title screen.'],
   ['Subject 05 doesn\'t like the light. It likes the dark very much.', 'A fifth creature online: the Shadow.'],
   ['A new caller. She sounds like you.', 'A second story: The Operator, 5 chapters.'],
+  ['Someone filmed the corridor. Watch the end of it.', 'The title screen has a corridor behind it. Pick your coat, hat and flashlight colour in the lobby, and reopen recent rooms.'],
   ['Strangers found the building too.', 'Quick Play finds you a public room. The dead can drift around on their own (R).'],
 ];
 

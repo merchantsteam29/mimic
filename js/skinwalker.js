@@ -39,7 +39,7 @@ export class Skinwalker {
   avatar(id) {
     let a = this.avatars.get(id);
     if (!a) {
-      a = new RemotePlayer(this.g.scene, this.g.sfx, Math.max(0, this.g.order.indexOf(id)));
+      a = new RemotePlayer(this.g.scene, this.g.sfx, Math.max(0, this.g.order.indexOf(id)), this.g.lookOf(id)); // even their clothes
       a.eyes = [-1, 1].map((s) => {
         const e = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 4), this.eyeMat);
         e.position.set(s * 0.045, 0.015, -0.12);

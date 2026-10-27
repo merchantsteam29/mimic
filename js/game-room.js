@@ -39,9 +39,10 @@ export const RoomPart = {
       if (id === this.me || this.remotes.has(id)) { if (this.status.get(id) === 'left') this.status.set(id, 'alive'); return; }
       this.order.push(id);
       this.status.set(id, 'alive');
-      this.remotes.set(id, new RemotePlayer(this.scene, this.sfx, this.order.indexOf(id)));
+      this.remotes.set(id, new RemotePlayer(this.scene, this.sfx, this.order.indexOf(id), this.lookOf(id)));
     });
     for (const id of this.order) if (!ids.includes(id)) this.status.set(id, 'left');
+    for (const [id, r] of this.remotes) r.setLook(this.lookOf(id)); // someone changed their look in the lobby
   },
 
 };

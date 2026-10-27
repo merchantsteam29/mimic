@@ -230,6 +230,14 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   each line in the browser (MediaRecorder); takes are trimmed, levelled and saved as 24 kHz mono WAV in IndexedDB, then downloaded as a
   zip laid out as `voices/<book>/<id>.wav` (unzip it into the repo, run `tools/stamp.mjs`). `record/lines.js` (parts and lines from
   story.js / lore.js) is shared with `tools/script.mjs`.
+- `title3d.js`: the **title screen's 3D shot**: a fixed hospital level (seed 4407), the camera creeping down its longest corridor
+  through the camcorder look, lights stuttering, and every 18-32 s the mimic crossing the far end. `show()` starts it whenever there's
+  no game and stops it when there is (the game owns the renderer loop).
+- `look.js`: **your look** (lobby, Players tab; `settings.look` = { coat, hat, light }, all free). Shared like the class (`Session.setLook`,
+  roster `look`, checked by `cleanLook`); `RemotePlayer` takes it (`setLook`: coat colour, beanie / cap / hood / none, torch colour), the
+  skinwalker copies it, and your own flashlight uses your light colour.
+- **Recent rooms** (Play with friends; localStorage `mimic.recent`, last 5, this device): host one again with the same code (`hostRoom(code)`,
+  so old invite links work) or join it. Quick Play rooms aren't listed.
 - `radio.js`: **walkie-talkies** (online). Hold B (pad D-pad down, touch Radio): intent `radio` {on} -> broadcast `radioOn`; listeners route
   that voice through `vc.route(id, { radio: true })` (a band-limited, distorted chain in `vc.js`) at full volume, anywhere. While anyone
   transmits, the host makes noise at every OTHER living player's position (the mimic / listener can hear the radios). Max 12 s a press.

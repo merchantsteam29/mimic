@@ -15,6 +15,8 @@ import { STORIES, SIGNAL, storyProgress, finishChapter } from './story.js';
 import { controls, initControls, bindsChanged, editTouchLayout } from './controls.js';
 import { ACTIONS, binds, resetBinds, keyName, padName } from './binds.js';
 import { initTitle } from './title.js';
+import { TitleScene } from './title3d.js';
+import { COATS, HATS, LIGHTS, DEFAULT_LOOK, cleanLook } from './look.js';
 import { Captions } from './captions.js';
 import { TUTORIAL } from './tutorial.js';
 import { drawRecap, PLAYER_COLORS } from './recap.js';
@@ -43,7 +45,7 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 // Graphics start on Auto: phones and tablets begin at medium, and it steps down by itself when the game runs slowly
 // (`tier` is where Auto has settled on this device).
 const COARSE = matchMedia('(pointer: coarse)').matches;
-const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1, quality: 'auto', tier: COARSE ? 'medium' : 'high', captions: false, calm: false, diff: 'normal', voiceMode: 'clear', voiceVol: 1 };
+const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1, quality: 'auto', tier: COARSE ? 'medium' : 'high', captions: false, calm: false, diff: 'normal', voiceMode: 'clear', voiceVol: 1, look: { ...DEFAULT_LOOK } };
 let settings = { ...DEFAULTS };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('mimic.settings') || '{}')); } catch { /* private mode */ }
 const saveSettings = () => { try { localStorage.setItem('mimic.settings', JSON.stringify(settings)); } catch { /* ignore */ } };
@@ -190,12 +192,14 @@ function ensureAudio() {
 }
 
 // ---------- screens ----------
+const title3d = new TitleScene(renderer, vhs);
 let game = null;
 let session = null; // multiplayer room, while in one
 let screenBeforeSettings = 'title';
 
 function show(id) {
   document.querySelectorAll('.screen').forEach((s) => { s.hidden = s.id !== id; });
+  if (game) title3d.stop(); else title3d.start(); // the corridor behind the menus, whenever there's no game
 }
 const current = () => document.querySelector('.screen:not([hidden])')?.id;
 
@@ -365,6 +369,17 @@ function renderCustom() {
   $('customList').querySelectorAll('button').forEach((b) => {
     b.onclick = () => session.setCustom(b.dataset.k, b.dataset.k === 'events' ? b.dataset.v === 'true' : b.dataset.v);
   });
+}
+// Your look (lobby, Players tab): what friends see you as.
+function renderLook() {
+  const l = cleanLook(settings.look), hex = (c) => `#${c.toString(16).padStart(6, '0')}`;
+  $('lookCoat').innerHTML = COATS.map((c, i) => `<button type="button" class="swatch ${l.coat === i ? 'on' : ''}" data-coat="${i}" style="background:${hex(c)}" aria-label="Coat colour ${i + 1}"></button>`).join('');
+  $('lookHat').innerHTML = HATS.map((h) => `<button type="button" class="${l.hat === h ? 'on' : ''}" data-hat="${h}">${h === 'none' ? 'No hat' : h[0].toUpperCase() + h.slice(1)}</button>`).join('');
+  $('lookLight').innerHTML = Object.entries(LIGHTS).map(([k, c]) => `<button type="button" class="${l.light === k ? 'on' : ''}" data-light="${k}"><i style="background:${hex(c)}"></i>${k[0].toUpperCase() + k.slice(1)}</button>`).join('');
+  const set = (patch) => { settings.look = cleanLook({ ...l, ...patch }); saveSettings(); session?.setLook(settings.look); renderLook(); };
+  $('lookCoat').querySelectorAll('button').forEach((b) => { b.onclick = () => set({ coat: Number(b.dataset.coat) }); });
+  $('lookHat').querySelectorAll('button').forEach((b) => { b.onclick = () => set({ hat: b.dataset.hat }); });
+  $('lookLight').querySelectorAll('button').forEach((b) => { b.onclick = () => set({ light: b.dataset.light }); });
 }
 $('btnClassGo').onclick = () => {
   const text = $('codeSolo').value.trim(), code = text && storyIdx === null ? parseCode(text) : null;
@@ -735,6 +750,7 @@ function savedName() {
 
 function openMp(status = '') {
   show('mp');
+  renderRecent();
   $('mpName').value = savedName() || `Player ${Math.floor(Math.random() * 900 + 100)}`;
   if (params.get('join') && !$('mpCode').value) $('mpCode').value = cleanCode(params.get('join'));
   $('mpStatus').textContent = status;
@@ -765,15 +781,16 @@ function newSession() {
   return { s, name };
 }
 
-$('btnHost').onclick = async () => {
+// Host a room: a new code, or (from Recent rooms) the same code as last time, so friends' links still work.
+async function hostRoom(code = null) {
   ensureAudio();
   mpBusy(true, 'Creating a room…');
-  for (let tries = 0; tries < 3; tries++) {
+  for (let tries = 0; tries < (code ? 1 : 3); tries++) {
     const { s, name } = newSession();
     try {
-      await s.host(newCode(), name);
+      await s.host(code || newCode(), name);
       session = s;
-      s.setClass(myClass);
+      s.setClass(myClass); s.setLook(settings.look);
       mpBusy(false);
       openRoom();
       show('lobby');
@@ -781,10 +798,36 @@ $('btnHost').onclick = async () => {
       return;
     } catch (e) {
       s.dispose();
+      if (code && /taken/.test(e.message)) { mpBusy(false, `Room ${code} is open already: someone else is hosting it. Try joining it instead.`); return; }
       if (tries === 2 || !/taken/.test(e.message)) { mpBusy(false, e.message); return; }
     }
   }
-};
+}
+$('btnHost').onclick = () => hostRoom();
+
+// ---------- recent rooms (this device only) ----------
+// The last few rooms you were in, and who was there. Host one again with the same code, or join it.
+const RECENT = 'mimic.recent';
+const recentRooms = () => { try { return JSON.parse(localStorage.getItem(RECENT) || '[]').filter((r) => r && typeof r.code === 'string'); } catch { return []; } };
+function rememberRoom() {
+  if (!session?.code) return;
+  const names = session.roster.filter((r) => r.id !== session.id).map((r) => r.name);
+  const list = recentRooms().filter((r) => r.code !== session.code);
+  const old = recentRooms().find((r) => r.code === session.code);
+  list.unshift({ code: session.code, host: session.isHost, public: !!session.public, names: [...new Set([...names, ...(old?.names || [])])].slice(0, 6), at: Date.now() });
+  try { localStorage.setItem(RECENT, JSON.stringify(list.slice(0, 5))); } catch { /* ignore */ }
+}
+function renderRecent() {
+  const list = recentRooms().filter((r) => !r.public);
+  $('recent').hidden = !list.length;
+  const ago = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 60 ? `${m || 1} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
+  $('recentList').innerHTML = list.map((r, i) => `<li><button type="button" data-i="${i}">${r.host ? `Open room ${esc(r.code)} again` : `Join ${esc(r.code)}`}</button>
+    <span>${r.names.length ? `with ${esc(r.names.join(', '))}` : 'just you'} · ${ago(r.at)}</span></li>`).join('');
+  $('recentList').querySelectorAll('button').forEach((b) => {
+    const r = list[Number(b.dataset.i)];
+    b.onclick = () => { if (r.host) hostRoom(r.code); else { $('mpCode').value = r.code; $('btnJoin').click(); } };
+  });
+}
 
 $('btnJoin').onclick = async () => {
   ensureAudio();
@@ -795,7 +838,7 @@ $('btnJoin').onclick = async () => {
   try {
     await s.join(code, name);
     session = s;
-    s.setClass(myClass);
+    s.setClass(myClass); s.setLook(settings.look);
     mpBusy(false);
     openRoom();
     show('lobby');
@@ -818,7 +861,7 @@ $('btnQuick').onclick = async () => {
     try {
       await s.join(code, name);
       session = s; s.public = true;
-      s.setClass(myClass);
+      s.setClass(myClass); s.setLook(settings.look);
       mpBusy(false); $('btnQuick').disabled = false;
       openRoom(); show('lobby'); renderLobby();
       return;
@@ -831,7 +874,7 @@ $('btnQuick').onclick = async () => {
     try {
       await s.host(code, name);
       session = s; s.public = true;
-      s.setClass(myClass);
+      s.setClass(myClass); s.setLook(settings.look);
       mpBusy(false); $('btnQuick').disabled = false;
       openRoom(); show('lobby'); renderLobby();
       return;
@@ -845,6 +888,7 @@ $('mpCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btnJo
 
 function renderLobby() {
   if (!session) return;
+  rememberRoom();
   if (game?.room) game.syncRoster(session.roster.map((r) => r.id));
   $('lobbyCode').textContent = session.code;
   $('lobbyList').innerHTML = session.roster.map((r) =>
@@ -852,6 +896,7 @@ function renderLobby() {
   renderClassPick();
   renderDiff();
   renderCustom();
+  renderLook();
   $('btnStart').hidden = !session.isHost;
   $('lobbyStatus').textContent = (session.public ? 'Public room: strangers can join. ' : '') + (session.isHost
     ? (session.roster.length < 2 ? (session.public ? 'Waiting for someone to find you…' : 'Send your friends the code or the invite link.') : `${session.roster.length} of 4 players.`)
@@ -992,6 +1037,7 @@ if (params.has('autostart')) {
 }
 // Everything's loaded: the title's buttons work now.
 document.body.classList.add('ready');
+if (!params.has('autostart')) title3d.start();
 // Back after an update: a recovered tape with what's new (once per release).
 if (!params.has('autostart') && !params.has('join')) {
   newTape($('newTape'), () => { // closing it: a burst of static, like the tape being yanked out
@@ -1003,4 +1049,4 @@ if (!params.has('autostart') && !params.has('join')) {
 }
 
 // For automated multiplayer tests.
-window.__mimic = { get game() { return game; }, get session() { return session; } };
+window.__mimic = { get game() { return game; }, get session() { return session; }, get title3d() { return title3d; } };
