@@ -29,7 +29,7 @@ export const RoomPart = {
       if (!this.alive(id)) r.status = 'gone';
       r.update(dt, this.level.theme.surface, false);
     }
-    if (this.mp) { this.netTick(dt); this.routeVoices(); }
+    if (this.mp) { this.netTick(dt); this.routeVoices(); this.updateTags(); }
   },
 
   // Someone joined or left the room.

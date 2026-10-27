@@ -97,6 +97,10 @@ Guess wrong, and it gets hungrier.
   flashlight, footsteps and voice. Get too close, hold a light on it, or see your own double, and it turns round.
 - **The asylum:** iron cots to hide under, padded cells to hide in, restraint chairs, tally marks on the walls, and doors that
   someone bangs on from the other side.
+- **Hide and seek** (online, a lobby Mode): you get a minute to hide while it waits, then it comes looking, and every so often
+  it simply knows where one of you is. Whoever it hasn't found after four minutes wins; if it finds everyone, the last one found wins.
+- **Name tags** (Settings, off by default): your friends' names over their heads, faint in the dark. Things wearing your friends
+  get their names too.
 - **Night Shift** (title screen, or a lobby Mode online): midnight to 6 a.m., no jobs, the doors chained. Each hour is a minute and
   the bell tolls it. Last the night and the next one is worse: faster, sharper-eyed, hungrier, with fewer lights. How many nights can you do?
 - **The church:** pews, candles, an altar, confessionals to hide in, statues that turn when you aren't looking, and a bell that

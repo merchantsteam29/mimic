@@ -33,6 +33,7 @@ import { Throwables } from './throwables.js';
 import { Versus } from './versus.js';
 import { Shadow } from './shadow.js';
 import { Double } from './double.js';
+import { HideSeek, hideLevel } from './hideseek.js';
 import { LIGHTS, cleanLook } from './look.js';
 import { NightShift, nightLevel, nightRules } from './nightshift.js';
 
@@ -47,7 +48,7 @@ import { DeathPart } from './game-death.js';
 
 export { CUSTOM, ROOM } from './game-shared.js';
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null, teams = null, shadow = false, night = 0, double = false }) {
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null, teams = null, shadow = false, night = 0, double = false, hideSeek = false }) {
     Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs, room, custom, themeId, seed });
     this.distort = 0;    // camcorder distortion, 0..1
     this.peekHud = 0;    // seconds the HUD stays visible after something changes
@@ -56,7 +57,7 @@ export class Game {
     this.classes = classes || { [this.me]: 'runner' }; // player id -> class
     this.isHost = !mp || mp.isHost;
     this.order = order || [this.me];
-    const level = this.level = generateLevel(seed, themeId, story ? { ...story.gen, lore: story.tapes.length } : tutorial ? TUTORIAL.gen : room ? ROOM.gen : night ? nightLevel(night) : customLevel(custom));
+    const level = this.level = generateLevel(seed, themeId, story ? { ...story.gen, lore: story.tapes.length } : tutorial ? TUTORIAL.gen : room ? ROOM.gen : hideSeek ? hideLevel() : night ? nightLevel(night) : customLevel(custom));
     const th = level.theme;
 
     const scene = this.scene = new THREE.Scene();
@@ -181,9 +182,10 @@ export class Game {
     this.clip = new ScareClip(sfx); // the jumpscare, saved for the end screen
     this.sig = new Signals(this);     // hand signals (online)
     this.revival = new Revive(this);  // a taken friend's tape (online)
+    this.hs = new HideSeek(this, hideSeek && !room); // hide and seek (online)
     this.chaseGoneT = 0;
     this.doorEm = sfx.emitter();
-    this.inc = new Incidents(this, !story && !tutorial && !room && custom?.events !== false); // power cuts, storms, alarms, lockdowns
+    this.inc = new Incidents(this, !story && !tutorial && !room && !hideSeek && custom?.events !== false); // power cuts, storms, alarms, lockdowns
     // Hunger: every couple of minutes it gets bolder, and lights die for good (in the same order for everyone).
     this.hungerT = 0;
     this.hungerSeen = 0;
@@ -392,7 +394,7 @@ export class Game {
       this.updateVoice(dt);
       this.updateFear(dt);
       this.updateAmbient(dt);
-      if (!this.tut.quiet) { this.director.update(dt); this.events.update(dt); }
+      if (!this.tut.quiet && !this.hs.on) { this.director.update(dt); this.events.update(dt); } // (hide and seek: nothing moves it but the game)
       this.tut.update(dt);
       this.watchPeek();
       this.obj.update(dt);
@@ -408,6 +410,7 @@ export class Game {
     if (!this.hunt.me) { this.ab.update(dt); if (!this.tut.quiet) this.scares.update(dt); }
     this.traitor.update(dt);
     this.ns.update(dt);
+    this.hs.update(dt);
     this.updateDoors(dt);
     this.applyHunger();
     if (this.isHost && this.mp && !this.hunt.on) this.updateWear();
@@ -442,7 +445,7 @@ export class Game {
         r.head.rotation.z = 0.6 + Math.sin(this.t * 25) * 0.15;
       } else r.head.rotation.z = 0;
     }
-    if (this.mp) { this.netTick(dt); this.routeVoices(); }
+    if (this.mp) { this.netTick(dt); this.routeVoices(); this.updateTags(); }
     if (this.isHost && (this.state === 'playing' || this.state === 'spectate')) this.recap.update(dt);
   }
 

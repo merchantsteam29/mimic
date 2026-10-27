@@ -104,3 +104,23 @@ export class RemotePlayer {
     this.root.removeFromParent();
   }
 }
+
+// A friend's name, floating over their head (Settings > Name tags). The game sets its opacity every frame.
+export function nameTag(name, parent) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 64;
+  const g = c.getContext('2d');
+  g.font = '700 40px system-ui, sans-serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = 'rgba(0,0,0,.9)'; g.shadowBlur = 6;
+  g.fillStyle = '#e8ecdf';
+  g.fillText(String(name).slice(0, 16), 128, 34);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0 }));
+  sprite.scale.set(1.3, 0.325, 1);
+  sprite.position.y = 2.15;
+  sprite.visible = false;
+  parent.add(sprite);
+  return sprite;
+}

@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { WALL_H } from './level.js';
 import { keyLabel, rumble } from './controls.js';
+import { nameTag } from './remote.js';
 import { EYE, EYE_CROUCH, PLAYER_R, BATTERY_LIFE, clamp, angleDiff } from './game-shared.js';
 
 export const PlayerPart = {
@@ -188,6 +189,7 @@ export const PlayerPart = {
       case 'fusebox':
         if (this.revival.carry) { this.send({ t: 'revive' }); break; }
         if (this.ns.on) { this.sfx.denied(); this.toast('The power stays off on the night shift. Hold on until 6 a.m.'); break; }
+        if (this.hs.on) { this.sfx.denied(); this.toast('No power, no way out. Just hide.'); break; }
         if (this.fusesHeld && this.fusesIn < 4) { this.send({ t: 'insert' }); break; }
         if (this.obj.allDone()) { this.send({ t: 'lever' }); break; }
         this.sfx.denied();
@@ -196,7 +198,7 @@ export const PlayerPart = {
       case 'hide': this.enterHide(f.prop); break;
       case 'exit':
         this.sfx.denied();
-        this.toast(this.ns.on ? 'Chained shut until 6 a.m.' : 'It won\'t open. There\'s no power.');
+        this.toast(this.ns.on ? 'Chained shut until 6 a.m.' : this.hs.on ? 'Chained shut. Just hide.' : 'It won\'t open. There\'s no power.');
         break;
     }
   },
@@ -281,8 +283,8 @@ export const PlayerPart = {
     if (this.power) { o.textContent = 'THE EXIT IS OPEN. RUN.'; return; }
     if (!this.obj) return;
     const lines = [];
-    if (this.ns?.on) { // the night shift: nothing to do but last
-      o.textContent = [this.ns.line(), this.rec?.line(), this.thr?.line()].filter(Boolean).join('\n');
+    if (this.ns?.on || this.hs?.on) { // the night shift, hide and seek: nothing to do but last
+      o.textContent = [this.hs?.on ? this.hs.line() : this.ns.line(), this.rec?.line(), this.thr?.line()].filter(Boolean).join('\n');
       return;
     }
     if (this.level.tasks.fuses) {
@@ -295,6 +297,25 @@ export const PlayerPart = {
     if (this.vs?.line()) lines.unshift(this.vs.line());
     if (this.obj.allDone()) lines.push('Restore power at the panel');
     o.textContent = lines.join('\n');
+  },
+
+  // Name tags over friends (Settings > Name tags, off by default): faint, and only when you could actually see them.
+  // Anything wearing a friend gets their tag too.
+  updateTags() {
+    const on = !!this.settings.tags, c = this.camera.position, fd = this.flashDir;
+    const each = (a, id) => {
+      if (!on && !a.tag) return;
+      if (!a.tag) a.tag = nameTag(this.nameOf(id), a.root);
+      const d = Math.hypot(a.x - c.x, a.z - c.z);
+      const show = on && id !== this.specId && d < 16 && this.level.los(c.x, c.z, a.x, a.z);
+      const beam = this.p.flashOn && this.p.battery > 0 && d > 0.1 && ((a.x - c.x) * fd.x + (a.z - c.z) * fd.z) / d > 0.85;
+      const lit = d < 5 || beam || this.mimic.hooks.isLit(a.x, a.z);
+      a.tag.material.opacity = show ? clamp(1.25 - d / 14, 0, 1) * (lit ? 0.9 : 0.35) : 0;
+      a.tag.visible = a.tag.material.opacity > 0.02;
+    };
+    for (const [id, a] of this.remotes) each(a, id);
+    for (const [id, a] of this.sw.avatars || []) each(a, id);
+    for (const [id, a] of this.db.avatars || []) each(a, id);
   },
 
   // Why the power won't come on yet.

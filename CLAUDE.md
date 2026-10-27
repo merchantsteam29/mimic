@@ -286,6 +286,14 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   from a spot nobody can see, in their body (`RemotePlayer` with their look and flashlight) and now and then their clips (`dbSay`). It
   ignores everything (walks through shut doors) until someone is within 2.5 m, holds a beam on it for 1.2 s, or the player it copies
   sees it: `turn` (`dbTurn`, its head comes round) then `chase` at 5.2 m/s for 7 s. `hostCatch(id, 'db')`, `snap.db`.
+- `hideseek.js`: **Hide and seek** (online lobby Mode `hide`; Game option `hideSeek`). No jobs (`hideLevel`), panel and exit refuse, no
+  director / hand-placed events / incidents, no revive tapes. Phase `hide` (60 s: the host keeps `mimic.frozen`), then the host
+  broadcasts `hsPhase` (logged for rejoins): it's released (`graceT` 0), and every 18-26 s the host `huntHide`s a random hidden player
+  (not in a vent). `seek` lasts 240 s, then everyone alive gets `out` with `dawn`. `hostCatch` records `hs.found`; `end` carries
+  `hs` (winners: anyone out, else the last found) and `hsAll`.
+- **Name tags** (Settings, `settings.tags`, off by default): `game.updateTags()` (online, also in the waiting room) puts `nameTag()`
+  (remote.js, a sprite) over remotes and over skinwalker / double avatars (their copied friend's name); faint unless lit, hidden
+  through walls, past 16 m, and on the friend you're spectating.
 - `nightshift.js`: **Night Shift** (title > Night Shift = `pickClass(1)`, or lobby Mode `nights`; Game option `night`, `?autostart&night=N`).
   No jobs (`nightLevel`: no tasks, `broken` rises), the panel and exit refuse until 6 a.m. Six hours of 60 s (`ns.t`, which keeps
   counting while dead); the host broadcasts `hour` (the bell tolls it, the camcorder clock says `NIGHT n`); at 6 the host, 3.5 s later,

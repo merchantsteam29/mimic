@@ -221,6 +221,7 @@ export const DeathPart = {
       hunter: m.hunter || null, hunterName: m.hunter ? this.nameOf(m.hunter) : null, hunterWins, time: num(m.time, this.time), fuses: this.fusesFound, lures: this.lures,
       mode: m.mode, traitor: m.traitor || null, traitorName: m.traitor ? this.nameOf(m.traitor) : null, traitorWins: !!m.traitorWins,
       clips: this.mp.clips.size, place: this.level.name, recap: m.recap, night: num(m.night, 0), hour: num(m.hour, 0),
+      hs: Array.isArray(m.hs) ? m.hs.filter((id) => this.order.includes(id)) : null, hsAll: !!m.hsAll,
       results: this.order.map((id) => ({ id, name: this.nameOf(id), status: st[id] || 'left' })),
     });
   },

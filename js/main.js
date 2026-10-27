@@ -46,7 +46,7 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 // Graphics start on Auto: phones and tablets begin at medium, and it steps down by itself when the game runs slowly
 // (`tier` is where Auto has settled on this device).
 const COARSE = matchMedia('(pointer: coarse)').matches;
-const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1, quality: 'auto', tier: COARSE ? 'medium' : 'high', captions: false, calm: false, pads: true, diff: 'normal', voiceMode: 'clear', voiceVol: 1, look: { ...DEFAULT_LOOK } };
+const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1, quality: 'auto', tier: COARSE ? 'medium' : 'high', captions: false, calm: false, pads: true, tags: false, diff: 'normal', voiceMode: 'clear', voiceVol: 1, look: { ...DEFAULT_LOOK } };
 let settings = { ...DEFAULTS };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('mimic.settings') || '{}')); } catch { /* private mode */ }
 const saveSettings = () => { try { localStorage.setItem('mimic.settings', JSON.stringify(settings)); } catch { /* ignore */ } };
@@ -138,6 +138,10 @@ const syncPads = () => {
 };
 document.querySelectorAll('#setPads button').forEach((b) => { b.onclick = () => { settings.pads = b.dataset.c === 'on'; saveSettings(); syncPads(); }; });
 syncPads();
+// Name tags over friends' heads (off by default: it's scarier without).
+const syncTags = () => document.querySelectorAll('#setTags button').forEach((b) => b.classList.toggle('on', (b.dataset.c === 'on') === !!settings.tags));
+document.querySelectorAll('#setTags button').forEach((b) => { b.onclick = () => { settings.tags = b.dataset.c === 'on'; saveSettings(); syncTags(); }; });
+syncTags();
 
 // Feedback (beta): opens the Google Form in a new tab. The game version, device and what you were doing are copied to
 // the clipboard first, so a bug report can include them with one paste.
@@ -662,6 +666,14 @@ function endRun(r) {
         ? ` ${r.traitor === session?.id ? 'You were' : `${r.traitorName} was`} working for it. The traitor ${r.traitorWins ? 'wins' : 'loses'}.`
         : ' Nobody was working for it. You did this to yourselves.';
     }
+    if (r.mode === 'hide' && r.hs) { // hide and seek: who it never found (or found last)
+      const names = r.hs.map((id) => (id === session?.id ? 'You' : game?.nameOf(id) || 'Someone'));
+      const won = r.hs.includes(session?.id);
+      $('endTitle').textContent = won ? 'You win.' : 'It found you.';
+      $('endSub').textContent = !names.length ? 'It found everyone.'
+        : r.hsAll ? `It found everyone. ${names[0]} lasted longest.`
+          : `${names.join(' and ')} stayed hidden until time ran out.`;
+    }
     if (r.mode === 'nights' && r.night) { // the night shift, together: lasting it moves everyone on to the next night
       const n = r.night;
       stats.splice(2, 1, ['Night', n]);
@@ -1037,7 +1049,7 @@ function startMpRun(m) {
   const themeId = m.theme in THEMES ? m.theme : 'facility';
   game = new Game({
     renderer, vhs, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order, classes: m.classes || {},
-    mode: m.mode === 'story' ? 'story' : 'normal', night: m.mode === 'nights' ? Math.max(1, Math.min(99, m.night | 0)) : 0, traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, shadow: !!m.sd, double: !!m.db, difficulty: m.diff, custom: m.cs, teams: m.mode === 'versus' && m.teams && typeof m.teams === 'object' ? m.teams : null,
+    mode: m.mode === 'story' ? 'story' : 'normal', night: m.mode === 'nights' ? Math.max(1, Math.min(99, m.night | 0)) : 0, traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, shadow: !!m.sd, double: !!m.db, hideSeek: m.mode === 'hide', difficulty: m.diff, custom: m.cs, teams: m.mode === 'versus' && m.teams && typeof m.teams === 'object' ? m.teams : null,
     hunter: m.mode === 'hunt' && m.order?.includes(m.hunter) ? m.hunter : null,
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),
@@ -1054,6 +1066,10 @@ function startMpRun(m) {
     showIntro(themeId, null, ['One of you is not coming with you. It is already in here, somewhere, and it will use your voices.', 'Get the power back on, and get out.']);
     $('introKicker').textContent = 'Hunt';
   } else if (m.mode === 'nights') nightIntro(themeId, game.ns.night);
+  else if (m.mode === 'hide') {
+    showIntro(themeId, null, ['You have one minute to hide. It will wait. It will count.', 'Then it comes looking, and every so often it simply knows where one of you is. Move if you have to. The last one it finds wins.']);
+    $('introKicker').textContent = 'Hide and seek';
+  }
   else showIntro(themeId);
 }
 

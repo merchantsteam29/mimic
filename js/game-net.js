@@ -243,9 +243,10 @@ export const NetPart = {
         break;
       }
       case 'hour': this.ns.onHour(num(m.h, 0)); break;
+      case 'hsPhase': this.hs.onPhase(m.p); break;
       case 'out': {
         this.status.set(m.id, 'out');
-        if (m.id === this.me) { if (this.state !== 'intro') { this.toast(m.dawn ? 'You lasted the night.' : 'You got out.'); this.startSpectate(); } }
+        if (m.id === this.me) { if (this.state !== 'intro') { this.toast(m.dawn ? (this.hs.on ? 'Time\'s up. It never found you.' : 'You lasted the night.') : 'You got out.'); this.startSpectate(); } }
         else if (!m.dawn) this.toast(`${this.nameOf(m.id)} got out`);
         this.checkEnd();
         break;
@@ -273,7 +274,7 @@ export const NetPart = {
     if ([...this.status.values()].some((s) => s === 'alive')) return;
     this.ended = true;
     if (!this.mp) return; // alone, the jumpscare / escape ends the run itself
-    this.broadcast({ t: 'end', st: Object.fromEntries(this.status), time: this.time, mode: this.hunt.id ? 'hunt' : this.traitor.on ? 'story' : this.vs.on ? 'versus' : this.ns.on ? 'nights' : 'normal', night: this.ns.night, hour: this.ns.hour, hunter: this.hunt.id, recap: this.recap.data(), ...this.traitor.result(), ...this.vs.result() });
+    this.broadcast({ t: 'end', st: Object.fromEntries(this.status), time: this.time, mode: this.hunt.id ? 'hunt' : this.traitor.on ? 'story' : this.vs.on ? 'versus' : this.ns.on ? 'nights' : this.hs.on ? 'hide' : 'normal', night: this.ns.night, hour: this.ns.hour, hunter: this.hunt.id, recap: this.recap.data(), ...this.traitor.result(), ...this.vs.result(), ...this.hs.result() });
   },
 
   // Host: the mimic (or, by 'sw', the skinwalker; 'ls', the listener) reached a player.
@@ -281,6 +282,7 @@ export const NetPart = {
     if (!this.alive(id)) return;
     if (this.ab.hostSave(id)) return; // a medic's rescue: they tear free
     this.dropFuses(id);
+    this.hs.caught(id);
     this.recap.event('caught', id, by);
     const at = id === this.me ? this.p : this.remotes.get(id);
     if (at) this.revival.taken(id, at.x, at.z);

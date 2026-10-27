@@ -171,7 +171,7 @@ export class Session {
       return;
     }
     if (m.t === 'start') { this.net.locked = true; this.lastStart = m; this.onStart(m); return; }
-    if (m.t === 'mode') { if (from === 'h') { this.mode = ['story', 'hunt', 'versus', 'nights'].includes(m.mode) ? m.mode : 'normal'; this.night = Math.max(1, Math.min(99, m.night | 0)); this.skinwalker = !!m.sw; this.listener = !!m.ls; this.stalker = !!m.sk; this.shadow = !!m.sd; this.double = !!m.db; this.custom = cleanCustom(m.cs); this.difficulty = ['easy', 'nightmare'].includes(m.diff) ? m.diff : 'normal'; this.onRoster(this.roster); } return; }
+    if (m.t === 'mode') { if (from === 'h') { this.mode = ['story', 'hunt', 'versus', 'nights', 'hide'].includes(m.mode) ? m.mode : 'normal'; this.night = Math.max(1, Math.min(99, m.night | 0)); this.skinwalker = !!m.sw; this.listener = !!m.ls; this.stalker = !!m.sk; this.shadow = !!m.sd; this.double = !!m.db; this.custom = cleanCustom(m.cs); this.difficulty = ['easy', 'nightmare'].includes(m.diff) ? m.diff : 'normal'; this.onRoster(this.roster); } return; }
     if (m.t === 'role') { if (from === 'h') this.game?.traitor.onNet(m); return; }
     if (m.t === 'look') { // a player changed their look (host keeps it in the roster)
       const r = this.isHost && this.roster.find((x) => x.id === from);
@@ -220,7 +220,7 @@ export class Session {
 
   setMode(mode) {
     if (!this.isHost) return;
-    this.mode = ['story', 'hunt', 'versus', 'nights'].includes(mode) ? mode : 'normal';
+    this.mode = ['story', 'hunt', 'versus', 'nights', 'hide'].includes(mode) ? mode : 'normal';
     this.sendMode();
     this.onRoster(this.roster);
   }
