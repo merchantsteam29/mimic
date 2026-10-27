@@ -136,7 +136,9 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   (and heartbeat while hidden), B crouch toggle, X light, Y ability, LT/L3 sprint, RT Space, LB/RB jam/sabotage, D-pad up accuse
   (votes on the D-pad, B = nobody), View = Tab, Start pause; in menus the D-pad moves focus. Touch (`#touch`): left thumb stick, right
   thumb drag to look, buttons, vote by tapping a name. Pad and touch play **without pointer lock** (`openPause`/`closePause` in main.js).
-  `rumble()` on catches and heartbeats.
+  `rumble()` on catches and heartbeats. Only pads with `mapping === 'standard'` are used (wheels / flight sticks / pedals have resting axes that
+  spun the camera and scrolled menus); an axis counts once seen centred, and only a change (new press, stick pushed) switches to
+  pad mode. Settings > Controllers: Off (`settings.pads`, `controls.pads`) ignores every gamepad.
 - `binds.js`: **rebinding** (Settings > Controls, `#binds`; localStorage `mimic.binds`). The game always listens for its default
   codes (`GAME_CODE`); `controls.js` translates a rebound key into that code in a capture-phase listener (and swallows a default
   key that was moved away), and `gamePad` reads controller buttons from `binds.pad`. `keyLabel` names keys from the bindings.

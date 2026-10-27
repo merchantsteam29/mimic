@@ -46,7 +46,7 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 // Graphics start on Auto: phones and tablets begin at medium, and it steps down by itself when the game runs slowly
 // (`tier` is where Auto has settled on this device).
 const COARSE = matchMedia('(pointer: coarse)').matches;
-const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1, quality: 'auto', tier: COARSE ? 'medium' : 'high', captions: false, calm: false, diff: 'normal', voiceMode: 'clear', voiceVol: 1, look: { ...DEFAULT_LOOK } };
+const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1, quality: 'auto', tier: COARSE ? 'medium' : 'high', captions: false, calm: false, pads: true, diff: 'normal', voiceMode: 'clear', voiceVol: 1, look: { ...DEFAULT_LOOK } };
 let settings = { ...DEFAULTS };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('mimic.settings') || '{}')); } catch { /* private mode */ }
 const saveSettings = () => { try { localStorage.setItem('mimic.settings', JSON.stringify(settings)); } catch { /* ignore */ } };
@@ -131,6 +131,13 @@ const syncCalm = () => {
 };
 document.querySelectorAll('#setCalm button').forEach((b) => { b.onclick = () => { settings.calm = b.dataset.c === 'on'; saveSettings(); syncCalm(); }; });
 syncCalm();
+// Controllers on / off (off: for wheels and joysticks the browser mistakes for a controller).
+const syncPads = () => {
+  controls.pads = settings.pads !== false;
+  document.querySelectorAll('#setPads button').forEach((b) => b.classList.toggle('on', (b.dataset.c === 'on') === controls.pads));
+};
+document.querySelectorAll('#setPads button').forEach((b) => { b.onclick = () => { settings.pads = b.dataset.c === 'on'; saveSettings(); syncPads(); }; });
+syncPads();
 
 // Feedback (beta): opens the Google Form in a new tab. The game version, device and what you were doing are copied to
 // the clipboard first, so a bug report can include them with one paste.

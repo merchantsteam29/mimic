@@ -28,6 +28,7 @@ export const controls = {
   onPause: () => {},    // set by main.js: Start / the touch pause button
   inGame: false,        // a run is on screen with no menu over it
   capture: null,        // settings: waiting for a key or button to bind ({ kind: 'key'|'pad', done(code|index) })
+  pads: true,           // Settings > Controllers: off ignores every gamepad
 };
 
 export function keyLabel(k) {
@@ -143,7 +144,9 @@ let navDir = null, navT = 0;
 
 function pollPad(dt, g) {
   const pads = navigator.getGamepads?.() || [];
-  const pad = [...pads].find((p) => p && p.connected);
+  // Only real game controllers: Xbox / PlayStation / Switch pads report the browser's standard layout. Wheels, flight sticks,
+  // pedals and tablets don't, and their resting axes used to spin the camera and scroll the menus.
+  const pad = controls.pads ? [...pads].find((p) => p && p.connected && p.mapping === 'standard') : null;
   if (!pad) return;
   const btn = (i) => { const b = pad.buttons[i]; return !!b && (b.pressed || b.value > 0.5); };
   const now = pad.buttons.map((_, i) => btn(i));
@@ -182,7 +185,7 @@ function gamePad(dt, g, { now, down, up, ax }) {
   let x = ax(0), y = ax(1);
   const mag = Math.min(1, Math.hypot(x, y));
   g.stick = mag > 0 ? { x, y } : null;
-  const std = lastPad?.mapping === 'standard', lx = std ? ax(2) : 0, ly = std ? ax(3) : 0, s = g.settings.mouse;
+  const lx = ax(2), ly = ax(3), s = g.settings.mouse;
   if (lx || ly) g.look(Math.sign(lx) * lx * lx * 3.4 * s * dt, Math.sign(ly) * ly * ly * 2.4 * s * dt);
 
   if (down(9)) { controls.onPause(); return; }
