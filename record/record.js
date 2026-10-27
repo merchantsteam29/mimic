@@ -93,8 +93,8 @@ function mark() {
   });
   const ids = myIds(), done = ids.filter((id) => takes.has(id)).length;
   $('progress').textContent = `${done} of ${ids.length} of your lines recorded`;
-  $('dockText').textContent = takes.size ? `${takes.size} line${takes.size === 1 ? '' : 's'} recorded in this browser.` : 'Nothing recorded yet.';
-  $('zipBtn').disabled = !takes.size;
+  $('dockText').textContent = done ? `${done} of your ${ids.length} lines recorded.` : 'Nothing recorded for this part yet.';
+  $('zipBtn').disabled = !done;
 }
 
 // ---------- the microphone ----------
@@ -203,13 +203,16 @@ addEventListener('keydown', (e) => {
 // ---------- the zip ----------
 $('zipBtn').onclick = async () => {
   if (!window.JSZip) { $('dockText').textContent = 'The zip maker didn\'t load. Check your connection and reload.'; return; }
-  const zip = new JSZip();
-  for (const [id, t] of takes) zip.file(`voices/${id}.wav`, t.blob);
+  // Only the part you picked: other parts recorded in this browser stay out of this zip.
+  const ids = new Set(myIds()), zip = new JSZip();
+  let n = 0;
+  for (const [id, t] of takes) if (ids.has(id)) { zip.file(`voices/${id}.wav`, t.blob); n++; }
+  if (!n) { $('dockText').textContent = 'Nothing recorded for this part yet.'; return; }
   const blob = await zip.generateAsync({ type: 'blob' });
   const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `mimic-voices-${part === 'all' ? 'all' : part}.zip` });
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-  $('dockText').textContent = 'Downloaded. Send the zip over. Your takes stay here in case you want to redo any.';
+  $('dockText').textContent = `Saved ${a.download} (${n} line${n === 1 ? '' : 's'}) to your Downloads folder. Send it over. Your takes stay here in case you want to redo any.`;
 };
 
 await loadTakes();

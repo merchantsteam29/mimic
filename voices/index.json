@@ -29,6 +29,9 @@
  "ellie/4-1-1": "ellie/4-1-1.wav",
  "ellie/4-1-2": "ellie/4-1-2.wav",
  "ellie/4-1-3": "ellie/4-1-3.wav",
+ "ellie/4-2-1": "ellie/4-2-1.wav",
+ "ellie/4-2-2": "ellie/4-2-2.wav",
+ "ellie/4-2-3": "ellie/4-2-3.wav",
  "ellie/4-3-1": "ellie/4-3-1.wav",
  "ellie/4-3-2": "ellie/4-3-2.wav",
  "ellie/4-3-3": "ellie/4-3-3.wav",
@@ -65,5 +68,8 @@
  "lore/7-1": "lore/7-1.wav",
  "lore/7-2": "lore/7-2.wav",
  "lore/7-3": "lore/7-3.wav",
- "lore/7-4": "lore/7-4.wav"
+ "lore/7-4": "lore/7-4.wav",
+ "operator/1-1-2": "operator/1-1-2.wav",
+ "operator/1-3-2": "operator/1-3-2.wav",
+ "operator/4-1-2": "operator/4-1-2.wav"
 }
