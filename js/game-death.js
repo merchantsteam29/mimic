@@ -66,6 +66,7 @@ export const DeathPart = {
       const hd = this.mimic.model.head, jaw = this.mimic.model.jaw;
       if (sc === 'stare') { // upright, mouth shut, its head tipping slowly over sideways while it whispers
         this.mimic.model.torso.rotation.x = 0.15;
+        hd.rotation.x = -0.45;
         hd.rotation.z = Math.min(1.7, this.ct * 1.1);
         jaw.rotation.x = 0.05;
       } else jaw.rotation.x = 0.1 + this.ct * 0.4; // dark: its jaw coming open

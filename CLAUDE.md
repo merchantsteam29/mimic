@@ -115,7 +115,15 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   (`peekHud`), and the mic only when it heard you.
 - `samples.js`: **recorded CC0 sounds** in `sounds/` (credits in `sounds/CREDITS.txt`). `sfx.rec(bank, emitter, opts)` plays one,
   falling back to the synthesized sound. Banks: steps, creaks, doors, latch, click, cloth, bang, metal, glass, slam, snarl, attack, moan.
-- Mimic look: grey gaunt body, `faceTexture` (sunken eyes, upper teeth) plus `jawTexture` on a hinged `jaw` (opens when talking,
+- **Sound pass**: footsteps follow the floor (`Level.surfaceAt`: the theme's `surface`; woods = `dirt` outside, `wood` in the cabin), and
+  `STEP_CARRY` (level.js) scales how far a step carries (carpet 0.7, stone 1.1). `sfx.distant(place)` plays what you'd hear far off in
+  each place (`DISTANT` in sfx.js); `sfx.impact` is the low hit under the sting and the jumpscare.
+- **Mimic body** (buildModel): bony lathe limbs (`limb`, knobbly joints, no ball joints), `skinTexture()` (bruised, veined grey; hands
+  and feet blackened), ribs / spine / shoulder blades merged into one mesh (`mergeGeometries`), a neck that juts forward (`NECK_X`,
+  the head tips back by `HEAD_X`: use HEAD_X, not 0, as the head's resting pitch), jointed fingers (`model.fingers`: `curl` / `want`),
+  one shoulder higher. animate: it drags its right leg, arms swing late with the elbows bent the wrong way, the chest heaves (`chest`),
+  the neck sometimes snaps over and stays, fingers twitch (splayed when it chases), on the ceiling the head turns upright to face you.
+- Mimic look: grey gaunt body, `faceTexture` (black sunken eyes, upper teeth, mouth corners split) plus `jawTexture` on a hinged `jaw` (opens when talking,
   chasing, and in the jumpscare), unlit black hair, all fours when chasing.
 - Photo textures: `textures/` (CC0 ambientCG, 512px, credits in `textures/CREDITS.txt`), loaded once by `textures.js` `photo()`
   (each run gets copies; `preloadPhotos()` at page load) with normal maps. The mimic's skin uses the plaster normal map.

@@ -14,13 +14,16 @@
 // Also: it may crawl on the ceiling (dropping down when it chases), wear a dead player's body
 // (online), and open doors (slowly, unless it's chasing).
 import * as THREE from 'three';
-import { faceTexture, jawTexture, skinNormal } from './textures.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { faceTexture, jawTexture, skinNormal, skinTexture } from './textures.js';
 
 const TURN = 7;          // rad/s
 const STATES = ['wander', 'investigate', 'stalk', 'chase', 'hunt', 'peek', 'flee', 'stunned', 'sniff', 'transform'];
 const CEIL = 3;          // ceiling height (level.js WALL_H)
 const DROP = 0.45;       // seconds to drop from the ceiling
 const RADIUS = 0.35;
+const NECK_X = 0.32;     // the neck juts forward out of the hunch...
+const HEAD_X = -0.6;     // ...and the head tips back up to look ahead
 // Difficulty: how fast it moves, how far it sees, how often it talks (a multiplier on the wait between lures).
 export const DIFFICULTY = {
   easy: { name: 'Easy', speed: 0.85, sight: 0.8, talk: 1.35, battery: 1.5, grace: 20, hunger: 1.5 },
@@ -30,39 +33,41 @@ export const DIFFICULTY = {
 
 export function buildModel() {
   const root = new THREE.Group();
-  const skin = new THREE.MeshStandardMaterial({ color: 0x3c3832, roughness: 0.55, normalMap: skinNormal(), normalScale: new THREE.Vector2(0.8, 0.8) }); // grey, clammy, almost human
-  const pale = new THREE.MeshStandardMaterial({ color: 0x3e3832, roughness: 0.8 });
+  // Grey, blotched and clammy, almost human; the hands and feet blackened, like they've been dead longer.
+  const skin = new THREE.MeshStandardMaterial({ map: skinTexture(), color: 0x8c8a86, roughness: 0.62, normalMap: skinNormal(), normalScale: new THREE.Vector2(0.8, 0.8) });
+  const dead = new THREE.MeshStandardMaterial({ map: skinTexture(), color: 0x2c2826, roughness: 0.5 });
+  const bone = new THREE.MeshStandardMaterial({ map: skinTexture(), color: 0xa09c94, roughness: 0.45 }); // ribs and spine, pushing through
   const part = (geo, mat, x = 0, y = 0, z = 0) => {
     const m = new THREE.Mesh(geo, mat);
     m.position.set(x, y, z);
-    m.castShadow = true;
     return m;
   };
-  // Smooth, rounded limbs (pivot at the top).
+  // A bony limb (pivot at the top): knobbly at both joints, wasted thin between them, a little flattened.
   const limb = (r1, r2, len, mat) => {
-    const r = (r1 + r2) / 2;
-    const g = new THREE.CapsuleGeometry(r, Math.max(0.01, len - 2 * r), 4, 10);
-    g.translate(0, -len / 2, 0);
+    const prof = [[0, 0], [r2 * 1.2, 0.02], [r2 * 1.05, 0.07], [r2 * 0.8, 0.16], [(r1 + r2) * 0.42, 0.5], [r1 * 0.95, 0.8], [r1 * 1.25, 0.95], [r1 * 0.6, 0.995], [0, 1]];
+    const g = new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r, y * len)), 9);
+    g.scale(1, 1, 0.82);
+    g.translate(0, -len, 0);
     return new THREE.Mesh(g, mat);
   };
 
   const body = new THREE.Group();
   root.add(body);
 
-  // Legs (hip pivot at 1.2m).
+  // Legs (hip pivot at 1.2m), on long blackened feet that end in toes like fingers.
   const legs = [];
   for (const side of [-1, 1]) {
     const hip = new THREE.Group();
     hip.position.set(side * 0.13, 1.2, 0);
-    const thigh = limb(0.07, 0.05, 0.62, skin);
+    const thigh = limb(0.075, 0.05, 0.62, skin);
     const knee = new THREE.Group();
     knee.position.y = -0.62;
-    const shin = limb(0.05, 0.03, 0.6, skin);
-    const foot = part(new THREE.BoxGeometry(0.08, 0.04, 0.26), skin, 0, -0.6, 0.07);
-    knee.add(shin, foot, part(new THREE.SphereGeometry(0.055, 8, 6), skin)); // knobbly knee
-    hip.add(part(new THREE.SphereGeometry(0.075, 8, 6), skin));
+    const shin = limb(0.05, 0.028, 0.6, skin);
+    const foot = new THREE.ConeGeometry(0.045, 0.3, 6);
+    foot.rotateX(Math.PI / 2);
+    foot.scale(1, 0.45, 1);
+    knee.add(shin, part(foot, dead, 0, -0.6, 0.1));
     hip.add(thigh, knee);
-    thigh.castShadow = shin.castShadow = true;
     body.add(hip);
     legs.push({ hip, knee });
   }
@@ -72,48 +77,85 @@ export function buildModel() {
   torso.position.y = 1.2;
   torso.rotation.x = 0.28;
   body.add(torso);
-  // A starved body: a wide ribcage over a sunken belly.
-  const profile = [[0.075, 0], [0.085, 0.1], [0.075, 0.22], [0.11, 0.34], [0.15, 0.48], [0.165, 0.6], [0.155, 0.7], [0.12, 0.78], [0.05, 0.83]]
+  // A starved body: a wide ribcage over a sunken belly. `chest` heaves when it breathes.
+  const chest = new THREE.Group();
+  torso.add(chest);
+  const profile = [[0.07, 0], [0.08, 0.1], [0.068, 0.22], [0.105, 0.34], [0.15, 0.48], [0.165, 0.6], [0.155, 0.7], [0.12, 0.78], [0.05, 0.83]]
     .map(([r, y]) => new THREE.Vector2(r, y));
   const chestGeo = new THREE.LatheGeometry(profile, 16);
   chestGeo.scale(1, 1, 0.62);
-  torso.add(part(chestGeo, skin, 0, 0, 0));
-  const pelvis = new THREE.SphereGeometry(0.15, 10, 8);
-  pelvis.scale(1.15, 0.6, 0.75);
+  chest.add(part(chestGeo, skin));
+  const pelvis = new THREE.SphereGeometry(0.13, 10, 8);
+  pelvis.scale(1.05, 0.5, 0.62);
   torso.add(part(pelvis, skin, 0, 0.02, 0));
-  const collar = new THREE.CylinderGeometry(0.035, 0.035, 0.46, 6);
+  const collar = new THREE.CylinderGeometry(0.03, 0.03, 0.46, 6);
   collar.rotateZ(Math.PI / 2);
-  torso.add(part(collar, skin, 0, 0.74, 0));
-  for (let i = 0; i < 5; i++) { // ribs pushing through the skin
-    const rib = part(new THREE.CylinderGeometry(0.008, 0.008, 0.28 - i * 0.03, 4), pale, 0, 0.42 + i * 0.07, 0.095);
-    rib.rotation.z = Math.PI / 2;
-    torso.add(rib);
+  chest.add(part(collar, bone, 0, 0.74, 0.02));
+  // Ribs just under the skin, the spine down its back and two shoulder blades: one mesh.
+  const bones = [];
+  for (let i = 0; i < 6; i++) {
+    const y = 0.4 + i * 0.058, r = [0.128, 0.143, 0.153, 0.157, 0.152, 0.142][i];
+    for (const side of [-1, 1]) { // a rib each side, from the back round to just short of the breastbone
+      const arc = Math.PI * 0.75;
+      const g = new THREE.TorusGeometry(r, 0.011, 4, 10, arc);
+      g.rotateZ(side > 0 ? Math.PI / 2 - 0.12 - arc : Math.PI / 2 + 0.12);
+      g.rotateX(Math.PI / 2 + 0.35); // sloping down at the front
+      g.scale(1, 1, 0.64);
+      g.translate(0, y + 0.02, 0);
+      bones.push(g);
+    }
   }
+  for (let i = 0; i < 11; i++) {
+    const y = 0.08 + i * 0.068, g = new THREE.SphereGeometry(0.02, 6, 4);
+    g.scale(1, 0.8, 1);
+    g.translate(0, y, -(profile.reduce((m, v) => (Math.abs(v.y - y) < Math.abs(m.y - y) ? v : m)).x * 0.62) - 0.004);
+    bones.push(g);
+  }
+  for (const side of [-1, 1]) {
+    const g = new THREE.SphereGeometry(0.075, 8, 6);
+    g.scale(0.9, 1.2, 0.3);
+    g.rotateZ(side * 0.3);
+    g.translate(side * 0.085, 0.62, -0.085);
+    bones.push(g);
+  }
+  chest.add(part(mergeGeometries(bones), bone));
+  bones.forEach((g) => g.dispose());
 
-  // Arms: far too long, hands hang at the knees.
-  const arms = [];
+  // Arms: far too long, hands hang at the knees. One shoulder rides higher than the other.
+  const arms = [], fingers = [];
   for (const side of [-1, 1]) {
     const shoulder = new THREE.Group();
-    shoulder.position.set(side * 0.23, 0.74, 0);
+    shoulder.position.set(side * 0.23, side < 0 ? 0.76 : 0.71, 0);
     shoulder.rotation.z = -side * 0.05; // arms hang close, slightly inward
-    shoulder.add(part(new THREE.SphereGeometry(0.06, 8, 6), skin));
-    const upper = limb(0.045, 0.035, 0.68, skin);
+    const upper = limb(0.045, 0.034, 0.68, skin);
     const elbow = new THREE.Group();
     elbow.position.y = -0.68;
-    const fore = limb(0.035, 0.028, 0.66, skin);
+    const fore = limb(0.034, 0.024, 0.66, skin);
     const hand = new THREE.Group();
     hand.position.y = -0.66;
+    const palm = new THREE.BoxGeometry(0.075, 0.09, 0.022);
+    palm.translate(0, -0.04, 0);
+    hand.add(part(palm, dead));
+    // Four fingers far too long, each with a knuckle that bends (`curl`), and a pointed tip.
     for (let f = 0; f < 4; f++) {
-      const finger = limb(0.01, 0.005, 0.32, pale); // far too long
-      finger.position.x = (f - 1.5) * 0.025;
-      finger.rotation.x = 0.15 * (f - 1.5);
-      hand.add(finger);
+      const base = new THREE.Group();
+      base.position.set((f - 1.5) * 0.022, -0.08, 0);
+      base.rotation.z = (f - 1.5) * 0.08;
+      const tip = new THREE.Group();
+      tip.position.y = -0.17;
+      const end = new THREE.ConeGeometry(0.008, 0.17, 5);
+      end.translate(0, -0.085, 0);
+      end.rotateX(Math.PI);
+      end.translate(0, -0.17, 0);
+      tip.add(part(end, dead));
+      base.add(limb(0.01, 0.008, 0.17, dead), tip);
+      hand.add(base);
+      fingers.push({ base, tip, side, n: f, curl: 0.2, want: 0.2 });
     }
-    elbow.add(fore, hand, part(new THREE.SphereGeometry(0.04, 6, 5), skin));
+    elbow.add(fore, hand);
     shoulder.add(upper, elbow);
-    upper.castShadow = fore.castShadow = true;
     torso.add(shoulder);
-    arms.push({ shoulder, elbow });
+    arms.push({ shoulder, elbow, hand, y0: shoulder.position.y });
   }
 
   // Second form: another pair of arms, folded against its chest until the power comes back.
@@ -125,27 +167,28 @@ export function buildModel() {
     const el = new THREE.Group();
     el.position.y = -0.55;
     el.rotation.x = -1.2;
-    el.add(limb(0.025, 0.02, 0.6, skin));
+    el.add(limb(0.025, 0.018, 0.6, skin));
     sh.add(limb(0.035, 0.025, 0.55, skin), el);
     sh.visible = false;
     torso.add(sh);
     extra.push(sh);
   }
 
-  // Neck and head.
+  // A long neck, jutting forward out of the hunch, and the head.
   const neck = new THREE.Group();
   neck.position.y = 0.8;
+  neck.rotation.x = NECK_X;
   torso.add(neck);
-  neck.add(part(new THREE.CylinderGeometry(0.035, 0.05, 0.3, 6), skin, 0, 0.12, 0));
+  neck.add(part(new THREE.CylinderGeometry(0.03, 0.048, 0.4, 7).translate(0, 0.17, 0), skin));
   const head = new THREE.Group();
-  head.position.y = 0.32;
-  head.rotation.x = -0.28; // level the face out of the hunch
+  head.position.y = 0.4;
+  head.rotation.x = HEAD_X;
   neck.add(head);
   const hairMat = new THREE.MeshBasicMaterial({ color: 0x000000 }); // unlit: hair stays black however close the flashlight is
   const skull = new THREE.SphereGeometry(0.17, 14, 12);
   skull.scale(0.88, 1.32, 0.85);
   head.add(part(skull, hairMat)); // the back of its head is all hair
-  const faceMat = new THREE.MeshStandardMaterial({ map: faceTexture(), transparent: true, roughness: 0.5, alphaTest: 0.04 });
+  const faceMat = new THREE.MeshStandardMaterial({ map: faceTexture(), color: 0x8f8a84, transparent: true, roughness: 0.7, alphaTest: 0.04 });
   const face = new THREE.Mesh(new THREE.PlaneGeometry(0.27, 0.27), faceMat);
   face.position.set(0, 0.03, 0.15);
   head.add(face);
@@ -158,7 +201,7 @@ export function buildModel() {
   jaw.position.set(0, -0.1, 0.145);
   const jg = new THREE.PlaneGeometry(0.22, 0.15);
   jg.translate(0, -0.075, 0);
-  jaw.add(new THREE.Mesh(jg, new THREE.MeshStandardMaterial({ map: jawTexture(), transparent: true, roughness: 0.5, alphaTest: 0.04 })));
+  jaw.add(new THREE.Mesh(jg, new THREE.MeshStandardMaterial({ map: jawTexture(), color: 0x8f8a84, transparent: true, roughness: 0.7, alphaTest: 0.04 })));
   head.add(jaw);
   // Long black hair: down its back and either side of its face, a few strands across it.
   const hair = new THREE.Group();
@@ -183,7 +226,7 @@ export function buildModel() {
 
   root.rotation.order = 'YXZ'; // so it can flip upside down onto the ceiling
   root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-  return { root, body, legs, arms, torso, head, eyeMat, eyes, extra, mouth, jaw, hair };
+  return { root, body, legs, arms, torso, chest, neck, head, fingers, eyeMat, eyes, extra, mouth, jaw, hair };
 }
 
 export class Mimic {
@@ -660,20 +703,29 @@ export class Mimic {
     m.root.position.set(this.x, CEIL * up, this.z);
     m.root.rotation.set(0, this.yaw, Math.PI * up);
     const k = Math.min(1, this.speed / 2.5);
-    const s = Math.sin(this.phase);
-    m.legs[0].hip.rotation.x = s * 0.6 * k;
-    m.legs[1].hip.rotation.x = -s * 0.6 * k;
+    const s = Math.sin(this.phase), late = Math.sin(this.phase - 0.9);
+    // It drags its right leg: a short stiff swing, and the body dips onto the good one.
+    m.legs[0].hip.rotation.x = s * 0.65 * k;
+    m.legs[1].hip.rotation.x = -s * 0.32 * k;
     // Always slightly crouched, like it's about to spring.
     m.legs[0].hip.rotation.x -= 0.12;
-    m.legs[1].hip.rotation.x -= 0.12;
-    m.legs[0].knee.rotation.x = 0.25 + Math.max(0, -Math.cos(this.phase)) * 0.9 * k;
-    m.legs[1].knee.rotation.x = 0.25 + Math.max(0, Math.cos(this.phase)) * 0.9 * k;
-    m.arms[0].shoulder.rotation.x = -s * 0.35 * k + 0.05;
-    m.arms[1].shoulder.rotation.x = s * 0.35 * k + 0.05;
-    m.arms[0].elbow.rotation.x = -0.15 - k * 0.2;
-    m.arms[1].elbow.rotation.x = -0.15 - k * 0.2;
-    m.body.position.y = Math.abs(Math.cos(this.phase)) * 0.06 * k;
+    m.legs[1].hip.rotation.x -= 0.08;
+    m.legs[0].knee.rotation.x = 0.25 + Math.max(0, -Math.cos(this.phase)) * 0.95 * k;
+    m.legs[1].knee.rotation.x = 0.12 + Math.max(0, Math.cos(this.phase)) * 0.3 * k;
+    m.body.rotation.z = s * 0.07 * k;
+    // The arms hang dead and swing late; the elbows bend a little the wrong way.
+    m.arms[0].shoulder.rotation.x = -late * 0.4 * k + 0.08;
+    m.arms[1].shoulder.rotation.x = late * 0.3 * k + 0.12;
+    m.arms[0].elbow.rotation.x = 0.14 - k * 0.1;
+    m.arms[1].elbow.rotation.x = 0.1 - k * 0.1;
+    m.body.position.y = Math.abs(Math.cos(this.phase)) * 0.06 * k - (s < 0 ? -s * 0.05 * k : 0);
     m.torso.rotation.x = 0.28 + k * 0.15 + (this.state === 'chase' ? 0.12 : 0);
+    m.torso.rotation.z = -s * 0.05 * k;
+    // Breathing: slow, deep heaves standing still, ragged panting when it runs.
+    const pant = this.state === 'chase' || this.state === 'hunt';
+    const br = pant ? Math.sin(t * 9) : Math.max(0, Math.sin(t * 1.6)) ** 2 - 0.4;
+    m.chest.scale.set(1 + br * 0.035, 1 + br * 0.015, 1 + br * 0.09);
+    m.arms.forEach((a) => { a.shoulder.position.y = a.y0 + br * 0.012; });
     if (this.state === 'stunned') { // arms over its face, shaking
       m.arms.forEach((a, i) => { a.shoulder.rotation.x = -2.0 + Math.sin(t * 40 + i) * 0.12; a.elbow.rotation.x = -2.1; });
       m.torso.rotation.x = 0.6;
@@ -683,7 +735,10 @@ export class Mimic {
     } else if (this.state === 'transform') { // convulsing
       m.torso.rotation.x = 0.4 + Math.sin(t * 31) * 0.25;
       m.arms.forEach((a, i) => { a.shoulder.rotation.x = -1 + Math.sin(t * 23 + i * 2) * 1.2; a.elbow.rotation.x = -1 + Math.cos(t * 19 + i) * 0.8; });
-      m.head.rotation.x = Math.sin(t * 27) * 0.5;
+      m.head.rotation.x = HEAD_X + Math.sin(t * 27) * 0.5;
+    } else if (this.state === 'peek') { // half hidden, staring: the head tips over slowly, the fingers wrap round the edge
+      m.arms[1].shoulder.rotation.x = -0.9;
+      m.arms[1].elbow.rotation.x = -0.6;
     }
     if (this.form === 2) m.extra.forEach((e, i) => { e.rotation.x = -0.4 + Math.sin(this.phase * 1.3 + i * 2) * 0.5; });
     // Chasing, it drops onto all fours and comes at you like an animal.
@@ -693,7 +748,7 @@ export class Mimic {
       m.torso.rotation.x = 1.35;
       m.arms.forEach((a, i) => { a.shoulder.rotation.x = -1.25 + (i ? q : -q) * 0.7; a.elbow.rotation.x = -0.15; });
       m.legs.forEach((l, i) => { l.hip.rotation.x = 0.35 + (i ? -q : q) * 0.7; l.knee.rotation.x = 0.9; });
-      m.head.rotation.x = -1.2;
+      m.head.rotation.x = -1.5;
     }
     // The jaw: hanging slack, working while it talks, wide open when it hunts.
     const jawOpen = this.state === 'chase' || this.state === 'transform' ? 0.7 + Math.sin(t * 9) * 0.15
@@ -708,18 +763,30 @@ export class Mimic {
       m.arms.forEach((a, i) => { a.shoulder.rotation.x = -1.5 + (i ? s : -s) * 0.4 * k; a.elbow.rotation.x = -0.3; });
     }
 
-    // Head: jerky twitches; tilts while it talks; scans when standing still.
+    // Head: jerky twitches; now and then it snaps over much too far, like the neck's broken, and stays there.
+    // Tilts while it talks; scans when standing still; slowly tips over while it peeks.
     this.twitchT -= dt;
     if (this.twitchT <= 0) {
-      this.twitchT = 0.3 + Math.random() * 2.5;
-      this.headRollTarget = (Math.random() - 0.5) * 0.9;
+      const snap = Math.random() < 0.18 && this.state !== 'chase';
+      this.twitchT = snap ? 1.5 + Math.random() * 2.5 : 0.3 + Math.random() * 2.5;
+      this.headRollTarget = snap ? (Math.random() < 0.5 ? -1 : 1) * (1.15 + Math.random() * 0.4) : (Math.random() - 0.5) * 0.9;
+      for (const f of m.fingers) if (Math.random() < 0.6) f.want = 0.05 + Math.random() * 0.9; // the fingers twitch, one by one
     }
-    const roll = this.speaking > 0 ? 0.55 : this.headRollTarget;
-    this.headRoll += (roll - this.headRoll) * Math.min(1, dt * (this.speaking > 0 ? 3 : 22));
+    const roll = this.speaking > 0 ? 0.55 : this.state === 'peek' ? 1.3 : this.headRollTarget;
+    this.headRoll += (roll - this.headRoll) * Math.min(1, dt * (this.speaking > 0 ? 3 : this.state === 'peek' ? 0.8 : 22));
     m.head.rotation.z = this.headRoll;
-    m.head.rotation.y = this.speed < 0.1 && this.state !== 'stalk' ? Math.sin(t * 0.9) * 0.7 : 0;
-    if (this.ceiling) m.head.rotation.x = -1.2; // looking down at you
-    else if (this.state !== 'transform' && !(this.state === 'chase' && this.speed > 1.5)) m.head.rotation.x = 0;
+    m.head.rotation.y = this.speed < 0.1 && this.state !== 'stalk' && this.state !== 'peek' ? Math.sin(t * 0.9) * 0.7 : 0;
+    // On the ceiling it looks down at you, its head twisted right round so the face is the right way up.
+    if (this.ceiling) { m.head.rotation.x = -1.5; m.head.rotation.z = Math.PI + this.headRoll * 0.3; }
+    else if (this.state !== 'transform' && !(this.state === 'chase' && this.speed > 1.5)) m.head.rotation.x = HEAD_X;
+    // Fingers: curled loose, twitching; splayed and reaching when it chases.
+    const reach = this.state === 'chase' || this.state === 'hunt';
+    for (const f of m.fingers) {
+      f.curl += ((reach ? -0.25 : f.want) - f.curl) * Math.min(1, dt * 10);
+      f.base.rotation.x = -f.curl * 0.8;
+      f.tip.rotation.x = -f.curl * 1.3;
+      f.base.rotation.z = (f.n - 1.5) * (reach ? 0.22 : 0.08);
+    }
 
     this.emitter.setPos(this.x, this.ceiling ? 2.7 : 2.2, this.z);
   }
@@ -773,16 +840,23 @@ export class Mimic {
     m.root.position.set(x, above ? 4.2 : -0.75, z);
     m.root.rotation.set(0, yaw, above ? Math.PI : 0);
     m.body.position.y = 0;
+    m.body.rotation.z = 0;
+    m.torso.rotation.z = 0;
+    m.head.rotation.y = 0;
+    for (const f of m.fingers) { // fingers splayed wide, reaching for you
+      f.base.rotation.set(-0.5, 0, (f.n - 1.5) * 0.35);
+      f.tip.rotation.x = -0.6;
+    }
     if (above) { // hanging straight down from the ceiling, face level with yours
       m.root.position.y = 4.3;
       m.torso.rotation.x = 0.1;
-      m.head.rotation.set(0, 0, Math.sin(t * 40) * 0.1);
+      m.head.rotation.set(-NECK_X - 0.1, 0, Math.sin(t * 40) * 0.1);
       m.arms.forEach((a, i) => { a.shoulder.rotation.x = -0.4; a.shoulder.rotation.z = (i ? 1 : -1) * 0.9; });
       return;
     }
     m.torso.rotation.x = 0.55;
+    m.head.rotation.x = -(0.55 + NECK_X) + 0.15;
     m.head.rotation.z = Math.sin(t * 40) * 0.08 + 0.35;
-    m.head.rotation.y = 0;
     m.arms.forEach((a, i) => { a.shoulder.rotation.x = -1.3; a.shoulder.rotation.z = (i ? 1 : -1) * 0.5; });
   }
 }

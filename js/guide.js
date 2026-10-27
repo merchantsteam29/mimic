@@ -83,8 +83,9 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'alpha1-2026-10-27b';
+export const RELEASE = 'alpha1-2026-10-27c';
 const NOTES = [
+  ['I got a better look at it tonight. I wish I hadn\'t. It drags one leg. Its fingers don\'t stop moving.', 'It looks worse now: starved, bruised grey skin, ribs and spine pushing through, black eyes, the corners of its mouth split. It drags a leg, breathes, and its neck snaps over too far. And every place sounds like itself: carpet in the hotel, stone in the church, leaves in the woods, and things far off you\'d rather not hear.'],
   ['This is still a rough cut. Some of the tape is missing. Tell us where it skips.', 'We\'re in alpha now. Online voices are smaller and sent in pieces, so games shouldn\'t stutter when someone talks, and anyone who joins late still gets everyone\'s voices. A tidier lobby, with Start always in reach.'],
   ['Only one of the lanterns still worked. We took turns carrying it. Then nobody wanted to.', 'Escort (lobby Mode): no flashlights, one lantern. The host can pick the map now (alone too, on the class screen). The end screen plays the voice that fooled you. And online, friends\' voices now reach the mimic: they never got through before.'],
   ['We found the cabin. The phone inside was ringing. There are no phone lines out here.', 'A new place: the woods, outdoors, with a cabin to start in. And online, the Caller: answer the phone if you dare.'],
