@@ -274,6 +274,7 @@ export class Mimic {
 
   // A noise at (x, z) audible within `radius` metres.
   hear(x, z, radius, kind) {
+    radius *= this.hearMul || 1; // (tonight's twist: it hears everything)
     if (['chase', 'hunt', 'peek', 'flee', 'stunned', 'sniff'].includes(this.state) || this.frozen) return;
     if (Math.hypot(x - this.x, z - this.z) > radius) return;
     this.investigate(x, z, kind === 'voice' ? 2.2 : 1.9);
@@ -291,7 +292,7 @@ export class Mimic {
 
   huntHide(prop, id) {
     // It can't follow you into a vent: it comes to the grate, and loses interest.
-    if (prop.kind === 'vent') { if (this.state === 'chase') this.investigate(prop.front.x, prop.front.z, 2.2); return; }
+    if (prop.kind === 'vent' && !this.ventsOK) { if (this.state === 'chase') this.investigate(prop.front.x, prop.front.z, 2.2); return; }
     if (this.ceiling) { this.ceiling = false; this.dropT = DROP; }
     this.unwear();
     this.state = 'hunt';
@@ -376,7 +377,7 @@ export class Mimic {
     this.path = path;
     this.lures = 0;
     this.wait = 0;
-    this.stalkCd = (24 + Math.random() * 22) * (1 - this.hunger * 0.1);
+    this.stalkCd = (24 + Math.random() * 22) * (1 - this.hunger * 0.1) * (this.mood?.stalk ?? 1);
   }
 
   // Appear at (spot) facing the player, and just stare.
@@ -526,7 +527,7 @@ export class Mimic {
           this.lostT += P.hidden ? dt * 2.5 : dt; // a good hiding spot makes it lose you faster
           if (this.enraged > 0) this.lastSeen = { x: P.x, z: P.z }; // it just knows
           if (P.hidden && this.lostT < 0.6) { this.notifyHide(P.hidden, P); break; }
-          if (this.lostT > (this.enraged > 0 ? 8 : 4.5)) {
+          if (this.lostT > (this.enraged > 0 ? 8 : 4.5 * (this.mood?.chase ?? 1))) {
             if (this.lastSeen) this.investigate(this.lastSeen.x, this.lastSeen.z, 3.2); else this.wander(P);
             break;
           }

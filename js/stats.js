@@ -1,16 +1,26 @@
 // Your stats: how you've done, saved on this device only (localStorage 'mimic.stats'). Nothing to unlock.
 import { storyProgress, STORIES } from './story.js';
+import { MOODS, TWISTS } from './runs.js';
+import { bestNight } from './nightshift.js';
 
 const KEY = 'mimic.stats';
-const fresh = () => ({ runs: 0, solo: 0, online: 0, escapes: 0, taken: 0, best: 0, longest: 0, time: 0, voices: 0, asMimic: 0, mimicWins: 0, places: {} });
+const fresh = () => ({ fastest: {}, moods: {}, twists: {}, runs: 0, solo: 0, online: 0, escapes: 0, taken: 0, best: 0, longest: 0, time: 0, voices: 0, asMimic: 0, mimicWins: 0, places: {} });
 
 export function loadStats() {
   try { return { ...fresh(), ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch { return fresh(); }
 }
 
-// r: { won, time, mp, place (theme id), lures, hunter (I was the mimic) }
+// r: { won, time, mp, place (theme id), lures, hunter (I was the mimic), mood, twist }
+// Returns { record: true, prev } when it's your fastest way out of that kind of building.
 export function recordRun(r) {
   const s = loadStats();
+  let out = { record: false, prev: 0 };
+  if (r.mood) s.moods[r.mood] = (s.moods[r.mood] || 0) + 1;
+  if (r.twist) s.twists[r.twist] = (s.twists[r.twist] || 0) + 1;
+  if (r.won && !r.hunter && r.place && r.time > 0) {
+    const prev = s.fastest[r.place] || 0;
+    if (!prev || r.time < prev) { s.fastest[r.place] = r.time; out = { record: true, prev }; }
+  }
   s.runs++;
   s[r.mp ? 'online' : 'solo']++;
   s.time += r.time || 0;
@@ -20,7 +30,10 @@ export function recordRun(r) {
   else { s.taken++; s.longest = Math.max(s.longest, r.time || 0); }
   if (r.place) s.places[r.place] = (s.places[r.place] || 0) + 1;
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* private mode */ }
+  return out;
 }
+export const placeName = (id) => PLACE[id] || id;
+export const fmtClock = (t) => clock(t);
 
 export function resetStats() { try { localStorage.removeItem(KEY); } catch { /* ignore */ } }
 
@@ -40,6 +53,11 @@ export function statRows() {
     ['Times it used a voice on you', s.voices],
     ...STORIES.map((b) => [`Story: ${b.title}`, `${storyProgress(b)} of ${b.chapters.length} chapters`]),
   ];
+  for (const [id, t] of Object.entries(s.fastest || {})) rows.push([`Fastest out of the ${(PLACE[id] || id).toLowerCase()}`, clock(t)]);
+  const met = Object.keys(s.moods || {});
+  rows.push(['What it has been', met.length ? `${met.map((m) => MOODS[m]?.name || m).join(', ')} (${met.length} of ${Object.keys(MOODS).length})` : '-']);
+  rows.push(['Twists you\'ve had', `${Object.keys(s.twists || {}).length} of ${Object.keys(TWISTS).length}`]);
+  if (bestNight()) rows.push(['Night Shift', `${bestNight()} night${bestNight() > 1 ? 's' : ''} in a row`]);
   if (s.asMimic) rows.push(['Games as the mimic', `${s.asMimic} (won ${s.mimicWins})`]);
   const fav = Object.entries(s.places).sort((a, b) => b[1] - a[1])[0];
   if (fav) rows.push(['Most visited', `${PLACE[fav[0]] || fav[0]} (${fav[1]})`]);

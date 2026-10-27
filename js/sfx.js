@@ -717,6 +717,14 @@ export class Sfx {
     this._noise(dest, { t: t + 0.05, dur: 0.3, freq: 1800 + Math.random() * 600, q: 3, peak: 0.3, attack: 0.04 });
   }
 
+  // A step in ankle-deep water (or something else wading).
+  splash(emitter = null, vol = 0.6) {
+    const d = emitter ? emitter.input : this.master, t = this.now;
+    this._noise(d, { t, dur: 0.35, type: 'bandpass', freq: 1100 + Math.random() * 600, q: 0.8, peak: 0.22 * vol, attack: 0.01 });
+    this._noise(d, { t: t + 0.04, dur: 0.25, type: 'lowpass', freq: 450, q: 0.7, peak: 0.2 * vol });
+    return true;
+  }
+
   // The church bell: n slow tolls, far above.
   bell(n = 1) {
     const t = this.now;

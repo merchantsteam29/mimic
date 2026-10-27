@@ -46,6 +46,16 @@ const SECTIONS = [
     { name: 'Alarm', file: 'Event 03', what: 'Something sets off an alarm, far from all of you.', tells: '', survive: 'It goes to look. That\'s your window.' },
     { name: 'Lockdown', file: 'Event 04', what: 'Shutters slam. The doors near you won\'t open for a while.', tells: '', survive: 'Find another way round. It doesn\'t care about locks.' },
     { name: 'The bell', file: 'Event 05', what: 'In the church, now and then, the bell tolls. Once for every one of you it has taken.', tells: 'Count them.', survive: 'Nothing to do but listen. The statues move while you do.' },
+    { name: 'Its moods', file: 'Event 07', what: 'It isn\'t the same thing every night. Some nights it\'s patient and talks; some nights it runs you down; some nights it lies; some nights it only watches.',
+      tells: 'It never says. You find out from what it does (the end screen tells you what it was).', survive: 'Work out which one it is early, and play against it.' },
+    { name: 'Tonight\'s twist', file: 'Event 08', what: 'Most nights one thing is different: the lights die faster, a fog, old batteries, it gets into the vents, it won\'t stop talking, or it\'s half blind and hears everything.',
+      tells: 'You\'re told when you go in.', survive: 'Listen to the briefing.' },
+    { name: 'The keypad', file: 'Event 09', what: 'Some exits have a keypad. The code is written on a sheet of paper somewhere in the building, and only whoever reads it sees it.',
+      tells: 'A red light by the exit.', survive: 'Read it, say it out loud to your friends (quietly: it hears that too), and type it in. The beeping carries.' },
+    { name: 'The lift', file: 'Event 10', what: 'Some buildings have no door out, only a lift. With the power on, call it, and it takes 40 seconds to come down. It comes for you while you wait.',
+      tells: '', survive: 'Call it, then hide near the exit, not at it.' },
+    { name: 'Strange rooms', file: 'Event 11', what: 'Some rooms aren\'t like the others: one flooded (slow, loud, every step splashes), one where the ceiling came down, one with a ring of candles.',
+      tells: 'Something always happens the first time you walk in.', survive: 'Go round the flooded one if it\'s close.' },
     { name: 'The night shift', file: 'Event 06', what: 'Midnight to six, no jobs, the doors chained. The bell tolls each hour.', tells: 'Each night it\'s faster, sees further and there are fewer lights.',
       survive: 'Save your battery. Hide early, move when it\'s somewhere else. At 6 a.m. it lets go.' },
   ]],
@@ -70,8 +80,9 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'alpha1-2026-10-26f';
+export const RELEASE = 'alpha1-2026-10-26g';
 const NOTES = [
+  ['It isn\'t the same every night. We think it gets bored.', 'It has moods now (you find out which at the end), and most nights one thing is different. Keypads, lifts, flooded rooms, and your fastest time out of each place.'],
   ['We wrote it all down for the new ones. Shorter this time. They never finish the long version.', 'A shorter tutorial that also covers hiding spots, throwing things and the tape recorder (How to play > Tutorial).'],
   ['It covered its eyes and counted to sixty. We heard it get to sixty.', 'Hide and seek (lobby Mode): a minute to hide, then it comes looking. Name tags over friends (Settings, off by default).'],
   ['I saw you in the east hall. You were in the west hall. You were with me.', 'A sixth creature online: the Double. It walks where one of you walked, looking just like them.'],

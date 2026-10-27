@@ -23,7 +23,7 @@ export const NetPart = {
   // Host: a player's intent.
   hostHandle(m, from) {
     const r = this.remotes.get(from);
-    if (this.hunt.hostHandle(m, from) || this.chat.hostHandle(m, from) || this.radio.hostHandle(m, from) || this.rec.hostHandle(m, from) || this.thr.hostHandle(m, from) || this.sig.hostHandle(m, from) || this.revival.hostHandle(m, from) || this.haunt.hostHandle(m, from) || this.obj.hostHandle(m, from) || this.ab.hostHandle(m, from) || this.traitor.hostHandle(m, from)) return;
+    if (this.hunt.hostHandle(m, from) || this.chat.hostHandle(m, from) || this.radio.hostHandle(m, from) || this.rec.hostHandle(m, from) || this.thr.hostHandle(m, from) || this.sig.hostHandle(m, from) || this.revival.hostHandle(m, from) || this.haunt.hostHandle(m, from) || this.obj.hostHandle(m, from) || this.esc.hostHandle(m, from) || this.ab.hostHandle(m, from) || this.traitor.hostHandle(m, from)) return;
     switch (m.t) {
       case 'door': { // open / close a real door
         const d = this.level.idoors[m.i | 0];
@@ -104,7 +104,7 @@ export const NetPart = {
 
   // Everyone: what happened.
   onNet(m) {
-    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m) || this.radio.onNet(m) || this.rec.onNet(m) || this.thr.onNet(m) || this.sig.onNet(m) || this.revival.onNet(m) || this.sd.onNet(m) || this.db.onNet(m)) return;
+    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m) || this.radio.onNet(m) || this.rec.onNet(m) || this.thr.onNet(m) || this.sig.onNet(m) || this.revival.onNet(m) || this.sd.onNet(m) || this.db.onNet(m) || this.esc.onNet(m)) return;
     switch (m.t) {
       case 'doorSet': {
         const d = this.level.idoors[m.i | 0];

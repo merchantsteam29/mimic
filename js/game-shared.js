@@ -17,7 +17,7 @@ export const customLevel = (c) => {
 // The waiting room (online, before a game): a small house, the same for everyone, where you can walk around and talk.
 export const ROOM = { theme: 'house', seed: 2604, gen: { size: 18, tasks: { fuses: true }, lore: 0, broken: 0 } };
 // What a player needs to catch up on after a drop: the messages that change the world for good.
-export const LOGGED = new Set(['took', 'drop', 'fuses', 'power', 'caught', 'out', 'left', 'doorSet', 'gen', 'smashed', 'unlocked', 'fakeItem', 'fakeGone', 'lifeTape', 'revived', 'lightOut', 'hour', 'hsPhase']);
+export const LOGGED = new Set(['took', 'drop', 'fuses', 'power', 'caught', 'out', 'left', 'doorSet', 'gen', 'smashed', 'unlocked', 'fakeItem', 'fakeGone', 'lifeTape', 'revived', 'lightOut', 'hour', 'hsPhase', 'coded', 'liftCalled', 'liftHere']);
 export const POOL = 6;              // real point lights, moved to the nearest fixtures (fewer on lower graphics settings)
 export const QUALITY = { lowest: { lights: 2, shadow: 0 }, low: { lights: 3, shadow: 512 }, medium: { lights: 4, shadow: 768 }, high: { lights: POOL, shadow: 1024 } };
 export const EYE = 1.62, EYE_CROUCH = 1.0;

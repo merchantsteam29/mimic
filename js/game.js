@@ -34,6 +34,9 @@ import { Versus } from './versus.js';
 import { Shadow } from './shadow.js';
 import { Double } from './double.js';
 import { HideSeek, hideLevel } from './hideseek.js';
+import { Escape } from './escape.js';
+import { Landmarks } from './landmarks.js';
+import { pickRun, applyRun } from './runs.js';
 import { LIGHTS, cleanLook } from './look.js';
 import { NightShift, nightLevel, nightRules } from './nightshift.js';
 
@@ -157,6 +160,10 @@ export class Game {
       const r = nightRules(night);
       Object.assign(this.diff, { speed: this.diff.speed * r.speed, sight: this.diff.sight * r.sight, hunger: this.diff.hunger * r.hunger, battery: this.diff.battery * r.battery, grace: this.diff.grace + r.grace });
     }
+    // So runs don't all play the same: its mood tonight, and tonight's twist (runs.js; the same for everyone).
+    const plain = !story && !tutorial && !room && !night && !hideSeek;
+    this.run = pickRun(seed, plain && !hunter ? 'plain' : !story && !tutorial && !room && !hunter ? 'mood' : 'none');
+    applyRun(this, this.run);
     this.mimic.diff = this.diff;
     this.mimic.graceT = Math.max(6, this.mimic.graceT + this.diff.grace);
     this.ambientEmitter = sfx.emitter();
@@ -164,6 +171,8 @@ export class Game {
     this.events = new Events(this);   // hand-placed scares
     this.hand = new Hand(this.camera); // your hand holding the flashlight
     this.obj = new Objectives(this);           // generators, tapes, keycard (adds their items)
+    this.esc = new Escape(this, !story && !tutorial && !room && !night && !hideSeek); // a door code, a lift (adds their items)
+    this.marks = new Landmarks(this, !story && !tutorial && !room); // a flooded room, a collapsed ceiling, a shrine
     this.ab = new Abilities(this, this.classes[this.me] || 'runner');
     this.hb = new Heartbeat(this);
     level.idoors.forEach((d, i) => this.items.push({ type: 'idoor', i, x: d.x, y: 1.2, z: d.z, range: 2.3, active: true }));
@@ -209,6 +218,7 @@ export class Game {
       if (this.menuOpen) return;
       const live = this.state === 'playing' || this.state === 'spectate';
       if (!e.repeat && this.radio.onKey(e.code, true)) return;
+      if (live && !e.repeat && this.esc.onKey(e.code)) return; // typing at a keypad
       if (live && !e.repeat && (this.sig.onKey(e.code) || this.chat.onKey(e.code) || this.haunt.onKey(e.code))) { if (e.code === 'Tab') e.preventDefault(); return; }
       if (this.state === 'spectate' && !e.repeat && e.code === 'KeyR') { this.toggleFreeCam(); return; }
       if (this.state === 'spectate' && !e.repeat && (e.code === 'Space' || e.code === 'KeyE')) { if (this.freeCam) this.toggleFreeCam(); else this.specIdx++; return; }
@@ -335,6 +345,8 @@ export class Game {
     this.sk.dispose();
     this.sd.dispose();
     this.db.dispose();
+    this.esc.dispose();
+    this.marks.dispose();
     this.rec.dispose();
     this.thr.dispose();
     this.inc.dispose();
@@ -411,6 +423,8 @@ export class Game {
     this.traitor.update(dt);
     this.ns.update(dt);
     this.hs.update(dt);
+    this.esc.update(dt);
+    this.marks.update(dt);
     this.updateDoors(dt);
     this.applyHunger();
     if (this.isHost && this.mp && !this.hunt.on) this.updateWear();

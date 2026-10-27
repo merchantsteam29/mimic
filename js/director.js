@@ -35,10 +35,12 @@ export class Director {
     const options = p.hidden
       ? [['knock', 1]]
       : [['behind', md > 10 ? 3 : 0], ['peek', g.isHost && !g.hunt.on ? 4 : 0], ['blackout', 2], ['rush', 2], ['distant', md > 12 ? 1 : 0]];
+    const mood = m.mood?.dir || {}; // its mood tonight leans on some tricks
+    for (const o of options) o[1] *= mood[o[0]] ?? 1;
     const pool = options.filter(([n, w]) => w > 0 && (n !== this.last || options.length === 1));
     let r = Math.random() * pool.reduce((a, [, w]) => a + w, 0);
     const [name] = pool.find(([, w]) => (r -= w) <= 0) || pool[0];
-    if (this[name]()) { this.last = name; this.next = rand(20, 40); }
+    if (this[name]()) { this.last = name; this.next = rand(20, 40) * (m.mood?.pace ?? 1); }
     else this.next = 4; // couldn't set it up here; try again soon
   }
 

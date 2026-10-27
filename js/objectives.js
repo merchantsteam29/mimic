@@ -40,7 +40,7 @@ export class Objectives {
   allDone() {
     const g = this.g;
     return (!this.tasks.fuses || g.fusesIn >= 4) && this.gen.every((p) => p >= 1) && this.tapesLeft === 0 && this.doorsOpen
-      && this.storyHeard() >= this.storyNeed();
+      && this.storyHeard() >= this.storyNeed() && (this.g.esc?.coded ?? true);
   }
 
   // Story chapters: every tape must be heard.

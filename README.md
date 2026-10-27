@@ -97,6 +97,11 @@ Guess wrong, and it gets hungrier.
   flashlight, footsteps and voice. Get too close, hold a light on it, or see your own double, and it turns round.
 - **The asylum:** iron cots to hide under, padded cells to hide in, restraint chairs, tally marks on the walls, and doors that
   someone bangs on from the other side.
+- **No two nights the same:** it has a **mood** each run (the Stalker, the Hunter, the Trickster, the Watcher), and you work out
+  which from what it does (the end screen tells you). Most nights there's a **twist**: the lights die faster, a fog, old batteries,
+  it gets into the vents, it won't stop talking, or it's half blind and hears everything. Some exits have a **keypad** (the code is on
+  a note that only the reader sees: say it out loud), some buildings have a **lift** you call and then survive 40 seconds waiting for,
+  and some have a **strange room**: flooded, a fallen ceiling, a ring of candles. Your stats keep your fastest time out of each place.
 - **Hide and seek** (online, a lobby Mode): you get a minute to hide while it waits, then it comes looking, and every so often
   it simply knows where one of you is. Whoever it hasn't found after four minutes wins; if it finds everyone, the last one found wins.
 - **Name tags** (Settings, off by default): your friends' names over their heads, faint in the dark. Things wearing your friends

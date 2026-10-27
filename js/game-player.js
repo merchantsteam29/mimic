@@ -32,7 +32,7 @@ export const PlayerPart = {
       if (p.tired && p.stamina > 0.25) p.tired = false;
     }
 
-    const speed = p.crouch ? 1.4 : sprint ? this.ab.sprint : 2.7 * (this.ab.boostT > 0 ? 1.25 : 1);
+    const speed = (p.crouch ? 1.4 : sprint ? this.ab.sprint : 2.7 * (this.ab.boostT > 0 ? 1.25 : 1)) * this.marks.slow(p.x, p.z);
     const sin = Math.sin(p.yaw), cos = Math.cos(p.yaw);
     let wx = -sin * f + cos * s, wz = -cos * f - sin * s;
     const wl = Math.hypot(wx, wz);
@@ -66,7 +66,8 @@ export const PlayerPart = {
     const p = this.p;
     const run = p.speed > 4;
     this.sfx.footstep(null, { vol: p.crouch ? 0.3 : run ? 1.1 : 0.65, surface: this.level.theme.surface });
-    this.noise((p.crouch ? 1 : run ? this.ab.sprintNoise : 3) * this.inc.stepScale, 'step');
+    const wet = this.marks.splash(p.x, p.z); // wading: every step splashes
+    this.noise((p.crouch ? 1 : run ? this.ab.sprintNoise : 3) * this.inc.stepScale * (wet ? 1.6 : 1), 'step');
   },
 
   // Something the mimic might hear, at my position.
@@ -149,7 +150,7 @@ export const PlayerPart = {
       best = it; bestDot = dot;
     }
     this.focus = best;
-    let custom = best && (this.obj.prompt(best) ?? this.scares.prompt(best));
+    let custom = best && (this.obj.prompt(best) ?? this.esc.prompt(best) ?? this.scares.prompt(best));
     if (best?.type === 'idoor') custom = this.level.idoors[best.i].open ? 'Close door' : 'Open door';
     if (custom !== undefined) { this.setPrompt(custom); return; }
     const text = {
@@ -172,7 +173,7 @@ export const PlayerPart = {
 
   interact() {
     const f = this.focus;
-    if (!f || this.obj.interact(f) || this.scares.interact(f)) return;
+    if (!f || this.obj.interact(f) || this.esc.interact(f) || this.scares.interact(f)) return;
     if (f.type === 'idoor') { this.send({ t: 'door', i: f.i }); return; }
     switch (f.type) {
       case 'unhide': this.exitHide(); break;
@@ -237,12 +238,12 @@ export const PlayerPart = {
     if (this.power) return;
     this.power = true;
     this.vs.powered(by);
-    this.items.find((i) => i?.type === 'exit').active = false;
+    this.items.find((i) => i?.type === 'exit').active = !!this.esc?.lift; // (a lift: call it at the exit)
     this.items.find((i) => i?.type === 'fusebox').active = false;
     for (const L of this.world.fixtures) L.mat.emissive.setHex(0xff1020);
     if (this.state === 'playing' || this.state === 'spectate') { this.sfx.alarm(); this.sfx.rumble(3.2); }
-    this.doorT = 0;
-    if (this.state === 'playing') this.toast('Power restored');
+    if (!this.esc?.lift) this.doorT = 0;
+    if (this.state === 'playing') this.toast(this.esc?.lift ? 'Power restored. Now call the lift.' : 'Power restored');
     this.updateObjective();
     if (this.isHost) {
       const ts = this.targets();
@@ -280,7 +281,7 @@ export const PlayerPart = {
     this.peekHud = Math.max(this.peekHud, 4); // something changed: show the HUD for a moment
     const o = this.hud.objective;
     o.classList.toggle('alarm', this.power);
-    if (this.power) { o.textContent = 'THE EXIT IS OPEN. RUN.'; return; }
+    if (this.power) { o.textContent = this.esc?.powerLine() || 'THE EXIT IS OPEN. RUN.'; return; }
     if (!this.obj) return;
     const lines = [];
     if (this.ns?.on || this.hs?.on) { // the night shift, hide and seek: nothing to do but last
@@ -291,7 +292,7 @@ export const PlayerPart = {
       lines.push(`Fuses found  ${this.fusesFound}/4  ·  in the panel  ${this.fusesIn}/4`);
       if (this.mp && this.fusesHeld) lines.push(`Carrying  ${this.fusesHeld}`);
     }
-    lines.push(...this.obj.lines());
+    lines.push(...this.obj.lines(), ...(this.esc?.lines() || []));
     if (this.rec?.line()) lines.push(this.rec.line());
     if (this.thr?.line()) lines.push(this.thr.line());
     if (this.vs?.line()) lines.unshift(this.vs.line());
@@ -320,6 +321,7 @@ export const PlayerPart = {
 
   // Why the power won't come on yet.
   missing() {
+    if (this.esc?.missing()) return this.esc.missing();
     if (this.level.tasks.fuses && this.fusesIn < 4) return `The panel needs ${4 - this.fusesIn} more fuse${4 - this.fusesIn > 1 ? 's' : ''}`;
     if (this.obj.gen.some((p) => p < 1)) return 'The generators are still dead';
     if (this.obj.tapesLeft) return 'Its tapes are still recording';

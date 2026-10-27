@@ -287,6 +287,18 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   from a spot nobody can see, in their body (`RemotePlayer` with their look and flashlight) and now and then their clips (`dbSay`). It
   ignores everything (walks through shut doors) until someone is within 2.5 m, holds a beam on it for 1.2 s, or the player it copies
   sees it: `turn` (`dbTurn`, its head comes round) then `chase` at 5.2 m/s for 7 s. `hostCatch(id, 'db')`, `snap.db`.
+- **Variety** (the owner said runs got repetitive). All picked from the seed with their own `mulberry32` streams, never inside level
+  generation (layouts and building codes don't change):
+  - `runs.js`: `pickRun(seed, kind)` -> `{ mood, twist }` (`game.run`; kind `plain` = mood + 70% a twist, `mood` for night shift / hide and
+    seek, `none` for stories, tutorial, the waiting room, Hunt). `applyRun` folds a mood (`MOODS`: speed, sight, talk, hunger, `stalk` x
+    lure cooldown, `chase` x give-up time, director `dir` weights and `pace`; `mimic.mood`) and a twist (`TWISTS`: dying / fog / vents
+    (`mimic.ventsOK`) / batteries / chatty / ears (`mimic.hearMul`)) into `game.diff`. The intro shows the twist; the end screen says what it was.
+  - `escape.js`: ordinary runs only. **code** (40%): a note item somewhere far (`note`: only the reader learns it) and a `keypad` by the
+    exit (number keys, or E if you read it); intent `keypad` -> `coded` / `codeBad`; `allDone` needs it. **lift** (35%): after power-on the
+    exit item stays active ("Call the lift"), intent `callLift` -> `liftCalled` (40 s, it hears it), then the host's `liftHere` opens the door.
+  - `landmarks.js`: 1-2 rooms (not the start or exit room): `flood` (water plane; `slow()` 0.68, `splash()` = louder steps), `collapse`
+    (rubble, a hole, falling dust), `shrine` (candles, chalk ring). Each has a local first-entry `moment`. Not in stories / tutorial / room.
+  - `stats.js`: `recordRun` keeps `fastest[place]`, `moods`, `twists` and returns `{ record, prev }` for the end screen.
 - `hideseek.js`: **Hide and seek** (online lobby Mode `hide`; Game option `hideSeek`). No jobs (`hideLevel`), panel and exit refuse, no
   director / hand-placed events / incidents, no revive tapes. Phase `hide` (60 s: the host keeps `mimic.frozen`), then the host
   broadcasts `hsPhase` (logged for rejoins): it's released (`graceT` 0), and every 18-26 s the host `huntHide`s a random hidden player

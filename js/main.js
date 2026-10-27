@@ -17,11 +17,12 @@ import { ACTIONS, binds, resetBinds, keyName, padName } from './binds.js';
 import { initTitle } from './title.js';
 import { TitleScene } from './title3d.js';
 import { bestNight, recordNight } from './nightshift.js';
+import { MOODS, TWISTS } from './runs.js';
 import { COATS, HATS, LIGHTS, DEFAULT_LOOK, cleanLook } from './look.js';
 import { Captions } from './captions.js';
 import { TUTORIAL } from './tutorial.js';
 import { drawRecap, PLAYER_COLORS } from './recap.js';
-import { recordRun, statRows, resetStats } from './stats.js';
+import { recordRun, statRows, resetStats, placeName } from './stats.js';
 import { buildingCode, parseCode } from './codes.js';
 import { renderGuide, newTape } from './guide.js';
 
@@ -533,7 +534,9 @@ $('btnReady').onclick = () => { readyShown = true; show('intro'); };
 function showIntro(themeId, story = null, introLines = null) {
   $('introKicker').textContent = story ? `Chapter ${story.index + 1}` : THEMES[themeId].kicker;
   $('introName').textContent = story ? story.title : game.level.name;
-  const lines = introLines || (story ? story.intro : ['The power is out. Get it back on, and get out.']);
+  let lines = introLines || (story ? story.intro : ['The power is out. Get it back on, and get out.']);
+  const tw = !story && game?.run?.twist ? TWISTS[game.run.twist]?.text : null; // tonight's twist
+  if (tw) lines = [...lines, tw];
   $('introText').innerHTML = lines.map((l) => `<p>${esc(lineText(l))}</p>`).join('');
   $('introWhisper').hidden = !!story;
   show(readyShown || params.has('autostart') ? 'intro' : 'ready');
@@ -726,9 +729,16 @@ function endRun(r) {
     $('btnAgain').textContent = 'Play for real';
     againAction = () => pickClass();
   }
+  // What it was tonight (it never says while you play), and whether that was your fastest way out of here.
+  const run = game?.run || {};
+  if (!r.tutorial && !r.story && MOODS[run.mood] && !(r.hunter && r.hunter === session?.id)) stats.push(['It was', `${MOODS[run.mood].name}. ${MOODS[run.mood].about}`]);
+  if (!r.tutorial && !r.story && run.twist) stats.push(['Tonight', TWISTS[run.twist].text]);
+  if (!r.tutorial) {
+    const rec = recordRun({ won: r.won, time: r.time, mp: !!r.mp, place: game?.level.theme.id, lures: r.lures, hunter: !!r.hunter && r.hunter === session?.id, mood: r.story ? null : run.mood, twist: r.story ? null : run.twist });
+    if (rec.record && !r.story) stats.push([`Fastest out of the ${placeName(game.level.theme.id).toLowerCase()}`, `${fmtTime(r.time)}${rec.prev ? ` (new record: was ${fmtTime(rec.prev)})` : ' (your first time out)'}`]);
+  }
   $('endStats').innerHTML = stats.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
   showRecap(r);
-  if (!r.tutorial) recordRun({ won: r.won, time: r.time, mp: !!r.mp, place: game?.level.theme.id, lures: r.lures, hunter: !!r.hunter && r.hunter === session?.id });
   offerClip(game?.clip);
   const ended = game;
   setTimeout(() => {
