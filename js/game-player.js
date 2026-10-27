@@ -150,7 +150,7 @@ export const PlayerPart = {
       best = it; bestDot = dot;
     }
     this.focus = best;
-    let custom = best && (this.obj.prompt(best) ?? this.esc.prompt(best) ?? this.scares.prompt(best));
+    let custom = best && (this.obj.prompt(best) ?? this.esc.prompt(best) ?? this.cl.prompt(best) ?? this.scares.prompt(best));
     if (best?.type === 'idoor') custom = this.level.idoors[best.i].open ? 'Close door' : 'Open door';
     if (custom !== undefined) { this.setPrompt(custom); return; }
     const text = {
@@ -173,7 +173,7 @@ export const PlayerPart = {
 
   interact() {
     const f = this.focus;
-    if (!f || this.obj.interact(f) || this.esc.interact(f) || this.scares.interact(f)) return;
+    if (!f || this.obj.interact(f) || this.esc.interact(f) || this.cl.interact(f) || this.scares.interact(f)) return;
     if (f.type === 'idoor') { this.send({ t: 'door', i: f.i }); return; }
     switch (f.type) {
       case 'unhide': this.exitHide(); break;

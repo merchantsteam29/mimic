@@ -19,12 +19,14 @@ const SECTIONS = [
     { name: 'The shadow', file: 'Subject 05', what: 'Online, if the host lets it in. A shape of darkness with two pale eyes. It lives where the lights are dead and can\'t step into a working light.',
       tells: 'Whispering, close by, in a dark room. Two small eyes where there shouldn\'t be any.',
       survive: 'Stay under working lights. Hold your flashlight on it and it burns away, for a while. Power cuts belong to it.' },
+    { name: 'The caller', file: 'Subject 07', what: 'Online, if the host lets it in. An old phone that wasn\'t there a minute ago, ringing on the floor near one of you. The voice on the line is usually someone it has already taken.',
+      tells: 'Ringing, close by. Every ring carries, and it comes to see.', survive: 'Answer it and you\'ll know where the next thing you need is, but it heard you pick up, so move. Or get well away before it comes.' },
     { name: 'The double', file: 'Subject 06', what: 'Online, if the host lets it in. It walks the way one of you walked a minute or two ago: their coat, their light, their steps, sometimes their voice. It is not them.',
       tells: 'It never looks at you. It walks through doors that are shut. Your friend is somewhere else, talking.',
       survive: 'Let it pass. Don\'t walk up to it, don\'t hold your light on it, and if it\'s wearing you, don\'t look at it. Once it turns round, run: it gives up after a few seconds.' },
   ]],
   ['hiding', 'Where to hide', [
-    { name: 'Lockers, wardrobes, fitting rooms, confessionals, padded cells', file: 'Hiding 01', what: 'If it saw you go in, it comes to the door and listens.',
+    { name: 'Lockers, wardrobes, fitting rooms, confessionals, padded cells, outhouses', file: 'Hiding 01', what: 'If it saw you go in, it comes to the door and listens.',
       tells: 'A heartbeat on the screen.', survive: 'Tap on the beat. Don\'t make a sound. One of them, somewhere, isn\'t empty.' },
     { name: 'Under a bed (or a cot)', file: 'Hiding 02', what: 'Low, and dark.', tells: 'You can only see the floor.',
       survive: 'Half the time it doesn\'t think to look. If it does, the heartbeat.' },
@@ -80,8 +82,9 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'alpha1-2026-10-26g';
+export const RELEASE = 'alpha1-2026-10-26h';
 const NOTES = [
+  ['We found the cabin. The phone inside was ringing. There are no phone lines out here.', 'A new place: the woods, outdoors, with a cabin to start in. And online, the Caller: answer the phone if you dare.'],
   ['It isn\'t the same every night. We think it gets bored.', 'It has moods now (you find out which at the end), and most nights one thing is different. Keypads, lifts, flooded rooms, and your fastest time out of each place.'],
   ['We wrote it all down for the new ones. Shorter this time. They never finish the long version.', 'A shorter tutorial that also covers hiding spots, throwing things and the tape recorder (How to play > Tutorial).'],
   ['It covered its eyes and counted to sixty. We heard it get to sixty.', 'Hide and seek (lobby Mode): a minute to hide, then it comes looking. Name tags over friends (Settings, off by default).'],

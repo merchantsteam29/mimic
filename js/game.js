@@ -33,6 +33,7 @@ import { Throwables } from './throwables.js';
 import { Versus } from './versus.js';
 import { Shadow } from './shadow.js';
 import { Double } from './double.js';
+import { Caller } from './caller.js';
 import { HideSeek, hideLevel } from './hideseek.js';
 import { Escape } from './escape.js';
 import { Landmarks } from './landmarks.js';
@@ -51,7 +52,7 @@ import { DeathPart } from './game-death.js';
 
 export { CUSTOM, ROOM } from './game-shared.js';
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null, teams = null, shadow = false, night = 0, double = false, hideSeek = false }) {
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null, teams = null, shadow = false, night = 0, double = false, hideSeek = false, caller = false }) {
     Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs, room, custom, themeId, seed });
     this.distort = 0;    // camcorder distortion, 0..1
     this.peekHud = 0;    // seconds the HUD stays visible after something changes
@@ -71,6 +72,14 @@ export class Game {
     this.hemiBase = 0.12; // (lightning flashes it brighter: incidents.js)
     this.hemi = new THREE.HemisphereLight(th.look === 'house' ? 0x6a5a48 : 0x56687a, 0x0a0806, this.hemiBase);
     scene.add(this.hemi);
+    if (th.outdoor) { // the woods: no ceiling, so a little cold moonlight gets through
+      this.hemiBase = 0.42;
+      this.hemi.color.setHex(0x6a7a9a);
+      this.hemi.intensity = this.hemiBase;
+      const moon = new THREE.DirectionalLight(0x8a9ac0, 0.35);
+      moon.position.set(level.N * 0.3, 30, level.N * 0.2);
+      scene.add(moon);
+    }
 
     this.camera = new THREE.PerspectiveCamera(settings.fov, innerWidth / innerHeight, 0.05, 80);
     this.camera.rotation.order = 'YXZ';
@@ -151,6 +160,7 @@ export class Game {
     this.sk = new Stalker(this, stalker && !hunter);   // online: the thing that only moves when unseen
     this.sd = new Shadow(this, shadow && !hunter);     // online: the thing that lives in the dark
     this.db = new Double(this, double && !hunter);     // online: the thing that walks where you walked
+    this.cl = new Caller(this, caller && !hunter);     // online: phones that ring with the voices of the taken
     if (this.hunt.on) this.status.set(hunter, 'hunter');
     if (story) this.mimic.graceT = story.grace;
     const base = DIFFICULTY[difficulty] || DIFFICULTY.normal;
@@ -345,6 +355,7 @@ export class Game {
     this.sk.dispose();
     this.sd.dispose();
     this.db.dispose();
+    this.cl.dispose();
     this.esc.dispose();
     this.marks.dispose();
     this.rec.dispose();
@@ -442,6 +453,7 @@ export class Game {
     this.sk.update(dt);
     this.sd.update(dt);
     this.db.update(dt);
+    this.cl.update(dt);
     if (this.state === 'playing' || this.state === 'spectate') this.rec.update(dt);
     this.thr.update(dt);
     if (this.state === 'playing' || this.state === 'spectate') this.inc.update(dt);

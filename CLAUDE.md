@@ -287,6 +287,16 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   from a spot nobody can see, in their body (`RemotePlayer` with their look and flashlight) and now and then their clips (`dbSay`). It
   ignores everything (walks through shut doors) until someone is within 2.5 m, holds a beam on it for 1.2 s, or the player it copies
   sees it: `turn` (`dbTurn`, its head comes round) then `chase` at 5.2 m/s for 7 s. `hostCatch(id, 'db')`, `snap.db`.
+- **Woods** theme (`forest`, look `house`, `outdoor: true`): no ceiling (a roof over the cabin = `rooms[0]`), `buildWoods` in level.js
+  draws the cabin's log walls (`tex.cabin`) and, elsewhere, an 8 m black thicket (`forestWall`) with instanced tree trunks along every
+  clearing and path; lantern posts for lights (`y` 1.9); props stump / logpile / rock / deadtree / tent / campfire, `outhouse` to hide in.
+  Outdoors: a moonlight hemisphere (`hemiBase` 0.42) + a dim directional light, and the mimic never takes to the ceiling. Ambience: wind
+  + crickets; `scares.updateWoods` (`sfx.snap`, branches closer, then sometimes your voice). Building code letter `W`.
+- `caller.js`: **the Caller**: online, **Normal mode only**, a lobby toggle (`session.setCaller`, `start` carries `cl`). Host, every 50-80 s
+  (first after ~70 s): `ring` {i (= `nextItem++`), x, z} puts a phone 4-9 m from a player who isn't hiding (item `phone`); every 3 s of
+  ringing the host makes noise there (14 m); after 12 s `ringEnd`. Intent `answer` (within 3 m) -> `answered` {by, key: a clip, the
+  dead preferred}: the answerer hears it (`playVoice(..., 'phone')`), then `reveal()` shows the nearest needed item through walls
+  for 12 s (a sprite, only for them) and says which way; the host sends the mimic to the phone (`investigate`) and tells the listener.
 - **Variety** (the owner said runs got repetitive). All picked from the seed with their own `mulberry32` streams, never inside level
   generation (layouts and building codes don't change):
   - `runs.js`: `pickRun(seed, kind)` -> `{ mood, twist }` (`game.run`; kind `plain` = mood + 70% a twist, `mood` for night shift / hide and

@@ -1,4 +1,4 @@
-// Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house, a hospital, a mall, a school, a hotel, a church or an asylum.
+// Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house, a hospital, a mall, a school, a hotel, a church, an asylum or the woods.
 // Also holds the collision, line-of-sight and path-finding the player and the mimic use.
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
@@ -92,6 +92,17 @@ export const THEMES = {
     fog: 0x020302, fogDensity: 0.085, reverb: [2.8, 0.45],
     props: ['bunk', 'bunk', 'restraint', 'tub', 'bunk', 'wheelchair', 'medcabinet', 'restraint'], hideProp: 'isolation', surface: 'hard',
   },
+  // Outdoors for once: clearings in the woods joined by paths, the trees too thick to walk through, no ceiling but the dark.
+  // You start in a log cabin (the spawn room has walls and a roof). Built like the house (lanterns, wooden gates, a key).
+  // Hide in an outhouse. Something snaps a branch out there, and calls you by your own voice.
+  forest: {
+    id: 'forest', look: 'house', outdoor: true, kicker: 'The woods, off the logging road',
+    names: ['Cabin 9, Blackmoor Forest', 'The Hollow, Pine Ridge', 'Camp Kestrel (closed for the season)', 'Mile 14, Old Logging Road'],
+    size: 30, roomSize: [4, 8], tries: 140, minRooms: 8,
+    light: 0xffa850, lightIntensity: 5, corridorLights: false, flicker: 0.5, broken: 0.45,
+    fog: 0x020304, fogDensity: 0.075, reverb: [1.2, 0.2],
+    props: ['stump', 'logpile', 'rock', 'deadtree', 'tent', 'stump', 'rock', 'campfire'], hideProp: 'outhouse', surface: 'wood',
+  },
 };
 
 // Footprint (w across the front, d front-to-back) of each prop, in metres. Front faces +z.
@@ -102,6 +113,8 @@ const PROP_DEFS = {
   gurney: { w: 0.9, d: 2.0 }, wheelchair: { w: 0.7, d: 0.8 }, ivstand: { w: 0.5, d: 0.5 }, curtain: { w: 1.9, d: 0.3 }, medcabinet: { w: 1.0, d: 0.45 },
   mannequin: { w: 0.6, d: 0.5 }, clothesrack: { w: 1.6, d: 0.6 }, counter: { w: 1.8, d: 0.8 }, bench: { w: 1.6, d: 0.6 }, planter: { w: 1.0, d: 1.0 },
   shoerack: { w: 1.6, d: 0.45 }, fittingroom: { w: 1.2, d: 1.0 }, vent: { w: 0.8, d: 0.12 },
+  stump: { w: 0.7, d: 0.7 }, logpile: { w: 1.6, d: 0.8 }, rock: { w: 1.0, d: 0.9 }, deadtree: { w: 0.8, d: 0.8 }, tent: { w: 1.6, d: 1.6 },
+  campfire: { w: 1.0, d: 1.0 }, outhouse: { w: 1.1, d: 1.1 },
   bunk: { w: 0.95, d: 1.95 }, restraint: { w: 0.8, d: 0.8 }, tub: { w: 0.9, d: 1.8 }, isolation: { w: 1.1, d: 1.0 },
   pew: { w: 1.9, d: 0.75 }, altar: { w: 1.6, d: 0.9 }, candelabra: { w: 0.6, d: 0.6 }, lectern: { w: 0.7, d: 0.6 }, statue: { w: 0.7, d: 0.7 },
   confessional: { w: 1.3, d: 1.0 },
@@ -648,6 +661,41 @@ function buildProp(type, M) {
       g.add(box(0.5, 0.12, 0.35, M.sheet, -0.3, 0.68, -0.7));
       g.add(box(1.4, 1.0, 0.08, M.darkWood, 0, 0.5, -0.95));
       break;
+    case 'stump':
+      g.add(cyl(0.3, 0.36, 0.45, M.bark, 0, 0.225, 0, 10), cyl(0.29, 0.29, 0.02, M.wood, 0, 0.455, 0, 10));
+      if (r() < 0.4) g.add(box(0.05, 0.03, 0.4, M.metal, 0.05, 0.47, 0)); // an axe head left in it
+      break;
+    case 'logpile':
+      for (let i = 0; i < 6; i++) { const l = cyl(0.12, 0.12, 1.5, M.bark, -0.45 + (i % 3) * 0.26 + (i > 2 ? 0.13 : 0), 0.12 + (i > 2 ? 0.22 : 0), 0, 8); l.rotation.z = Math.PI / 2; l.rotation.y = Math.PI / 2; g.add(l); }
+      break;
+    case 'rock': {
+      const rk = new THREE.Mesh(new THREE.DodecahedronGeometry(0.5, 0), M.stone);
+      rk.scale.set(1, 0.6, 0.85); rk.position.y = 0.25; rk.rotation.y = r() * 6;
+      g.add(shadowed(rk));
+      break;
+    }
+    case 'deadtree': { // a bare dead tree, branches like arms
+      g.add(cyl(0.12, 0.2, 3.2, M.bark, 0, 1.6, 0, 8));
+      for (let i = 0; i < 4; i++) { const b = cyl(0.03, 0.06, 1.1, M.bark, 0, 1.6 + i * 0.4, 0, 6); b.rotation.z = (i % 2 ? 1 : -1) * (0.8 + r() * 0.4); b.rotation.y = r() * 6; b.position.x += Math.sin(b.rotation.z) * -0.4; g.add(b); }
+      break;
+    }
+    case 'tent': { // a collapsed tent, half pegged
+      const t = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.1, 4, 1, true), M.tent);
+      t.position.y = 0.5; t.rotation.y = Math.PI / 4; t.rotation.z = 0.25; t.scale.set(1, 1, 1.3);
+      g.add(shadowed(t));
+      break;
+    }
+    case 'campfire': { // a ring of stones and burnt-out logs, still smoking (no light)
+      for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; g.add(box(0.18, 0.12, 0.14, M.stone, Math.cos(a) * 0.42, 0.06, Math.sin(a) * 0.42)); }
+      for (let i = 0; i < 3; i++) { const l = cyl(0.05, 0.05, 0.6, M.black, 0, 0.08, 0, 6); l.rotation.z = Math.PI / 2; l.rotation.y = i * 1.05; g.add(l); }
+      break;
+    }
+    case 'outhouse': // a wooden outhouse, the moon cut in the door. You can hide in it
+      g.add(box(1.0, 2.2, 0.05, M.wood, 0, 1.1, -0.5), box(1.1, 0.06, 1.1, M.darkWood, 0, 2.25, 0));
+      for (const x of [-0.5, 0.5]) g.add(box(0.05, 2.2, 1.0, M.wood, x, 1.1, 0));
+      g.add(box(0.9, 2.0, 0.05, M.darkWood, 0, 1.0, 0.5));
+      g.add(box(0.12, 0.12, 0.02, M.black, 0, 1.75, 0.53)); // the moon
+      break;
     case 'bunk': // an iron cot, a thin stained mattress, the straps still on it; room underneath to lie flat
       g.add(box(0.95, 0.04, 1.95, M.metal, 0, 0.42, 0));
       for (const x of [-0.45, 0.45]) for (const z of [-0.93, 0.93]) g.add(cyl(0.022, 0.022, 0.44, M.metal, x, 0.22, z, 6));
@@ -946,6 +994,35 @@ export function makeFuse(metal = new THREE.MeshStandardMaterial({ color: 0x8a909
   return holder;
 }
 
+// The woods instead of walls: the cabin's log walls around the room you start in; everywhere else a black thicket
+// (tall, so nothing shows over it) with tree trunks standing in front of it.
+function buildWoods(level, wallCells, tex, mat, group) {
+  const N = level.N, cab = level.rooms[0], m4 = new THREE.Matrix4(), r = mulberry32((level.seed ^ 0x7ee5) >>> 0);
+  const near = (x, z) => x >= cab.x - 1 && x <= cab.x + cab.w && z >= cab.z - 1 && z <= cab.z + cab.h;
+  const cabin = wallCells.filter(([x, z]) => near(x, z)), woods = wallCells.filter(([x, z]) => !near(x, z));
+  const logs = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, WALL_H, CELL), mat(tex.cabin, { color: 0x9a8a78 }), Math.max(1, cabin.length));
+  cabin.forEach(([x, z], i) => logs.setMatrixAt(i, m4.makeTranslation(center(x), WALL_H / 2, center(z))));
+  logs.count = cabin.length;
+  const H = 8;
+  const thicket = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, H, CELL), mat(tex.wall, { color: 0x6a7060 }), Math.max(1, woods.length));
+  woods.forEach(([x, z], i) => thicket.setMatrixAt(i, m4.makeTranslation(center(x), H / 2, center(z))));
+  thicket.count = woods.length;
+  logs.receiveShadow = thicket.receiveShadow = true;
+  group.add(logs, thicket);
+  // Trunks along the edge of every clearing and path.
+  const spots = [];
+  for (const [x, z] of woods) for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    const v = level.get(x + dx, z + dz);
+    if (v !== WALL && v !== undefined && r() < 0.8) spots.push([center(x) + dx * (CELL / 2 + 0.15) + (r() - 0.5) * 1.4 * Math.abs(dz), center(z) + dz * (CELL / 2 + 0.15) + (r() - 0.5) * 1.4 * Math.abs(dx), 0.3 + r() * 0.2]);
+  }
+  const trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.85, 1, H, 7), new THREE.MeshStandardMaterial({ color: 0x2a221a, roughness: 1 }), Math.max(1, spots.length));
+  const q = new THREE.Quaternion(), sc = new THREE.Vector3(), pos = new THREE.Vector3();
+  spots.forEach(([x, z, rad], i) => trunks.setMatrixAt(i, m4.compose(pos.set(x, H / 2, z), q, sc.set(rad, 1, rad))));
+  trunks.count = spots.length;
+  trunks.castShadow = trunks.receiveShadow = true;
+  group.add(trunks);
+}
+
 export function buildLevelScene(level) {
   const th = level.theme, N = level.N, S = N * CELL;
   const tex = makeTextures(th.id);
@@ -968,6 +1045,8 @@ export function buildLevelScene(level) {
     chalk: new THREE.MeshStandardMaterial({ map: tex.chalk, roughness: 0.9 }),
     stone: new THREE.MeshStandardMaterial({ color: 0x7a766c, roughness: 0.95 }),
     strap: new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.8 }),
+    bark: new THREE.MeshStandardMaterial({ color: 0x2e241c, roughness: 1 }),
+    tent: new THREE.MeshStandardMaterial({ color: 0x3a4a2e, roughness: 1, side: THREE.DoubleSide }),
     canvas: new THREE.MeshStandardMaterial({ color: 0x9a9278, roughness: 1 }),
     padded: new THREE.MeshStandardMaterial({ map: tex.padded, color: 0xd8d4c4, roughness: 1 }),
     altarCloth: new THREE.MeshStandardMaterial({ color: 0x6a1418, roughness: 1 }),
@@ -988,7 +1067,14 @@ export function buildLevelScene(level) {
   floor.rotation.x = -Math.PI / 2; floor.position.set(S / 2, 0, S / 2); floor.receiveShadow = true;
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(S, S), mat(tex.ceiling, { normalMap: tex.ceilingN, color: 0x9a968e }));
   ceil.rotation.x = Math.PI / 2; ceil.position.set(S / 2, WALL_H, S / 2); ceil.receiveShadow = true;
-  group.add(floor, ceil);
+  if (!th.outdoor) group.add(floor, ceil);
+  else { // the woods: the sky, and a roof over the cabin (the room you start in)
+    group.add(floor);
+    const cab = level.rooms[0], cw = cab.w * CELL, cd = cab.h * CELL;
+    const roof = new THREE.Mesh(new THREE.PlaneGeometry(cw + CELL * 2, cd + CELL * 2), mat(tex.cabin, { color: 0x6a5a48 }));
+    roof.rotation.x = Math.PI / 2; roof.position.set(cab.x * CELL + cw / 2, WALL_H, cab.z * CELL + cd / 2);
+    group.add(roof);
+  }
 
   // Walls: a box per wall cell that touches open space.
   const wallCells = [];
@@ -996,11 +1082,13 @@ export function buildLevelScene(level) {
     if (level.get(x, z) !== WALL) continue;
     if (DIRS.some(([dx, dz]) => level.get(x + dx, z + dz) !== WALL)) wallCells.push([x, z]);
   }
-  const walls = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, WALL_H, CELL), mat(tex.wall, { normalMap: tex.wallN, color: th.look === 'house' ? 0xffffff : 0xb8b4aa }), wallCells.length);
   const m4 = new THREE.Matrix4();
-  wallCells.forEach(([x, z], i) => walls.setMatrixAt(i, m4.makeTranslation(center(x), WALL_H / 2, center(z))));
-  walls.castShadow = walls.receiveShadow = true;
-  group.add(walls);
+  if (!th.outdoor) {
+    const walls = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, WALL_H, CELL), mat(tex.wall, { normalMap: tex.wallN, color: th.look === 'house' ? 0xffffff : 0xb8b4aa }), wallCells.length);
+    wallCells.forEach(([x, z], i) => walls.setMatrixAt(i, m4.makeTranslation(center(x), WALL_H / 2, center(z))));
+    walls.castShadow = walls.receiveShadow = true;
+    group.add(walls);
+  } else buildWoods(level, wallCells, tex, mat, group);
 
   // Furniture.
   for (const p of level.props) {
@@ -1016,7 +1104,12 @@ export function buildLevelScene(level) {
     const fm = new THREE.MeshStandardMaterial({ color: 0x222222, emissive: th.light, emissiveIntensity: 1, roughness: 0.5 });
     const x = l.cx * CELL, z = l.cz * CELL;
     const g = new THREE.Group();
-    if (th.look === 'facility') {
+    if (th.outdoor) { // a lantern on a post
+      g.add(box(0.1, 1.9, 0.1, M.darkWood, 0, 0.95, 0), box(0.5, 0.06, 0.06, M.darkWood, 0.2, 1.88, 0));
+      const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.2, 0.14), fm);
+      lamp.position.set(0.4, 1.72, 0);
+      g.add(lamp);
+    } else if (th.look === 'facility') {
       g.add(box(1.3, 0.08, 0.3, M.metal, 0, WALL_H - 0.04, 0));
       const tube = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.04, 0.2), fm);
       tube.position.y = WALL_H - 0.09;
@@ -1032,7 +1125,7 @@ export function buildLevelScene(level) {
     g.position.set(x, 0, z);
     g.traverse((o) => { o.castShadow = false; });
     group.add(g);
-    return { ...l, x, z, y: th.look === 'facility' ? WALL_H - 0.35 : WALL_H - 0.9, mat: fm, burst: 0, seed: Math.random() * 100 };
+    return { ...l, x, z, y: th.outdoor ? 1.9 : th.look === 'facility' ? WALL_H - 0.35 : WALL_H - 0.9, mat: fm, burst: 0, seed: Math.random() * 100 };
   });
 
   // Pickup spots come from the seed, so every player's copy of the level has them in the same place.

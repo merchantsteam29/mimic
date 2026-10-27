@@ -316,6 +316,24 @@ export class Scares {
     this.updatePhone(dt);
     this.updateBell(dt);
     this.updateCellDoor(dt);
+    this.updateWoods(dt);
+  }
+
+  // The woods: a branch snaps somewhere out in the dark, then another, closer. Sometimes your own voice, calling, from the trees.
+  updateWoods(dt) {
+    const g = this.g;
+    if (g.level.theme.id !== 'forest' || g.power) return;
+    this.woodT = (this.woodT ?? 45 + Math.random() * 30) - dt;
+    if (this.woodT > 0) return;
+    this.woodT = 70 + Math.random() * 60;
+    const p = g.p, a = Math.random() * Math.PI * 2;
+    this.woodEm ||= g.sfx.emitter();
+    [13, 9].forEach((d, i) => setTimeout(() => {
+      if (g.state !== 'playing') return;
+      this.woodEm.setPos(p.x + Math.cos(a) * d, 0.5, p.z + Math.sin(a) * d);
+      g.sfx.snap(this.woodEm);
+    }, i * 1600));
+    setTimeout(() => { if (g.state === 'playing' && Math.random() < 0.5) g.localSpeak('distant', this.woodEm); }, 4500);
   }
 
   // The asylum: a shut door nearby gets hammered on from the other side. Then, sometimes, your voice, asking.

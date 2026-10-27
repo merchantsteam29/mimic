@@ -593,6 +593,19 @@ export class Sfx {
       const mg = ctx.createGain(); mg.gain.value = 0.012;
       const mlp = ctx.createBiquadFilter(); mlp.type = 'lowpass'; mlp.frequency.value = 1800; // through a wall or two
       mon.connect(mlp).connect(mg).connect(bus); mon.start(); nodes.push(mon);
+    } else if (theme === 'forest') {
+      // Wind through the trees, rising and falling, and something like crickets far off.
+      const src = ctx.createBufferSource(); src.buffer = this.white; src.loop = true;
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 500; bp.Q.value = 0.6;
+      const wg = ctx.createGain(); wg.gain.value = 0.02;
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07; const lg = ctx.createGain(); lg.gain.value = 0.012;
+      lfo.connect(lg).connect(wg.gain); lfo.start(); nodes.push(lfo);
+      src.connect(bp).connect(wg).connect(bus); src.start(); nodes.push(src);
+      const cr = ctx.createOscillator(); cr.type = 'square'; cr.frequency.value = 4300;
+      const am = ctx.createOscillator(); am.frequency.value = 18; const amg = ctx.createGain(); amg.gain.value = 0.0015;
+      const cg = ctx.createGain(); cg.gain.value = 0; am.connect(amg).connect(cg.gain);
+      const chp = ctx.createBiquadFilter(); chp.type = 'highpass'; chp.frequency.value = 3000;
+      cr.connect(chp).connect(cg).connect(bus); cr.start(); am.start(); nodes.push(cr, am);
     } else if (theme === 'asylum') {
       // Old wiring humming in the walls, and water dripping somewhere, slow and steady.
       const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 50;
@@ -715,6 +728,14 @@ export class Sfx {
     const dest = emitter ? emitter.input : this.master, t = this.now;
     this._noise(dest, { t, dur: 0.4, type: 'lowpass', freq: 380, q: 0.8, peak: 1.2, attack: 0.05, buffer: this.brown });
     this._noise(dest, { t: t + 0.05, dur: 0.3, freq: 1800 + Math.random() * 600, q: 3, peak: 0.3, attack: 0.04 });
+  }
+
+  // A branch snapping, out in the dark.
+  snap(emitter = null) {
+    const d = emitter ? emitter.input : this.master, t = this.now;
+    this._noise(d, { t, dur: 0.07, type: 'highpass', freq: 1800, q: 0.7, peak: 0.35 });
+    this._noise(d, { t: t + 0.05, dur: 0.12, type: 'bandpass', freq: 700, q: 1.2, peak: 0.2 });
+    return true;
   }
 
   // A step in ankle-deep water (or something else wading).
