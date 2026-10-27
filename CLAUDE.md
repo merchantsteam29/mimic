@@ -126,7 +126,7 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   (`hooks.isLit`). Hiding makes it lose you faster. Alone, lures are disguised: `stranger` (pitched, over a bad phone line),
   `playStitch` (half of one clip plus half of another), and `ellie` in the story.
 - `#ready` ("Before you go in"): tips plus a brightness check (setting `bright` scales `toneMappingExposure`), shown before the first
-  intro of each session (`readyShown` in main.js). "Click to enter" / Resume / clicking the view ask for full screen; leaving it pauses.
+  intro on this device (`readyShown` in main.js, localStorage `mimic.ready`). "Click to enter" / Resume / clicking the view ask for full screen; leaving it pauses.
 - `classes.js` / `abilities.js`: classes (all free, no unlocks; G = ability). Brute: 2 flares (`flare`: host stuns
   the mimic for 4 s if it's within 8 m and in sight). Runner: sprints 6.2 m/s for 13 s, recovers fast, louder steps. Medic: 1 rescue
   (`rescue` on the teammate in front, or self; the host's `hostSave` turns their next catch into a stun plus `saved`). Tracker:
@@ -323,7 +323,7 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   ends it alone (`end(true)`) or broadcasts `out` with `dawn` for everyone alive. `nightRules(n)` multiplies the difficulty (speed, sight,
   hunger, battery, grace) up to night 8. Alone: the end screen offers the next night, or night 1 again; best in localStorage `mimic.nights`.
   Online: `session.night` (sent with `mode`, `start.night`); the host's end screen calls `setNight` (next night if anyone lasted, else 1).
-- **Map picker**: `#mapSolo` (class screen, `settings.map`, hidden for stories) and `#mapRoom` (lobby Settings tab; `session.map`, host
+- **Map picker**: `#mapSolo` (class screen, `settings.map`, hidden for stories) and `#mapRoom` (lobby Mode tab; `session.map`, host
   `setMap`, sent with `mode`): `'random'` or a theme id (`pickedTheme` in main.js). A building code still wins.
 - `escort.js`: **Escort** (online lobby Mode `escort`; `start` carries `lantern`, the first carrier, Game option `escort`). Nobody's flashlight
   works (`p.flashOn` false, `toggleFlash` refuses, no hand); one PointLight follows the carrier (their left hand), shuttered while they hide.
@@ -333,8 +333,14 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - **The one that worked** (recap.js): `recap.voice(key, buf)` notes each lure (where it was, how far everyone else was); 8 s later anyone 3 m+
   closer scores 1, anyone taken within 16 s scores 3. `best()`; `end.recap.b` {k, n, c} online (alone the buffer stays local). The end screen's
   `#bestClip` (main.js `bestClip`) says whose voice and plays it (`echo`), with "Hear it again". Not in stories or the tutorial.
-- **Clips over the network**: PeerJS delivers the `clip` message's `pcm` as a Uint8Array, so `receiveClip` copies its bytes out (it used to
-  require an ArrayBuffer and dropped every clip from other players).
+- **Clips over the network** (mp.js): 16 kHz **mu-law** (8-bit, `encodeClip` / `UNMU`), cut into 8 KB parts (`clip` {key, owner, n, of, pcm})
+  sent one per 45 ms from `clipQ` (`pumpClips`), because it's all one ordered channel and a whole clip in one message stalled snapshots
+  for a second. The host relays parts (paced too) and only accepts keys that start with the sender's id; `receiveClip` assembles them.
+  PeerJS delivers binary as a Uint8Array (`bytesOf`; until alpha1-2026-10-27b every clip from another player was dropped). The host's
+  `catchUp` sends newcomers the newest 12 clips of each player; each browser keeps 30 per player (`addClip`). On joining you share your last 20.
+- **Alpha**: the title has an ALPHA stamp (`.alpha-stamp`) and `#buildTag` (from `RELEASE` in guide.js); bug reports copy `RELEASE` too.
+- Menus: the lobby's Start / Walk around / Leave sit in a sticky `.lobby-bar`; the map picker is on the lobby's Mode tab; the "before you go
+  in" screen shows once per device (localStorage `mimic.ready`; brightness is in Settings).
 - **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
   on touch the objectives sit below the pause / jobs buttons.
 

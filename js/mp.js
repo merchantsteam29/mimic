@@ -1,8 +1,11 @@
 // A multiplayer session: the room (net.js), voice chat (vc.js), and everyone's voice clips.
 //
-// Clips: whenever a player's mic produces a clip (voice.js), it's squeezed to 16 kHz 16-bit and
+// Clips: whenever a player's mic produces a clip (voice.js), it's squeezed to 16 kHz 8-bit mu-law and
 // sent to the host, which passes it on to everyone. So every browser holds every player's clips,
 // and the host's mimic only has to say "play clip X" for everyone to hear it from the mimic.
+// Clips go in small parts, one every PACE ms, so they never hold up the game's own messages (it's
+// all one ordered channel: a whole clip in one message stalled everyone's movement for a second).
+// Newcomers get the clips already shared (the newest few of each player's).
 //
 // Game messages: clients send intents to the host (HOST_TYPES); the host runs the world and
 // broadcasts what happened. The Game handles both sides (hostHandle / onNet).
@@ -13,16 +16,26 @@ import { cleanLook } from './look.js';
 
 const HOST_TYPES = new Set(['st', 'noise', 'take', 'insert', 'escaped', 'work', 'bang', 'smash', 'unlock', 'lever', 'flare', 'rescue', 'sniffRes', 'door', 'trapped', 'fakeDone', 'jam', 'sab', 'accuse', 'ballot', 'mst', 'bite', 'msay', 'mlight', 'chat', 'haunt', 'radio', 'recDrop', 'sig', 'revive', 'throw', 'camFlash', 'keypad', 'callLift', 'answer', 'lanternTake']);
 const CLIP_RATE = 16000;
+const PART = 8000;        // bytes per part (half a second)
+const PACE = 45;          // ms between parts
+const KEEP = 30;          // clips kept per player (the oldest go)
+const CATCH_UP = 12;      // clips per player sent to a newcomer
+
+// mu-law: 8 bits a sample, and quiet sounds keep their detail.
+const MU = 255, LOG_MU = Math.log1p(MU);
+const UNMU = new Float32Array(256);
+for (let b = 0; b < 256; b++) { const x = (Math.pow(1 + MU, (b & 0x7f) / 127) - 1) / MU; UNMU[b] = b & 0x80 ? -x : x; }
 
 function encodeClip(buffer) {
   const src = buffer.getChannelData(0), ratio = buffer.sampleRate / CLIP_RATE;
-  const n = Math.floor(src.length / ratio), out = new Int16Array(n);
+  const n = Math.min(Math.floor(src.length / ratio), CLIP_RATE * 10), out = new Uint8Array(n);
   for (let i = 0; i < n; i++) {
-    const s = src[Math.floor(i * ratio)];
-    out[i] = Math.max(-1, Math.min(1, s)) * 32767;
+    const v = src[Math.floor(i * ratio)];
+    out[i] = (v < 0 ? 0x80 : 0) | Math.round((Math.log1p(MU * Math.min(1, Math.abs(v))) / LOG_MU) * 127);
   }
-  return out.buffer;
+  return out;
 }
+const bytesOf = (v) => (v instanceof ArrayBuffer ? new Uint8Array(v) : ArrayBuffer.isView(v) ? new Uint8Array(v.buffer, v.byteOffset, v.byteLength) : null);
 
 // The host's game settings, checked (they arrive over the network).
 const CHOICES = { voices: ['nearby', 'everywhere'], dark: ['light', 'normal', 'dark'], jobs: ['short', 'normal', 'long'], battery: ['plenty', 'normal', 'scarce'], speed: ['slow', 'normal', 'fast'] };
@@ -38,7 +51,10 @@ export class Session {
     this.voice = voice;
     this.net = new Net();
     this.vc = null;
-    this.clips = new Map(); // key -> { buffer, owner, plays }
+    this.clips = new Map(); // key -> { buffer, owner, plays, data (encoded, to pass on to newcomers) }
+    this.clipQ = [];        // parts waiting to go: { m, to (an id, or null = everyone), except }
+    this.partial = new Map(); // key -> { owner, of, got, parts } while a clip arrives
+    this.known = new Set();   // host: who has been sent the clips so far
     this.myClips = 0;
     this.lastKey = null;
     this.game = null;
@@ -64,7 +80,7 @@ export class Session {
   wire() {
     this.net.onRoster = (r) => {
       this.vc?.sync(r);
-      if (this.isHost) this.sendMode(); // newcomers learn the mode
+      if (this.isHost) { this.sendMode(); this.catchUp(r); } // newcomers learn the mode, and get the clips so far
       this.onRoster(r);
     };
     this.net.onClose = (why) => this.dropped(why);
@@ -115,8 +131,9 @@ export class Session {
     this.vc.sync(this.net.roster);
     if (again) return; // back after a drop: everything else is still set up
     // Share every clip I already have (the voice check), then new ones as they come.
-    for (const c of this.voice.clips) this.shareClip(c);
+    for (const c of this.voice.clips.slice(-20)) this.shareClip(c);
     this.voice.onClip = (c) => this.shareClip(c);
+    this.clipT = setInterval(() => this.pumpClips(), PACE);
     // Lobby voice: everyone hears everyone, flat. During a game the Game routes voices instead.
     this.lobbyT = setInterval(() => {
       if (this.game) return;
@@ -127,22 +144,66 @@ export class Session {
   shareClip(clip) {
     const key = `${this.id}:${this.myClips++}`;
     clip.key = key; // (the tape recorder sends it by this name)
-    this.clips.set(key, { buffer: clip.buffer, owner: this.id, plays: 0 });
-    const m = { t: 'clip', key, owner: this.id, pcm: encodeClip(clip.buffer) };
-    if (this.isHost) this.net.broadcast(m, { self: false });
-    else this.net.send(m);
+    const data = encodeClip(clip.buffer);
+    this.addClip(key, { buffer: clip.buffer, owner: this.id, plays: 0, data });
+    this.queueClip(key, this.id, data, null, null);
   }
 
+  // Cut a clip into parts and queue them (to: one player, or null for everyone; except: not to them).
+  queueClip(key, owner, data, to, except) {
+    const of = Math.max(1, Math.ceil(data.length / PART));
+    for (let n = 0; n < of; n++) this.clipQ.push({ m: { t: 'clip', key, owner, n, of, pcm: data.slice(n * PART, (n + 1) * PART) }, to, except });
+    if (this.clipQ.length > 600) this.clipQ.splice(0, this.clipQ.length - 600); // hopelessly behind: drop the oldest
+  }
+
+  pumpClips() {
+    const q = this.clipQ.shift();
+    if (!q) return;
+    if (!this.isHost) this.net.send(q.m);
+    else if (q.to) this.net.sendTo(q.to, q.m);
+    else this.net.broadcast(q.m, { except: q.except, self: false });
+  }
+
+  // Host: anyone new (or back) gets the clips they don't have yet.
+  catchUp(roster) {
+    for (const id of this.known) if (!roster.some((r) => r.id === id)) this.known.delete(id);
+    for (const r of roster) {
+      if (r.id === this.id || this.known.has(r.id)) continue;
+      this.known.add(r.id);
+      const byOwner = new Map();
+      for (const [key, c] of this.clips) if (c.owner !== r.id && c.data) (byOwner.get(c.owner) || byOwner.set(c.owner, []).get(c.owner)).push([key, c]);
+      for (const list of byOwner.values()) for (const [key, c] of list.slice(-CATCH_UP)) this.queueClip(key, c.owner, c.data, r.id, null);
+    }
+  }
+
+  addClip(key, c) {
+    this.clips.set(key, c);
+    const mine = [...this.clips.keys()].filter((k) => this.clips.get(k).owner === c.owner);
+    for (const k of mine.slice(0, Math.max(0, mine.length - KEEP))) this.clips.delete(k);
+  }
+
+  // A part of someone's clip arrived. When it's all here, it becomes a clip.
   receiveClip(m) {
-    // PeerJS hands binary over as a Uint8Array (not the ArrayBuffer that was sent).
-    const raw = m.pcm instanceof ArrayBuffer ? m.pcm : ArrayBuffer.isView(m.pcm) ? m.pcm.buffer.slice(m.pcm.byteOffset, m.pcm.byteOffset + m.pcm.byteLength) : null;
-    if (this.clips.has(m.key) || !raw || raw.byteLength % 2) return;
-    const pcm = new Int16Array(raw);
-    if (!pcm.length || pcm.length > CLIP_RATE * 10) return;
-    const buffer = this.sfx.ctx.createBuffer(1, pcm.length, CLIP_RATE);
+    const bytes = bytesOf(m.pcm), of = m.of | 0, n = m.n | 0, key = String(m.key);
+    if (this.clips.has(key) || !bytes || of < 1 || of > 30 || n < 0 || n >= of) return;
+    let a = this.partial.get(key);
+    if (!a) {
+      if (this.partial.size > 40) this.partial.delete(this.partial.keys().next().value);
+      this.partial.set(key, a = { owner: String(m.owner), of, got: 0, parts: [] });
+    }
+    if (a.parts[n]) return;
+    a.parts[n] = bytes.slice();
+    if (++a.got < a.of) return;
+    this.partial.delete(key);
+    const len = a.parts.reduce((t, b) => t + (b?.length || 0), 0);
+    if (!len || len > CLIP_RATE * 10) return;
+    const data = new Uint8Array(len);
+    let at = 0;
+    for (const b of a.parts) { data.set(b, at); at += b.length; }
+    const buffer = this.sfx.ctx.createBuffer(1, len, CLIP_RATE);
     const ch = buffer.getChannelData(0);
-    for (let i = 0; i < pcm.length; i++) ch[i] = pcm[i] / 32768;
-    this.clips.set(m.key, { buffer, owner: String(m.owner), plays: 0 });
+    for (let i = 0; i < len; i++) ch[i] = UNMU[data[i]];
+    this.addClip(key, { buffer, owner: a.owner, plays: 0, data });
   }
 
   // The mimic's choice of voice: mostly the dead (if anyone is), rarely-played clips first.
@@ -170,8 +231,12 @@ export class Session {
   handle(m, from) {
     if (!m || typeof m !== 'object') return;
     if (m.t === 'clip') {
-      if (this.isHost && from !== 'h') { m.owner = from; this.net.broadcast(m, { except: from, self: false }); }
-      this.receiveClip(m);
+      if (this.isHost && from !== 'h') { // pass it on (paced, like our own)
+        m.owner = from;
+        const bytes = bytesOf(m.pcm);
+        if (bytes && String(m.key).startsWith(`${from}:`)) this.clipQ.push({ m: { ...m, pcm: bytes.slice() }, to: null, except: from });
+      }
+      if (!this.isHost || String(m.key).startsWith(`${from}:`)) this.receiveClip(m);
       return;
     }
     if (m.t === 'start') { this.net.locked = true; this.lastStart = m; this.onStart(m); return; }
@@ -313,6 +378,7 @@ export class Session {
   dispose() {
     this.closing = true;
     clearInterval(this.lobbyT);
+    clearInterval(this.clipT);
     if (this.voice.onClip) this.voice.onClip = null;
     this.vc?.dispose();
     this.net.destroy();

@@ -111,7 +111,7 @@ Guess wrong, and it gets hungrier.
   it simply knows where one of you is. Whoever it hasn't found after four minutes wins; if it finds everyone, the last one found wins.
 - **Escort** (online, a lobby Mode): none of the flashlights work. One of you carries the only lantern and everyone else has to
   see by it; it's slower in its light. If it takes the carrier, the light goes out and someone has to pick the lantern up in the dark.
-- **Pick the map:** Random, or any building, on the class screen alone, or in the lobby's Settings tab for the host.
+- **Pick the map:** Random, or any building, on the class screen alone, or in the lobby's Mode tab for the host.
 - **The one that worked:** the end screen plays back the voice that fooled someone (they walked toward it, or it took them soon after).
 - **Name tags** (Settings, off by default): your friends' names over their heads, faint in the dark. Things wearing your friends
   get their names too.

@@ -24,7 +24,7 @@ import { TUTORIAL } from './tutorial.js';
 import { drawRecap, PLAYER_COLORS } from './recap.js';
 import { recordRun, statRows, resetStats, placeName } from './stats.js';
 import { buildingCode, parseCode } from './codes.js';
-import { renderGuide, newTape } from './guide.js';
+import { renderGuide, newTape, RELEASE } from './guide.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -150,13 +150,13 @@ const syncTags = () => document.querySelectorAll('#setTags button').forEach((b) 
 document.querySelectorAll('#setTags button').forEach((b) => { b.onclick = () => { settings.tags = b.dataset.c === 'on'; saveSettings(); syncTags(); }; });
 syncTags();
 
-// Feedback (beta): opens the Google Form in a new tab. The game version, device and what you were doing are copied to
+// Feedback (alpha): opens the Google Form in a new tab. The game version, device and what you were doing are copied to
 // the clipboard first, so a bug report can include them with one paste.
 const FEEDBACK_FORM = 'https://forms.gle/CG3PAo4xpdrp7y6u6';
 function sendFeedback() {
   const g = game, quality = settings.quality === 'auto' ? `auto (${settings.tier})` : settings.quality;
   const where = g ? `${g.level.theme.id} · ${session ? `online (${session.roster.length} players, ${session.mode})` : 'alone'} · ${g.state} · ${Math.floor(g.time)} s in` : 'on the menus';
-  const info = [`Mimic ${VERSION}`, `${controls.mode} · graphics ${quality} · voice ${settings.voiceMode}`, where, navigator.userAgent].join('\n');
+  const info = [`Mimic ${RELEASE} (${VERSION})`, `${controls.mode} · graphics ${quality} · voice ${settings.voiceMode}`, where, navigator.userAgent].join('\n');
   navigator.clipboard?.writeText(info).then(() => toastMenu('Game info copied: paste it into the form if it helps.')).catch(() => {});
   window.open(FEEDBACK_FORM, '_blank', 'noopener');
 }
@@ -232,6 +232,12 @@ initTitle({
     return !!c;
   },
 });
+
+// Alpha: say so, and which build this is (bug reports should say it too).
+{
+  const [, n, build] = RELEASE.match(/^alpha(\d+)-(.+)$/) || [];
+  $('buildTag').textContent = n ? `Alpha ${n} · build ${build}` : `Build ${RELEASE}`;
+}
 
 // Install as an app (Chrome / Edge / Android). iPhone: Share > Add to Home Screen.
 let installEvt = null;
@@ -529,15 +535,16 @@ function nightIntro(themeId, n) {
 
 const lineText = (l) => (typeof l === 'string' ? l : l.text);
 
-// The "before you go in" screen comes first, once per session.
-let readyShown = false;
+// The "before you go in" screen (tips + brightness) comes first, the first time on this device
+// (brightness is in Settings after that), so it's one click fewer every time after.
+let readyShown = (() => { try { return localStorage.getItem('mimic.ready') === '1'; } catch { return false; } })();
 function syncBright() {
   for (const id of ['setBright', 'readyBright']) { const el = $(id); el.value = settings.bright; el.nextElementSibling.textContent = `${Math.round(settings.bright * 100)}%`; }
   // The calibration shapes get the same boost the game's picture does.
   document.querySelector('.calib-shapes').style.filter = `brightness(${settings.bright * 1.3})`;
 }
 syncBright();
-$('btnReady').onclick = () => { readyShown = true; show('intro'); };
+$('btnReady').onclick = () => { readyShown = true; try { localStorage.setItem('mimic.ready', '1'); } catch { /* private mode */ } show('intro'); };
 
 function showIntro(themeId, story = null, introLines = null) {
   $('introKicker').textContent = story ? `Chapter ${story.index + 1}` : THEMES[themeId].kicker;

@@ -84,6 +84,9 @@ h2 { font-size: 30px; }
   91% { transform: translate(5px, -2px); clip-path: inset(60% 0 10% 0); }
   94% { transform: translate(-2px, 0); clip-path: inset(40% 0 35% 0); }
 }
+.logo-wrap { position: relative; display: inline-block; }
+.alpha-stamp { position: absolute; left: 100%; margin-left: -.3em; top: .4em; transform: rotate(9deg); font: 700 clamp(10px, 1.2vw, 15px) "Special Elite", monospace; letter-spacing: .28em; padding: 3px 6px 3px 10px; color: var(--red); border: 2px solid var(--red); border-radius: 3px; opacity: .85; background: rgba(10,6,6,.55); box-shadow: 0 0 12px rgba(196,26,50,.25); pointer-events: auto; }
+.fine.build { margin: 14px 0 0; letter-spacing: .12em; font-family: "Special Elite", monospace; opacity: .7; }
 .tag { font-family: "Special Elite", monospace; font-size: 20px; color: var(--dim); margin: 6px 0 34px; letter-spacing: .1em; }
 .buttons { display: flex; flex-direction: column; gap: 10px; align-items: stretch; max-width: 280px; margin: 22px auto 0; }
 button {
@@ -535,3 +538,16 @@ body.input-touch #objective { top: 112px; left: 20px; }
 #recentList li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 #recentList button { font-size: 12px; padding: 6px 10px; }
 #recentList span { font-size: 12px; color: var(--dim); }
+
+/* Lobby: Start / Leave stay in reach at the bottom while the tabs scroll. */
+.lobby-bar { position: sticky; bottom: -30px; margin: 10px -32px -30px; padding: 10px 32px 18px; background: linear-gradient(rgba(8,8,8,0), rgba(8,8,8,.96) 18px); z-index: 3; }
+.lobby-bar .buttons { margin-top: 6px; }
+#lobby .ltab[data-tab="mode"] .code-row { margin-top: 16px; }
+#customList .row { grid-template-columns: 1fr 250px; }
+#customList .row .seg { grid-column: 2; }
+#customList .seg button { padding: 6px 3px; font-size: 11px; min-width: 0; }
+@media (max-width: 480px) { #customList .row { grid-template-columns: 1fr; } #customList .row .seg { grid-column: 1; } .lobby-bar { margin: 10px -18px -22px; padding: 10px 18px 14px; bottom: -22px; } }
+.lobby-bar .buttons { flex-direction: row; flex-wrap: wrap; max-width: none; gap: 8px; }
+.lobby-bar .buttons button { flex: 1 1 120px; padding: 10px 8px; font-size: 12px; }
+.lobby-bar #btnStart { flex: 2 1 200px; font-size: 14px; }
+.lobby-bar #lobbyStatus { margin: 0; text-align: center; }
