@@ -70,8 +70,9 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'alpha1-2026-10-26e';
+export const RELEASE = 'alpha1-2026-10-26f';
 const NOTES = [
+  ['We wrote it all down for the new ones. Shorter this time. They never finish the long version.', 'A shorter tutorial that also covers hiding spots, throwing things and the tape recorder (How to play > Tutorial).'],
   ['It covered its eyes and counted to sixty. We heard it get to sixty.', 'Hide and seek (lobby Mode): a minute to hide, then it comes looking. Name tags over friends (Settings, off by default).'],
   ['I saw you in the east hall. You were in the west hall. You were with me.', 'A sixth creature online: the Double. It walks where one of you walked, looking just like them.'],
   ['Count the marks on the wall. Then count them again tomorrow.', 'A new place: a closed asylum. Hide under the cots or in a padded cell.'],

@@ -33,8 +33,9 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - `tutorial.js`: the **first-time tutorial** (offered once on the first Play alone, localStorage `mimic.tutorial`; also in How to
   play; `?autostart&tutorial`). A fixed small facility (`TUTORIAL`), steps with a coach line (`#coach`): move, flashlight, a battery
   moved near the start, Tab, say something (then your clip plays back from behind a wall), hide (a staged walk-up: `holds` = the
-  tutorial drives the mimic puppet; `quiet` = no director / events / scares), then `release()` wakes the AI and tips show the first
-  time things happen.
+  tutorial drives the mimic puppet; `quiet` = no director / events / scares), then a bottle and a tape recorder are moved next to you
+  (`place`) for a throw and a recording, then `release()` wakes the AI and tips show the first time things happen. Steps are merged
+  (move + flashlight, battery + Tab) and every gated step times out, so nobody gets stuck; `live` steps refresh their text each second.
 - `recap.js`: the **end-of-round recap**. The host samples everyone's and the mimic's position every 2 s, plus catches / escapes
   (`event`) and whose clips it used (`voice`); `end` carries `recap` (alone, `end()` passes it). `drawRecap` replays it on a map of
   the level on the end screen (`#recap`).

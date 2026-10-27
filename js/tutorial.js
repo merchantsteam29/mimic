@@ -1,8 +1,9 @@
-// The first-time tutorial: a small, quiet building and a coach line that teaches one thing at a time
-// (moving, the flashlight, batteries, the HUD, the voice, hiding). Until the last step the mimic is
-// parked out of the way, and the hiding lesson is staged: it walks up to your locker, sniffs, and
-// leaves. Then it wakes up for real and the run plays out like any other, with a few tips the first
-// time things happen. Alone only.
+// The first-time tutorial: a small, quiet building and a coach line that teaches a few things at a time
+// (moving and the flashlight, batteries and the HUD, the voice, hiding and the kinds of hiding spot, throwing
+// things, the tape recorder). Every step moves on by itself after a while, so nobody gets stuck. Until the last
+// step the mimic is parked out of the way, and the hiding lesson is staged: it walks up to your locker, sniffs,
+// and leaves. Then it wakes up for real and the run plays out like any other, with a few tips the first time
+// things happen. Alone only.
 import { controls, keyLabel } from './controls.js';
 import { binds, keyName } from './binds.js';
 
@@ -46,6 +47,8 @@ export class Tutorial {
     // The hiding spot nearest the start.
     this.hide = lv.props.filter((p) => p.hide).sort((a, b) => Math.hypot(a.x - sp.x, a.z - sp.z) - Math.hypot(b.x - sp.x, b.z - sp.z))[0];
     this.start = { x: g.p.x, z: g.p.z };
+    this.bottle = g.items.find((it) => it.type === 'throwable' && it.kind === 'bottle' && it.active);
+    this.recorder = g.items.find((it) => it.type === 'recorder' && it.active);
     this.flashFlips = 0;
     this.lastFlash = true;
     this.tabT = 0;
@@ -62,6 +65,16 @@ export class Tutorial {
     m.x = m.tx = at.x; m.z = m.tz = at.z; m.tx0 = 1;
     m.state = 'wander';
     m.model.root.visible = false;
+  }
+
+  // Move an item onto the floor a step or two from you, where you can see it.
+  place(it, min, max) {
+    const g = this.g, lv = g.level;
+    if (!it?.active) return;
+    const spot = [...Array(60)].map(() => lv.randomFloor((q) => { const d = Math.hypot(q.x - g.p.x, q.z - g.p.z); return d > min && d < max && lv.los(g.p.x, g.p.z, q.x, q.z); })).find(Boolean);
+    if (!spot) return;
+    it.x = spot.x; it.z = spot.z;
+    it.mesh.position.x = spot.x; it.mesh.position.z = spot.z;
   }
 
   say(html) {
@@ -90,34 +103,31 @@ export class Tutorial {
 
   get steps() {
     const g = this.g, k = (key) => `<kbd>${keyLabel(key)}</kbd>`;
+    const moved = () => Math.hypot(g.p.x - this.start.x, g.p.z - this.start.z);
     return this._steps ||= [
-      { text: moveText, done: () => Math.hypot(g.p.x - this.start.x, g.p.z - this.start.z) > 4 },
       {
-        text: () => `${k('F')} turns your flashlight off and on. Try it.<br><span>It helps you see. It also helps <i>it</i> see you, from twice as far.</span>`,
-        done: () => this.flashFlips >= 2,
+        text: () => `${moveText()}<br><span>${k('F')} turns your flashlight off and on. Try it: it helps you see, and it helps <i>it</i> see you, from twice as far.</span>`,
+        done: () => moved() > 3 && (this.flashFlips >= 2 || this.t > 20),
       },
       {
-        text: () => `The light runs on batteries. There's one on the floor nearby: look at it and press ${k('E')}.`,
-        done: () => !this.battery?.active,
-      },
-      {
-        text: () => `Press ${k('Tab')} to see your jobs and your battery. Press it again to hide them.`,
-        done: () => this.tabT > 0.6 || this.t > 25,
+        text: () => `Your light runs on batteries. There's one on the floor nearby: look at it and press ${k('E')}.<br><span>${k('Tab')} shows your battery and your jobs. ${k('Tab')} again hides them.</span>`,
+        done: () => !this.battery?.active || this.t > 30,
       },
       {
         enter: () => { this.clips0 = g.voice.clips.length; },
         text: () => (g.voice.started
           ? 'It copies voices. Everything you say, it records.<br><span>Say something out loud now. Anything.</span>'
           : 'It copies voices: with a microphone on, it records what you say and calls you with it.<br><span>Your microphone is off, so it can only whisper.</span>'),
-        done: () => (g.voice.started ? g.voice.clips.length > this.clips0 || this.t > 14 : this.t > 8),
+        done: () => (g.voice.started ? g.voice.clips.length > this.clips0 || this.t > 12 : this.t > 6),
       },
       ...(this.g.voice.started ? [{
-        enter: () => { this.echoT = 1.6; this.echoStep = this.step; },
+        enter: () => { this.echoT = 1.4; this.echoStep = this.step; },
         text: () => '…',
-        done: () => this.t > 9,
+        done: () => this.t > 7,
       }] : []),
       {
         enter: () => { this.hideSeen = false; },
+        live: true, // (the distance to the nearest hiding spot keeps updating)
         text: () => `Something is coming. Hide: look at a locker or a cupboard and press ${k('E')}.<span>${this.hideHint()}</span>`,
         done: () => !!g.p.hidden,
       },
@@ -127,9 +137,19 @@ export class Tutorial {
         done: () => this.walk?.done,
       },
       {
-        text: () => `It's gone. Press ${k('E')} to get out.`,
+        text: () => `It's gone. Press ${k('E')} to get out.<br><span>Every hiding spot is different. Under a bed, half the time it doesn't think to look. It can't follow you into a vent, but it hears you climb in. Behind a curtain, your feet show.</span>`,
         done: () => !g.p.hidden,
       },
+      ...(this.bottle ? [{
+        enter: () => { this.thrown = false; this.place(this.bottle, 1.5, 3); },
+        text: () => `There's a bottle on the floor near you. Pick it up (${k('E')}) and throw it far away (${k('H')}).<br><span>It goes to see what broke. That's how you get past it.</span>`,
+        done: () => this.thrown || this.t > 30,
+      }] : []),
+      ...(this.g.voice.started && this.recorder ? [{
+        enter: () => { this.recDone = false; this.place(this.recorder, 1.5, 3); },
+        text: () => `Last thing: a tape recorder. Pick it up, press ${k('X')} and say something, then ${k('X')} again to put it down.<br><span>It plays your voice three times, loudly. It will come to listen, somewhere you aren't.</span>`,
+        done: () => this.recDone || this.t > 40,
+      }] : []),
       {
         enter: () => this.release(),
         text: () => `That's it. It's awake now.<br><span>Find the 4 fuses, put them in the power panel, then get out. ${k('Tab')} shows what's left.</span>`,
@@ -193,12 +213,14 @@ export class Tutorial {
     this.t += dt;
     if (g.p.flashOn !== this.lastFlash) { this.lastFlash = g.p.flashOn; this.flashFlips++; }
     this.tabT = g.tabDown ? this.tabT + dt : 0;
+    if (g.thr.held) this.holding = true; else if (this.holding) { this.holding = false; this.thrown = true; }
+    if (g.rec.phase !== 'none') this.recording = true; else if (this.recording) { this.recording = false; this.recDone = true; }
     // Your own words come back, from somewhere you can't see.
     if (this.echoT > 0 && (this.echoT -= dt) <= 0) this.echo();
     const s = this.steps[this.step];
     if (s) {
       if (s.done()) this.next();
-      else if (this.step === this.steps.length - 4 && Math.floor(this.t) !== Math.floor(this.t - dt)) this.say(s.text()); // keep the distance fresh
+      else if (s.live && Math.floor(this.t) !== Math.floor(this.t - dt)) this.say(s.text()); // keep the distance fresh
       return;
     }
     // After the lessons: a tip the first time something happens.
