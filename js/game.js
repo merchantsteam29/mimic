@@ -209,7 +209,7 @@ export class Game {
       if (this.state === 'spectate' && !e.repeat && e.code === 'KeyR') { this.toggleFreeCam(); return; }
       if (this.state === 'spectate' && !e.repeat && (e.code === 'Space' || e.code === 'KeyE')) { if (this.freeCam) this.toggleFreeCam(); else this.specIdx++; return; }
       if (this.state === 'spectate' && this.freeCam) { this.keys.add(e.code); return; } // flying about
-      if (e.code === 'Tab') { e.preventDefault(); this.tabDown = true; return; } // hold Tab to see the HUD
+      if (e.code === 'Tab') { e.preventDefault(); if (!e.repeat) this.tabDown = !this.tabDown; return; } // Tab shows the HUD until Tab again
       if (this.state !== 'playing') return;
       if (e.code === 'Space') e.preventDefault();
       if (this.hunt.me) { if (!e.repeat && this.hunt.onKey(e.code)) return; this.keys.add(e.code); return; }
@@ -220,7 +220,7 @@ export class Game {
       if (e.code === 'KeyE') this.interact();
       if (e.code === 'KeyG') this.ab.use();
     };
-    this.onKeyUp = (e) => { this.keys.delete(e.code); if (e.code === 'Tab') this.tabDown = false; this.radio.onKey(e.code, false); };
+    this.onKeyUp = (e) => { this.keys.delete(e.code); this.radio.onKey(e.code, false); };
     this.onBlur = () => this.keys.clear();
     this.onMouse = (e) => {
       if ((this.state !== 'playing' && !this.freeCam) || this.menuOpen || (!document.pointerLockElement && !this.noLock)) return;

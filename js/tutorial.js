@@ -101,7 +101,7 @@ export class Tutorial {
         done: () => !this.battery?.active,
       },
       {
-        text: () => `Hold ${k('Tab')} to see your jobs and your battery.`,
+        text: () => `Press ${k('Tab')} to see your jobs and your battery. Press it again to hide them.`,
         done: () => this.tabT > 0.6 || this.t > 25,
       },
       {

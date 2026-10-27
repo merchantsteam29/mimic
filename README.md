@@ -103,7 +103,7 @@ Guess wrong, and it gets hungrier.
 It hates the light: under working lights it's slow, but in the dark it's faster than you.
 
 It all plays out through a camcorder: grainy VHS footage that tears apart when it gets close.
-Hold `Tab` to see your objectives.
+Press `Tab` to show your objectives (and again to hide them).
 
 Controls: `WASD` move, mouse look, `Shift` sprint, `C` crouch, `F` flashlight, `E` interact / hide (hold to
 repair), `G` class ability, `Space` skill checks and heartbeats, `Esc` pause.
