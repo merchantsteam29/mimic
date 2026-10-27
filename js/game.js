@@ -469,7 +469,7 @@ export class Game {
         r.status = 'alive'; r.hidden = -1; r.seen = true; r.flash = true; r.crouch = false; r.pitch = 0;
         r.tx = this.mimic.x; r.tz = this.mimic.z; r.tyaw = this.mimic.yaw + Math.PI;
       } else if (!this.alive(id)) r.status = 'gone';
-      r.update(dt, this.level.theme.surface, r === watching);
+      r.update(dt, this.surfaceFn ||= (x, z) => this.level.surfaceAt(x, z), r === watching);
       // Up close, something's wrong with how it holds its head.
       if (r === worn && Math.hypot(r.x - this.camera.position.x, r.z - this.camera.position.z) < 3.5) {
         r.head.rotation.z = 0.6 + Math.sin(this.t * 25) * 0.15;

@@ -5,6 +5,13 @@
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
+// What you hear far off, in each place (distant()).
+const DISTANT = {
+  facility: ['clank', 'vent', 'pipes', 'slam'], house: ['creak', 'creak', 'pipes', 'slam'], hospital: ['squeak', 'clank', 'vent', 'slam'],
+  mall: ['cart', 'clank', 'slam'], school: ['locker', 'locker', 'bell', 'creak'], hotel: ['ding', 'creak', 'pipes', 'slam'],
+  church: ['wings', 'creak', 'gust'], asylum: ['whimper', 'clank', 'pipes', 'slam'], forest: ['owl', 'gust', 'creak'],
+};
+
 function distortionCurve(k) {
   const n = 1024, c = new Float32Array(n);
   for (let i = 0; i < n; i++) {
@@ -156,8 +163,24 @@ export class Sfx {
       if (Math.random() < 0.35) this._noise(emitter ? emitter.input : this.master, { t: this.now + 0.12, dur: 0.3, freq: 2200, q: 2, peak: 0.08 * vol, attack: 0.08 });
       return;
     }
-    if (!heavy && this.rec(surface === 'wood' ? 'stepWood' : 'stepConcrete', emitter, { vol: 0.6 * vol })) return;
     const dest = emitter ? emitter.input : this.master;
+    if (!heavy && surface === 'dirt') { // leaves and dry twigs, a soft thud under them
+      const t = this.now;
+      for (let i = 0; i < 5; i++) this._noise(dest, { t: t + i * 0.017 + Math.random() * 0.012, dur: 0.025, freq: 2200 + Math.random() * 3000, q: 2.5, peak: 0.1 * vol });
+      if (!this.rec('stepWood', emitter, { vol: 0.28 * vol, rate: 0.7, lowpass: 500 })) this._noise(dest, { t, dur: 0.08, type: 'lowpass', freq: 260, peak: 0.3 * vol });
+      if (Math.random() < 0.07) this._noise(dest, { t: t + 0.05, dur: 0.03, type: 'highpass', freq: 2500, q: 0.7, peak: 0.25 * vol }); // a twig
+      return;
+    }
+    if (!heavy && surface === 'carpet') { // muffled
+      if (!this.rec('stepConcrete', emitter, { vol: 0.32 * vol, rate: 0.85, lowpass: 650 })) this._noise(dest, { dur: 0.09, type: 'lowpass', freq: 400, peak: 0.12 * vol });
+      return;
+    }
+    if (!heavy && surface === 'stone') { // hard, and it rings round the nave
+      if (!this.rec('stepConcrete', emitter, { vol: 0.66 * vol, rate: 0.92 })) this._noise(dest, { dur: 0.1, freq: 700, q: 1.2, peak: 0.24 * vol });
+      this._noise(this.send, { t: this.now + 0.02, dur: 0.07, freq: 1100, q: 1, peak: 0.09 * vol });
+      return;
+    }
+    if (!heavy && this.rec(surface === 'wood' ? 'stepWood' : 'stepConcrete', emitter, { vol: 0.6 * vol })) return;
     if (heavy) {
       this._noise(dest, { dur: 0.25, freq: 140 + Math.random() * 40, q: 0.9, peak: 0.9 * vol });
       this._tone(dest, { freq: 70, to: 40, dur: 0.18, peak: 0.5 * vol });
@@ -234,10 +257,18 @@ export class Sfx {
     this._tone(this.master, { t: t + 0.24, freq: 55, to: 38, dur: 0.2, peak: 0.29 * vol });
   }
 
+  // A low hit you feel more than hear (scares).
+  impact(peak = 0.7) {
+    const t = this.now;
+    this._tone(this.master, { t, freq: 62, to: 26, dur: 0.7, peak });
+    this._noise(this.master, { t, dur: 0.35, type: 'lowpass', freq: 220, q: 0.7, peak: peak * 0.8, buffer: this.brown });
+  }
+
   // Short dissonant hit when the mimic spots you.
   sting(emitter = null) {
     if (emitter) this.rec('snarl', emitter, { vol: 1.4, rate: 0.9 }); // it snarls when it sees you
     const t = this.now;
+    this.impact(0.35);
     [233, 247, 349].forEach((f) => this._tone(this.send, { t, type: 'sawtooth', freq: f, to: f * 0.92, dur: 1.6, peak: 0.05, attack: 0.02 }));
     this._noise(this.master, { t, dur: 0.6, freq: 5000, q: 0.6, peak: 0.12 });
   }
@@ -245,6 +276,7 @@ export class Sfx {
   // Jumpscare scream.
   screech() {
     this.rec('attack', null, { vol: 1.6, rate: 0.9, jitter: 0 });
+    this.impact(0.9);
     const ctx = this.ctx, t = this.now;
     const ws = ctx.createWaveShaper(); ws.curve = distortionCurve(60);
     const g = ctx.createGain();
@@ -731,6 +763,44 @@ export class Sfx {
   }
 
   // A branch snapping, out in the dark.
+  // Something far off, now and then: what you'd hear in this place (game-world updateAmbient).
+  distant(place, emitter) {
+    const d = emitter ? emitter.input : this.master, t = this.now;
+    const pick = (...a) => a[Math.floor(Math.random() * a.length)];
+    switch (pick(...(DISTANT[place] || ['creak']))) {
+      case 'clank': this.clank(emitter, 0.5); break;
+      case 'creak': this.creak(emitter, 0.5); break;
+      case 'slam': if (!this.rec('slam', emitter, { vol: 0.5, lowpass: 1400 })) this.clank(emitter, 0.4); break;
+      case 'pipes': // the pipes knock, one after another down the line
+        for (let i = 0; i < 4; i++) this._tone(d, { t: t + i * rand(0.18, 0.32), type: 'triangle', freq: rand(90, 140), to: 60, dur: 0.12, peak: 0.25 });
+        break;
+      case 'vent': // air through the ducts, rising and falling
+        this._noise(d, { t, dur: 3.5, type: 'bandpass', freq: 500, q: 0.6, peak: 0.18, attack: 1.4, buffer: this.brown });
+        break;
+      case 'squeak': // a gurney wheel, somewhere
+        for (let i = 0; i < 3; i++) this._tone(d, { t: t + i * 0.4, freq: rand(1700, 2100), to: rand(2200, 2600), dur: 0.16, peak: 0.05, attack: 0.03 });
+        break;
+      case 'ding': // the lift, arriving on another floor
+        this._tone(d, { t, type: 'triangle', freq: 1318, dur: 1.6, peak: 0.1 });
+        this._tone(d, { t: t + 0.35, type: 'triangle', freq: 1046, dur: 2, peak: 0.1 });
+        break;
+      case 'cart': // a trolley rolling on its own
+        for (let i = 0; i < 14; i++) this._noise(d, { t: t + i * 0.07 + Math.random() * 0.03, dur: 0.03, freq: rand(2500, 4500), q: 4, peak: 0.07 });
+        break;
+      case 'locker': if (!this.rec('metal', emitter, { vol: 0.55, rate: 0.9, lowpass: 1800 })) this.clank(emitter, 0.45); break;
+      case 'bell': this._tone(d, { t, type: 'sine', freq: 2093, dur: 2.5, peak: 0.04 }); this._tone(d, { t, freq: 3136, dur: 1.4, peak: 0.02 }); break; // a school bell, one ring, broken
+      case 'wings': // birds in the rafters
+        for (let i = 0; i < 9; i++) this._noise(d, { t: t + i * 0.05, dur: 0.04, freq: rand(500, 900), q: 1, peak: 0.12 });
+        break;
+      case 'whimper': if (!this.rec('moan', emitter, { vol: 0.6, rate: 1.35, lowpass: 1800 })) this.whisper(emitter); break;
+      case 'owl':
+        this._tone(d, { t, freq: 420, to: 390, dur: 0.35, peak: 0.12, attack: 0.08 });
+        this._tone(d, { t: t + 0.55, freq: 410, to: 370, dur: 0.6, peak: 0.12, attack: 0.08 });
+        break;
+      case 'gust': this._noise(d, { t, dur: 4, type: 'bandpass', freq: 900, q: 0.4, peak: 0.16, attack: 1.8 }); break;
+    }
+  }
+
   snap(emitter = null) {
     const d = emitter ? emitter.input : this.master, t = this.now;
     this._noise(d, { t, dur: 0.07, type: 'highpass', freq: 1800, q: 0.7, peak: 0.35 });

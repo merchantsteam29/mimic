@@ -1,7 +1,7 @@
 // You: moving, the camera, the flashlight, using things, hiding, the power and the HUD.
 // Part of Game (game.js): these methods are mixed into Game.prototype.
 import * as THREE from 'three';
-import { WALL_H } from './level.js';
+import { WALL_H, STEP_CARRY } from './level.js';
 import { keyLabel, rumble } from './controls.js';
 import { nameTag } from './remote.js';
 import { EYE, EYE_CROUCH, PLAYER_R, BATTERY_LIFE, clamp, angleDiff } from './game-shared.js';
@@ -65,9 +65,10 @@ export const PlayerPart = {
   footstep() {
     const p = this.p;
     const run = p.speed > 4;
-    this.sfx.footstep(null, { vol: p.crouch ? 0.3 : run ? 1.1 : 0.65, surface: this.level.theme.surface });
+    const surface = this.level.surfaceAt(p.x, p.z);
+    this.sfx.footstep(null, { vol: p.crouch ? 0.3 : run ? 1.1 : 0.65, surface });
     const wet = this.marks.splash(p.x, p.z); // wading: every step splashes
-    this.noise((p.crouch ? 1 : run ? this.ab.sprintNoise : 3) * this.inc.stepScale * (wet ? 1.6 : 1), 'step');
+    this.noise((p.crouch ? 1 : run ? this.ab.sprintNoise : 3) * this.inc.stepScale * (wet ? 1.6 : STEP_CARRY[surface] || 1), 'step');
   },
 
   // Something the mimic might hear, at my position.

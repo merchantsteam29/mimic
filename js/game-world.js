@@ -167,8 +167,7 @@ export const WorldPart = {
     this.ambientEmitter.setPos(p.x, 1.5, p.z);
     this.ambientEmitter.setOcclusion(!this.level.los(this.p.x, this.p.z, p.x, p.z));
     if (Math.random() < 0.35 && this.sfx.moan(this.ambientEmitter)) return; // something, far off, moaning
-    if (this.level.theme.look === 'facility') this.sfx.clank(this.ambientEmitter, 0.5);
-    else this.sfx.creak(this.ambientEmitter, 0.5);
+    this.sfx.distant(this.level.theme.id, this.ambientEmitter);
   },
 
   updateLights(dt) {

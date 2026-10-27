@@ -70,7 +70,7 @@ export const THEMES = {
     size: 30, roomSize: [3, 5], tries: 160, minRooms: 11,
     light: 0xffc27a, lightIntensity: 6.5, corridorLights: true, flicker: 0.35, broken: 0.35,
     fog: 0x030201, fogDensity: 0.085, reverb: [1.2, 0.24],
-    props: ['bed', 'bed', 'armchair', 'tvstand', 'dresser', 'luggagecart', 'table'], hideProp: 'wardrobe', surface: 'wood',
+    props: ['bed', 'bed', 'armchair', 'tvstand', 'dresser', 'luggagecart', 'table'], hideProp: 'wardrobe', surface: 'carpet',
   },
   // An old church and the rooms around it: the nave full of pews, side chapels, the vestry, the crypt stairs.
   // Built like the house (candle lamps, wooden doors, a key). Hide in the confessionals. The statues watch you.
@@ -80,7 +80,7 @@ export const THEMES = {
     size: 28, roomSize: [4, 8], tries: 130, minRooms: 8,
     light: 0xffb060, lightIntensity: 6, corridorLights: false, flicker: 0.5, broken: 0.4,
     fog: 0x030202, fogDensity: 0.08, reverb: [4.2, 0.6],
-    props: ['pew', 'pew', 'pew', 'candelabra', 'statue', 'altar', 'lectern', 'pew'], hideProp: 'confessional', surface: 'hard',
+    props: ['pew', 'pew', 'pew', 'candelabra', 'statue', 'altar', 'lectern', 'pew'], hideProp: 'confessional', surface: 'stone',
   },
   // A closed asylum: wards of iron cots off long tiled halls, treatment rooms, the isolation cells. Built like the
   // facility (tube lights, metal doors, keycards). Hide under the cots or in a padded cell. Doors bang from the other side.
@@ -101,7 +101,7 @@ export const THEMES = {
     size: 30, roomSize: [4, 8], tries: 140, minRooms: 8,
     light: 0xffa850, lightIntensity: 5, corridorLights: false, flicker: 0.5, broken: 0.45,
     fog: 0x020304, fogDensity: 0.075, reverb: [1.2, 0.2],
-    props: ['stump', 'logpile', 'rock', 'deadtree', 'tent', 'stump', 'rock', 'campfire'], hideProp: 'outhouse', surface: 'wood',
+    props: ['stump', 'logpile', 'rock', 'deadtree', 'tent', 'stump', 'rock', 'campfire'], hideProp: 'outhouse', surface: 'dirt',
   },
 };
 
@@ -435,6 +435,9 @@ const center = (c) => (c + 0.5) * CELL;
 //   curtain behind a curtain: quick, but your feet show: if it comes close, it has you
 export const HIDE_KIND = { bed: 'bed', bunk: 'bed', curtain: 'curtain', vent: 'vent' };
 
+// How far a footstep carries on each floor (x the usual step noise).
+export const STEP_CARRY = { carpet: 0.7, wood: 1, hard: 1, stone: 1.1, dirt: 1 };
+
 export class Level {
   constructor(data) {
     Object.assign(this, data);
@@ -497,6 +500,14 @@ export class Level {
   }
 
   cellOf(v) { return Math.floor(v / CELL); }
+
+  // What's underfoot here: the footstep sound (sfx.footstep) and how far a step carries (STEP_CARRY).
+  // Mostly the place's own floor; in the woods the cabin has boards and outside it's leaves and dirt.
+  surfaceAt(x, z) {
+    const th = this.theme;
+    if (th.outdoor) return this.roomId[this.cellOf(z) * this.N + this.cellOf(x)] === this.spawnRoom ? 'wood' : 'dirt';
+    return th.surface;
+  }
   get(cx, cz) { return cx < 0 || cz < 0 || cx >= this.N || cz >= this.N ? WALL : this.grid[cz * this.N + cx]; }
   blocksMove(cx, cz) { const v = this.get(cx, cz); return v === WALL || (v === EXIT && !this.exitOpen); }
   passable(cx, cz) { const v = this.get(cx, cz); return (v === FLOOR && !this.lockedDoor(cx, cz)) || (v === EXIT && this.exitOpen); }

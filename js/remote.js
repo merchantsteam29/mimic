@@ -82,7 +82,7 @@ export class RemotePlayer {
     this.stepDist += moved;
     if (this.visible && this.stepDist > (this.speed > 4 ? 1.4 : 0.9)) {
       this.stepDist = 0;
-      if (!this.crouch) this.sfx.footstep(this.emitter, { vol: this.speed > 4 ? 1 : 0.6, surface });
+      if (!this.crouch) this.sfx.footstep(this.emitter, { vol: this.speed > 4 ? 1 : 0.6, surface: typeof surface === 'function' ? surface(this.x, this.z) : surface });
     }
     this.root.visible = this.visible && !hideMesh;
     this.root.position.set(this.x, 0, this.z);
