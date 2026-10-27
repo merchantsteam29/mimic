@@ -619,6 +619,9 @@ function endRun(r) {
         if (t === 0 || t === 1) li.querySelector('.dot').style.background = T[t][1];
       });
     }
+    if (r.mode === 'story' && r.traitor && r.traitor === session?.id) { // you were the traitor: did it work?
+      $('endTitle').textContent = r.traitorWins ? 'It worked.' : 'They stopped you.';
+    }
     if (r.mode === 'story') { // the reveal
       $('endSub').textContent += r.traitor
         ? ` ${r.traitor === session?.id ? 'You were' : `${r.traitorName} was`} working for it. The traitor ${r.traitorWins ? 'wins' : 'loses'}.`
