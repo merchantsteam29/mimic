@@ -138,6 +138,7 @@ function loop(now) {
 // ---------- gamepad ----------
 const prev = [];
 const centred = new Map(); // pad index -> which axes have been seen at rest
+const prevAxes = new Map(); // pad index -> its axes last poll
 let navDir = null, navT = 0;
 
 function pollPad(dt, g) {
@@ -153,7 +154,12 @@ function pollPad(dt, g) {
   const rest = centred.get(pad.index) || centred.set(pad.index, []).get(pad.index);
   pad.axes.forEach((v, i) => { if (Math.abs(v) < DEAD) rest[i] = true; });
   const ax = (i) => { const v = pad.axes[i] || 0; return !rest[i] || Math.abs(v) < DEAD ? 0 : (v - Math.sign(v) * DEAD) / (1 - DEAD); };
-  if (now.some((v, i) => v && !prev[i]) || pad.axes.some((v, i) => rest[i] && Math.abs(v) > 0.5)) { setMode('pad'); lastPad = pad; }
+  // Only a change switches to the controller: a new press, or a stick being pushed (not one that's simply stuck out), so a
+  // stuck axis can't keep stealing the camera back from the mouse.
+  const was = prevAxes.get(pad.index) || [];
+  const pushed = pad.axes.some((v, i) => rest[i] && Math.abs(v) > 0.5 && !(Math.abs(was[i] ?? 0) > 0.5));
+  prevAxes.set(pad.index, [...pad.axes]);
+  if (now.some((v, i) => v && !prev[i]) || pushed) { setMode('pad'); lastPad = pad; }
   if (controls.mode !== 'pad') { prev.length = 0; prev.push(...now); return; }
 
   if (controls.capture?.kind === 'pad') { // settings: the next button pressed gets the binding
@@ -176,7 +182,7 @@ function gamePad(dt, g, { now, down, up, ax }) {
   let x = ax(0), y = ax(1);
   const mag = Math.min(1, Math.hypot(x, y));
   g.stick = mag > 0 ? { x, y } : null;
-  const lx = ax(2), ly = ax(3), s = g.settings.mouse;
+  const std = lastPad?.mapping === 'standard', lx = std ? ax(2) : 0, ly = std ? ax(3) : 0, s = g.settings.mouse;
   if (lx || ly) g.look(Math.sign(lx) * lx * lx * 3.4 * s * dt, Math.sign(ly) * ly * ly * 2.4 * s * dt);
 
   if (down(9)) { controls.onPause(); return; }
