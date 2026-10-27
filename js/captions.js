@@ -5,6 +5,10 @@
 
 // sfx method -> [index of the emitter argument, caption(args) or null to skip]
 const SOUNDS = {
+  speaker: [0, () => 'Snarling, through a speaker'],
+  holy: [0, () => 'A choir, one held note'],
+  lullaby: [0, () => 'Someone singing a lullaby'],
+  train: [0, () => 'A train coming'],
   footstep: [0, (e, o) => e && (o?.heavy ? 'Heavy footsteps' : 'Footsteps')],
   knock: [0, () => 'Knocking'],
   whisper: [0, () => 'Whispering'],

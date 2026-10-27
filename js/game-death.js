@@ -8,7 +8,7 @@ export const DeathPart = {
   // by: where the skinwalker got me (null = the mimic).
   caught(by = null) {
     if (this.state !== 'playing') return;
-    this.scareBy = by?.sw && this.sw.wearId ? this.sw : by?.ls && this.ls.on ? this.ls : by?.sk && this.sk.on ? this.sk : by?.sd && this.sd.on ? this.sd : by?.db && this.db.on ? this.db : null;
+    this.scareBy = by?.sw && this.sw.wearId ? this.sw : by?.ls && this.ls.on ? this.ls : by?.sk && this.sk.on ? this.sk : by?.sd && this.sd.on ? this.sd : by?.db && this.db.on ? this.db : by?.mo && this.mo.on ? this.mo : by?.tr && this.tr.on ? this.tr : null;
     if (!this.clip.recording) this.clip.start();
     this.hb.stop();
     this.obj.repairing = null;
@@ -33,6 +33,7 @@ export const DeathPart = {
     this.scare = m.ceiling || m.dropT > 0 ? 'above' : behind ? 'behind'
       : this.scareBy ? (r < 0.3 ? 'drag' : 'front')
         : r < 0.2 ? 'drag' : r < 0.42 ? 'dark' : r < 0.62 ? 'stare' : 'front';
+    if (by?.tr) this.scare = 'front'; // the train: straight on, lights blazing
     this.lunge = { dark: 1.0, stare: 1.8 }[this.scare] || 0; // how long before it strikes
     if (this.scare === 'behind' || this.scare === 'dark') this.sfx.sniff(this.scareBy ? this.scareBy.emitter : m.emitter);
     if (this.scare === 'stare') setTimeout(() => { if (this.state === 'caught') this.localSpeak('whisper', null); }, 250);
@@ -104,6 +105,8 @@ export const DeathPart = {
       this.sk.posed = false;
       this.sd.posed = false;
       this.db.posed = false;
+      this.mo.posed = false;
+      this.tr.posed = false;
       this.startSpectate();
     }
   },
@@ -181,7 +184,7 @@ export const DeathPart = {
     this.hud.signal.hidden = true;
     this.hud.root.hidden = false;
     this.renderer.domElement.style.filter = '';
-    this.mimic.frozen = false; this.sw.posed = this.ls.posed = this.sk.posed = this.sd.posed = this.db.posed = false; this.dragging = false; // (if it was mid-jumpscare)
+    this.mimic.frozen = false; this.sw.posed = this.ls.posed = this.sk.posed = this.sd.posed = this.db.posed = this.mo.posed = this.tr.posed = false; this.dragging = false; // (if it was mid-jumpscare)
     this.peekHud = 5;
     this.updateObjective();
     this.sfx.sting();

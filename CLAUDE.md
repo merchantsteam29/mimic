@@ -349,6 +349,26 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - **Alpha**: the title has an ALPHA stamp (`.alpha-stamp`) and `#buildTag` (from `RELEASE` in guide.js); bug reports copy `RELEASE` too.
 - Menus: the lobby's Start / Walk around / Leave sit in a sticky `.lobby-bar`; the map picker is on the lobby's Mode tab; the "before you go
   in" screen shows once per device (localStorage `mimic.ready`; brightness is in Settings).
+- **Subway** theme (`subway`, look `facility`, `tunnel: true`): `tryGenerate` lays `tunnel` {z, h: 4} straight across the map (a
+  platform row, two track rows, a platform row; rooms keep a cell away; joined to the nearest room each side). Only the subway consumes
+  rand for it, so other maps don't change. `Level.onTrack(x, z)`; `buildTrack` (gravel, rails, sleepers, yellow edge lines, black tunnel
+  mouths); props bench / vending / bin / mapboard / pillar, `ticketbooth` to hide in (box kind); `subwayWall` / `subwayFloor` /
+  `gravel` / `lineMap` (null elsewhere); ambience: tunnel rumble, tube buzz, drip; `DISTANT` screech. Code letter `U`.
+- `subway.js`: **the trains** (subway only, alone and online). Host every 75-115 s (first ~55-80 s): `train` {d}; everyone runs the same
+  timeline: `WARN` 6 s (`sfx.train`: rumble, horn; a glow in the tunnel mouth), then 3 cars at 22 m/s. Host: anyone on the track inside
+  the train -> `hostCatch(id, 'tr')` (the jumpscare is the train's front: `poseAt`, scare forced to `front`); the mimic on the track ->
+  `stun(5)`. `masking()`: while it passes, `noise` does nothing (client and host). Lights the station (`hemi`) as it goes by.
+- `mother.js`: **the Mother**: online, **Normal mode only**, a lobby toggle (`session.setMother`, `start` carries `mo`). Huge, slow (1.25 m/s),
+  can't fit through doorways: `findPath(..., blocked)` with the idoor and locked-door cells; when nobody is reachable she goes to the
+  nearest spot she can (`closest`) and, stuck there for 6 s, sings. Every 30-45 s she sings (`moSing` {keys}: up to 3 clips, the dead
+  first, `playVoice(..., 'sing')` (slowed, vibrato, an octave under) over `sfx.lullaby`); the host sends the mimic to her
+  (`investigate`). Takes anyone not hiding within 1.3 m (`hostCatch(id, 'mo')`). Stays 150 s, gone 50-80 s. `snap.mo`, `poseAt`.
+- **New classes** (abilities.js; `KIT` maps each request to its class, the host checks class and charges): **Sound guy** (`spkPut` ->
+  `spkSet`, then `spkPlay` -> `spkPlayed`, 3 plays: the host sends the mimic to the speaker and sets `shyT` 5, so it leaves a chase);
+  **Priest** (`cross` -> `crossed` {hit}: within 8 m and in sight, `flee` + scream; a miss refunds the charge; `walk` 0.88, `shaky` hand);
+  **Scout** (`mark` -> `marked`: a glow through walls for 20 s, one every 18 s; `steps` 0.55, `flash` 0.6 battery); **Mechanic**
+  (`repair` 1.7x generators, `wedge` -> `wedged` {i, s: 25}: `jamUntil` + `wedgeUntil`; the mimic hammers (`doorBang`) and gives up,
+  `steps` 1.25 + `sfx.clink`). Class numbers live in classes.js and are read through `ab.walk / stepMul / flashMul / repairMul / shaky`.
 - **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
   on touch the objectives sit below the pause / jobs buttons.
 

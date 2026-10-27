@@ -97,7 +97,7 @@ export class Objectives {
       case 'work': {
         const i = m.i | 0;
         if (!(i in this.gen) || this.gen[i] >= 1) return true;
-        this.gen[i] = Math.min(1, this.gen[i] + Math.min(0.06, Math.max(0, Number(m.a) || 0)));
+        this.gen[i] = Math.min(1, this.gen[i] + Math.min(0.1, Math.max(0, Number(m.a) || 0)));
         g.broadcast({ t: 'gen', i, p: +this.gen[i].toFixed(3) });
         return true;
       }
@@ -200,7 +200,7 @@ export class Objectives {
       if (!g.keys.has('KeyE') || !close || this.gen[r.i] >= 1 || g.state !== 'playing') { this.repairing = null; this.endSkill(); }
       else {
         if (!this.skill) {
-          this.workAcc += dt / REPAIR_TIME;
+          this.workAcc += (dt / REPAIR_TIME) * g.ab.repairMul; // (the Mechanic's much faster)
           this.skillT -= dt;
           if (this.skillT <= 0) this.startSkill();
         }

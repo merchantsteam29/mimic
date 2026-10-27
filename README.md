@@ -40,7 +40,10 @@ Guess wrong, and it gets hungrier.
   out. Restoring power sets off the alarm, and the mimic comes straight for you.
 - **Classes** (all free, pick one before each game, `G` to use): **Brute** (2 flares that blind and stun it),
   **Runner** (faster, longer sprint), **Medic** (one rescue: whoever gets it tears free from their next catch),
-  **Tracker** (a motion tracker that beeps faster as it gets closer, loudly).
+  **Tracker** (a motion tracker that beeps faster as it gets closer, loudly), **Sound guy** (a speaker: put it down, then play its own
+  noises through it from anywhere to pull it off a friend), **Priest** (a crucifix that makes it back off, 3 times; shaky hands, a slower
+  walk), **Scout** (marks what they look at for everyone for 20 s; quiet steps, a small battery) and **Mechanic** (fast generator repairs,
+  wedges doors shut for 25 s; clanking tools).
 - **Hiding:** lockers (facility) and wardrobes (house). It can't see you inside, but if it saw you
   get in, or hears you talk in there, it comes to the door and listens. Keep your heart steady (`Space` on each
   beat) and don't make a sound, or it rips the door open.
@@ -55,7 +58,7 @@ Guess wrong, and it gets hungrier.
   pickups are it. A body on the floor isn't where you left it. Mirrors show it standing behind you (usually it isn't).
   It opens doors, slowly. It gets hungrier over time, and lights die for good. When the power comes back, it changes.
   Online, it can walk around as a friend it took. Old tapes from people who came before tell you what happened to them.
-- **Random maps:** each run is a research facility, an old house, an abandoned hospital, a closed-down mall, a school at night, an old hotel, an abandoned church, a closed asylum or the woods, with a new layout every time.
+- **Random maps:** each run is a research facility, an old house, an abandoned hospital, a closed-down mall, a school at night, an old hotel, an abandoned church, a closed asylum, the woods or a subway station, with a new layout every time.
 - **Hunt** (online mode): one of you, picked at random, IS the mimic. You see in the dark, you see their flashlights, you
   see where they made noise through the walls, and you can call to them in any of their voices. Bite them, rip open their
   hiding spots, kill the lights. Everyone else plays the normal game against you. The mimic wins if fewer than half get out.
@@ -98,6 +101,11 @@ Guess wrong, and it gets hungrier.
 - **The Caller** (online, Normal mode, a lobby switch): an old phone appears near one of you and rings. Leave it and it rings
   loudly, and the mimic comes to see. Answer it and you hear someone it took, and for a moment you know where the next thing you
   need is. But it heard you pick up.
+- **The subway:** platforms either side of a track straight across the station, ticket halls and staff rooms off them, ticket
+  booths to hide in. The trains still run: a rumble, the horn, its lights in the tunnel, and anyone on the track is gone. Nothing
+  can hear you while one goes by, and one will knock the mimic flat.
+- **The Mother** (online, Normal mode, a lobby switch): huge and slow, and too big to fit through a doorway. Every so often she
+  stops and sings a lullaby in your voices, and the mimic comes to listen.
 - **The Double** (online, Normal mode, a lobby switch): it walks the routes one of you walked a minute ago, with their coat,
   flashlight, footsteps and voice. Get too close, hold a light on it, or see your own double, and it turns round.
 - **The asylum:** iron cots to hide under, padded cells to hide in, restraint chairs, tally marks on the walls, and doors that

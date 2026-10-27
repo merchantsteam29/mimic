@@ -1,4 +1,5 @@
-// Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house, a hospital, a mall, a school, a hotel, a church, an asylum or the woods.
+// Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house, a hospital, a mall, a school, a hotel, a church, an asylum,
+// the woods or a subway station.
 // Also holds the collision, line-of-sight and path-finding the player and the mimic use.
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
@@ -103,6 +104,17 @@ export const THEMES = {
     fog: 0x020304, fogDensity: 0.075, reverb: [1.2, 0.2],
     props: ['stump', 'logpile', 'rock', 'deadtree', 'tent', 'stump', 'rock', 'campfire'], hideProp: 'outhouse', surface: 'dirt',
   },
+  // A closed subway station: the line runs straight across the map, platforms either side of the track, ticket halls,
+  // staff rooms and stairs off them. Built like the facility (tube lights, metal doors, keycards). Hide in a ticket booth.
+  // The trains still run, and nobody's driving them (subway.js): don't be on the track when one comes.
+  subway: {
+    id: 'subway', look: 'facility', tunnel: true, kicker: 'Closed subway station',
+    names: ['Ashgrove Street Station', 'Kestrel Line · Platform 2', 'Holloway Junction', 'Pine Hills (closed since 1987)'],
+    size: 30, roomSize: [4, 7], tries: 170, minRooms: 8,
+    light: 0xe8f2ff, lightIntensity: 7.5, corridorLights: true, flicker: 0.5, broken: 0.4,
+    fog: 0x020203, fogDensity: 0.08, reverb: [3.6, 0.5],
+    props: ['bench', 'vending', 'bin', 'bench', 'mapboard', 'pillar', 'bin', 'vending'], hideProp: 'ticketbooth', surface: 'hard',
+  },
 };
 
 // Footprint (w across the front, d front-to-back) of each prop, in metres. Front faces +z.
@@ -118,6 +130,7 @@ const PROP_DEFS = {
   bunk: { w: 0.95, d: 1.95 }, restraint: { w: 0.8, d: 0.8 }, tub: { w: 0.9, d: 1.8 }, isolation: { w: 1.1, d: 1.0 },
   pew: { w: 1.9, d: 0.75 }, altar: { w: 1.6, d: 0.9 }, candelabra: { w: 0.6, d: 0.6 }, lectern: { w: 0.7, d: 0.6 }, statue: { w: 0.7, d: 0.7 },
   confessional: { w: 1.3, d: 1.0 },
+  vending: { w: 1.0, d: 0.8 }, bin: { w: 0.6, d: 0.6 }, mapboard: { w: 1.6, d: 0.2 }, pillar: { w: 0.7, d: 0.7 }, ticketbooth: { w: 1.3, d: 1.1 },
   armchair: { w: 0.9, d: 0.85 }, tvstand: { w: 1.1, d: 0.5 }, luggagecart: { w: 1.1, d: 0.6 },
   schooldesk: { w: 1.2, d: 1.1 }, teacherdesk: { w: 1.6, d: 0.8 }, chalkboard: { w: 1.9, d: 0.2 }, cubbies: { w: 1.6, d: 0.45 }, trophycase: { w: 1.4, d: 0.5 },
 };
@@ -145,12 +158,15 @@ function tryGenerate(seed, th, opts = {}) {
   const at = (x, z) => (x < 0 || z < 0 || x >= N || z >= N ? WALL : grid[z * N + x]);
   const set = (x, z, v) => { grid[z * N + x] = v; };
 
+  // The subway's line: four rows straight across (a platform, two rows of track, a platform).
+  const tunnel = th.tunnel ? { z: ri(Math.floor(N * 0.36), Math.floor(N * 0.52)), h: 4 } : null;
   // Rooms, with at least one wall cell between any two.
   const rooms = [];
   for (let t = 0; t < th.tries; t++) {
     const w = ri(th.roomSize[0], th.roomSize[1]), h = ri(th.roomSize[0], th.roomSize[1]);
     const x = ri(1, N - w - 1), z = ri(1, N - h - 1);
     if (rooms.some((r) => x < r.x + r.w + 1 && x + w + 1 > r.x && z < r.z + r.h + 1 && z + h + 1 > r.z)) continue;
+    if (tunnel && z < tunnel.z + tunnel.h + 1 && z + h + 1 > tunnel.z) continue;
     const room = { id: rooms.length, x, z, w, h, cx: x + (w >> 1), cz: z + (h >> 1) };
     rooms.push(room);
     for (let zz = z; zz < z + h; zz++) for (let xx = x; xx < x + w; xx++) { set(xx, zz, FLOOR); roomId[zz * N + xx] = room.id; }
@@ -181,6 +197,13 @@ function tryGenerate(seed, th, opts = {}) {
     const a = pick(rooms);
     const near = rooms.filter((r) => r !== a).sort((p, q) => dist(a, p) - dist(a, q)).slice(0, 3);
     carve(a, pick(near));
+  }
+  if (tunnel) { // the platforms and the track, joined to the nearest room on each side
+    for (let z = tunnel.z; z < tunnel.z + tunnel.h; z++) for (let x = 1; x < N - 1; x++) set(x, z, FLOOR);
+    for (const side of [rooms.filter((r) => r.cz < tunnel.z), rooms.filter((r) => r.cz >= tunnel.z + tunnel.h)]) {
+      const r = side.sort((a, b) => Math.abs(a.cz - tunnel.z) - Math.abs(b.cz - tunnel.z))[0];
+      if (r) carve(r, { cx: r.cx, cz: tunnel.z + (r.cz < tunnel.z ? 0 : tunnel.h - 1) });
+    }
   }
 
   const bfs = (sx, sz, passable = (v) => v === FLOOR) => {
@@ -422,7 +445,7 @@ function tryGenerate(seed, th, opts = {}) {
     seed, theme: th, name: pick(th.names), N, grid, roomId, rooms, props, fuses, batteries, lights,
     spawn: { cx: spawnRoom.cx, cz: spawnRoom.cz }, mimicSpawn: { cx: mimicRoom.cx, cz: mimicRoom.cz },
     exit, fuseBox: box, spawnRoom: spawnRoom.id, exitRoom: exitRoom.id,
-    tasks, gens, tapes, doors, keycard, idoors, fakeHide, decoy, mirrors, lore,
+    tasks, gens, tapes, doors, keycard, idoors, fakeHide, decoy, mirrors, lore, tunnel,
   };
 }
 
@@ -508,6 +531,11 @@ export class Level {
     if (th.outdoor) return this.roomId[this.cellOf(z) * this.N + this.cellOf(x)] === this.spawnRoom ? 'wood' : 'dirt';
     return th.surface;
   }
+  // The subway's track (the middle two rows of the tunnel): where a train will hit you.
+  onTrack(x, z) {
+    const t = this.tunnel, cz = this.cellOf(z);
+    return !!t && cz >= t.z + 1 && cz <= t.z + 2;
+  }
   get(cx, cz) { return cx < 0 || cz < 0 || cx >= this.N || cz >= this.N ? WALL : this.grid[cz * this.N + cx]; }
   blocksMove(cx, cz) { const v = this.get(cx, cz); return v === WALL || (v === EXIT && !this.exitOpen); }
   passable(cx, cz) { const v = this.get(cx, cz); return (v === FLOOR && !this.lockedDoor(cx, cz)) || (v === EXIT && this.exitOpen); }
@@ -569,7 +597,7 @@ export class Level {
   }
 
   // Breadth-first path over the grid, as world-space waypoints ending at the exact goal.
-  findPath(x1, z1, x2, z2) {
+  findPath(x1, z1, x2, z2, blocked = null) {
     const N = this.N;
     const sx = this.cellOf(x1), sz = this.cellOf(z1);
     let gx = this.cellOf(x2), gz = this.cellOf(z2);
@@ -589,6 +617,7 @@ export class Level {
         const nx = x + dx, nz = z + dz;
         if (!this.passable(nx, nz)) continue;
         const j = nz * N + nx;
+        if (blocked?.has(j)) continue;
         if (prev[j] < 0) { prev[j] = i; q.push(j); }
       }
     }
@@ -982,6 +1011,28 @@ function buildProp(type, M) {
       g.add(box(1.4, 0.04, 0.5, M.darkWood, 0, 1.92, 0), box(1.4, 0.02, 0.45, M.glass, 0, 1.35, 0));
       for (let x = -0.5; x < 0.55; x += 0.25) if (r() < 0.75) g.add(cyl(0.04, 0.06, 0.22, M.brass, x, 0.92, 0, 8), cyl(0.06, 0.03, 0.08, M.brass, x, 1.07, 0, 8));
       break;
+    case 'vending': { // a drinks machine, its front still faintly lit, half the rows empty
+      g.add(box(1.0, 1.9, 0.8, M.vend, 0, 0.95, 0), box(0.62, 1.3, 0.02, M.vendGlass, -0.12, 1.2, 0.41));
+      for (let y = 0.7; y < 1.8; y += 0.27) for (let x = -0.38; x < 0.15; x += 0.13) if (r() < 0.55) g.add(cyl(0.035, 0.035, 0.14, M.bottles[Math.floor(r() * 3)], x, y, 0.3, 6));
+      g.add(box(0.2, 0.5, 0.02, M.black, 0.33, 1.2, 0.41), box(0.5, 0.12, 0.05, M.black, -0.12, 0.3, 0.4));
+      break;
+    }
+    case 'bin':
+      g.add(cyl(0.24, 0.21, 0.8, M.metal, 0, 0.4, 0, 10), cyl(0.27, 0.27, 0.05, M.metal, 0, 0.82, 0, 10));
+      if (r() < 0.5) { const b = box(0.3, 0.12, 0.25, M.paper, 0.32, 0.06, 0.1); b.rotation.y = r() * 3; g.add(b); }
+      break;
+    case 'mapboard': // the line map in a frame on the wall, scratched, one stop circled over and over
+      g.add(box(1.6, 1.0, 0.05, M.metal, 0, 1.5, -0.05), box(1.5, 0.9, 0.01, M.lineMap, 0, 1.5, -0.02));
+      break;
+    case 'pillar': // a tiled column
+      g.add(box(0.7, WALL_H, 0.7, M.tile, 0, WALL_H / 2, 0));
+      break;
+    case 'ticketbooth': // a ticket booth: a window with a slot, a door at the side. You can hide in it
+      g.add(box(1.3, 2.4, 0.05, M.vend, 0, 1.2, -0.52), box(0.05, 2.4, 1.1, M.vend, -0.63, 1.2, 0), box(0.05, 2.4, 1.1, M.vend, 0.63, 1.2, 0));
+      g.add(box(1.3, 1.0, 0.06, M.vend, 0, 0.5, 0.52), box(1.2, 0.85, 0.02, M.glass, 0, 1.45, 0.52), box(1.3, 0.5, 0.06, M.vend, 0, 2.15, 0.52));
+      g.add(box(1.36, 0.05, 1.16, M.metal, 0, 2.42, 0), box(0.4, 0.04, 0.2, M.metal, 0, 1.0, 0.6));
+      g.add(box(0.9, 0.18, 0.02, M.boothSign, 0, 2.15, 0.56));
+      break;
     case 'wardrobe':
       g.add(box(1.25, 2.2, 0.75, M.darkWood, 0, 1.1, 0));
       g.add(box(0.015, 2.0, 0.01, M.black, 0, 1.1, 0.376));
@@ -1034,6 +1085,32 @@ function buildWoods(level, wallCells, tex, mat, group) {
   group.add(trunks);
 }
 
+// The subway: gravel and rails down the middle two rows, a yellow line along each platform edge, and black
+// tunnel mouths at both ends where the train comes out of the dark.
+function buildTrack(level, tex, M, group) {
+  const t = level.tunnel, N = level.N, x0 = CELL, x1 = (N - 1) * CELL, len = x1 - x0, mid = (x0 + x1) / 2;
+  const z0 = (t.z + 1) * CELL, z1 = (t.z + 3) * CELL, zc = (z0 + z1) / 2;
+  tex.gravel.repeat.set(len / 2, 2);
+  const bed = new THREE.Mesh(new THREE.PlaneGeometry(len, z1 - z0), new THREE.MeshStandardMaterial({ map: tex.gravel, roughness: 1 }));
+  bed.rotation.x = -Math.PI / 2; bed.position.set(mid, 0.012, zc); bed.receiveShadow = true;
+  group.add(bed);
+  const steel = new THREE.MeshStandardMaterial({ color: 0x6a645c, roughness: 0.35, metalness: 0.85 });
+  for (const dz of [-0.72, 0.72]) group.add(box(len, 0.12, 0.08, steel, mid, 0.06, zc + dz));
+  const n = Math.floor(len / 0.7), sleepers = new THREE.InstancedMesh(new THREE.BoxGeometry(0.24, 0.07, 2.1), new THREE.MeshStandardMaterial({ color: 0x2a2420, roughness: 1 }), n);
+  const m4 = new THREE.Matrix4();
+  for (let i = 0; i < n; i++) sleepers.setMatrixAt(i, m4.makeTranslation(x0 + 0.35 + i * 0.7, 0.035, zc));
+  sleepers.receiveShadow = true;
+  group.add(sleepers);
+  const yellow = new THREE.MeshStandardMaterial({ color: 0xb89a1a, roughness: 0.7 });
+  for (const z of [z0 + 0.12, z1 - 0.12]) group.add(box(len, 0.012, 0.18, yellow, mid, 0.008, z));
+  const dark = new THREE.MeshBasicMaterial({ color: 0x000000 });
+  for (const [x, ry] of [[x0 + 0.01, Math.PI / 2], [x1 - 0.01, -Math.PI / 2]]) {
+    const mouth = new THREE.Mesh(new THREE.PlaneGeometry(z1 - z0 + 0.4, WALL_H), dark);
+    mouth.position.set(x, WALL_H / 2, zc); mouth.rotation.y = ry;
+    group.add(mouth);
+  }
+}
+
 export function buildLevelScene(level) {
   const th = level.theme, N = level.N, S = N * CELL;
   const tex = makeTextures(th.id);
@@ -1068,6 +1145,11 @@ export function buildLevelScene(level) {
     deadLeaf: new THREE.MeshStandardMaterial({ color: 0x3a3220, roughness: 1, side: THREE.DoubleSide }),
     booth: new THREE.MeshStandardMaterial({ color: 0x4a1418, roughness: 1, side: THREE.DoubleSide }),
     books: [0x4a1c1c, 0x1c2f4a, 0x2f3a1c, 0x4a3b1c, 0x2a2a2a, 0x5a4a3a].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.9 })),
+    vend: new THREE.MeshStandardMaterial({ color: 0x5a1a16, roughness: 0.5, metalness: 0.3 }),
+    vendGlass: new THREE.MeshStandardMaterial({ color: 0x223038, emissive: 0x6a8a9a, emissiveIntensity: 0.25, roughness: 0.1, transparent: true, opacity: 0.55 }),
+    lineMap: new THREE.MeshStandardMaterial({ map: tex.lineMap, roughness: 0.6 }),
+    tile: new THREE.MeshStandardMaterial({ map: tex.wall, color: 0xb8b4aa, roughness: 0.6 }),
+    boothSign: new THREE.MeshStandardMaterial({ map: tex.booth, emissive: 0x101010, roughness: 0.6 }),
   };
 
   // Floor and ceiling: one plane each over the whole grid (walls hide the rest).
@@ -1100,6 +1182,7 @@ export function buildLevelScene(level) {
     walls.castShadow = walls.receiveShadow = true;
     group.add(walls);
   } else buildWoods(level, wallCells, tex, mat, group);
+  if (level.tunnel) buildTrack(level, tex, M, group);
 
   // Furniture.
   for (const p of level.props) {

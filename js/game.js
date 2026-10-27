@@ -34,6 +34,8 @@ import { Versus } from './versus.js';
 import { Shadow } from './shadow.js';
 import { Double } from './double.js';
 import { Caller } from './caller.js';
+import { Mother } from './mother.js';
+import { Subway } from './subway.js';
 import { Escort } from './escort.js';
 import { HideSeek, hideLevel } from './hideseek.js';
 import { Escape } from './escape.js';
@@ -53,7 +55,7 @@ import { DeathPart } from './game-death.js';
 
 export { CUSTOM, ROOM } from './game-shared.js';
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null, teams = null, shadow = false, night = 0, double = false, hideSeek = false, caller = false, escort = null }) {
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null, teams = null, shadow = false, night = 0, double = false, hideSeek = false, caller = false, escort = null, mother = false }) {
     Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs, room, custom, themeId, seed });
     this.distort = 0;    // camcorder distortion, 0..1
     this.peekHud = 0;    // seconds the HUD stays visible after something changes
@@ -152,6 +154,7 @@ export class Game {
       isLit: (x, z) => this.world.fixtures.some((L) => L.level > 0.5 && (!L.broken || this.power) && !L.dead && Math.hypot(L.x - x, L.z - z) < 3.2) || !!this.lan?.near(x, z),
       openDoor: (d) => this.broadcast({ t: 'doorSet', i: d.i, open: true, by: 'm' }),
       creakDoor: (d, fast) => this.broadcast({ t: 'creak', i: d.i, fast: fast ? 1 : 0 }),
+      bangDoor: (d) => this.broadcast({ t: 'doorBang', i: d.i }),
       onPeekSeen: () => {}, // each player notices a peek themselves (see watchPeek)
     });
     if (mp) { this.mimic.lureStyle = 'distant'; this.mimic.stalkRange = [9, 16]; }
@@ -162,6 +165,8 @@ export class Game {
     this.sd = new Shadow(this, shadow && !hunter);     // online: the thing that lives in the dark
     this.db = new Double(this, double && !hunter);     // online: the thing that walks where you walked
     this.cl = new Caller(this, caller && !hunter);     // online: phones that ring with the voices of the taken
+    this.mo = new Mother(this, mother && !hunter);     // online: the huge thing that sings in your voices
+    this.tr = new Subway(this);                        // the subway: trains that don't stop
     this.lan = new Escort(this, room ? null : escort);  // Escort mode: one lantern for everyone
     if (this.hunt.on) this.status.set(hunter, 'hunter');
     if (story) this.mimic.graceT = story.grace;
@@ -358,6 +363,8 @@ export class Game {
     this.sd.dispose();
     this.db.dispose();
     this.cl.dispose();
+    this.mo.dispose();
+    this.tr.dispose();
     this.lan.dispose();
     this.esc.dispose();
     this.marks.dispose();
@@ -457,6 +464,8 @@ export class Game {
     this.sd.update(dt);
     this.db.update(dt);
     this.cl.update(dt);
+    this.mo.update(dt);
+    this.tr.update(dt);
     this.lan.update(dt);
     if (this.state === 'playing' || this.state === 'spectate') this.rec.update(dt);
     this.thr.update(dt);
@@ -502,7 +511,7 @@ export class Game {
       const rows = [];
       if (mine) rows.push([this.me, ...mine]);
       for (const [id, r] of this.remotes) if (this.alive(id) && r.seen) rows.push([id, +r.tx.toFixed(2), +r.tz.toFixed(2), +r.tyaw.toFixed(2), +r.pitch.toFixed(2), r.crouch ? 1 : 0, r.flash ? 1 : 0, r.hidden]);
-      this.mp.net.broadcast({ t: 'snap', m: this.mimic.snap(), p: rows, sw: this.sw.on ? this.sw.snap() : undefined, ls: this.ls.on ? this.ls.snap() : undefined, sk: this.sk.on ? this.sk.snap() : undefined, sd: this.sd.on ? this.sd.snap() : undefined, db: this.db.on ? this.db.snap() : undefined }, { self: false });
+      this.mp.net.broadcast({ t: 'snap', m: this.mimic.snap(), p: rows, sw: this.sw.on ? this.sw.snap() : undefined, ls: this.ls.on ? this.ls.snap() : undefined, sk: this.sk.on ? this.sk.snap() : undefined, sd: this.sd.on ? this.sd.snap() : undefined, db: this.db.on ? this.db.snap() : undefined, mo: this.mo.on ? this.mo.snap() : undefined }, { self: false });
     } else if (mine) this.send({ t: 'st', s: mine });
   }
 

@@ -32,7 +32,7 @@ export const PlayerPart = {
       if (p.tired && p.stamina > 0.25) p.tired = false;
     }
 
-    const speed = (p.crouch ? 1.4 : sprint ? this.ab.sprint : 2.7 * (this.ab.boostT > 0 ? 1.25 : 1)) * this.marks.slow(p.x, p.z);
+    const speed = (p.crouch ? 1.4 : sprint ? this.ab.sprint : 2.7 * (this.ab.boostT > 0 ? 1.25 : 1)) * this.marks.slow(p.x, p.z) * this.ab.walk;
     const sin = Math.sin(p.yaw), cos = Math.cos(p.yaw);
     let wx = -sin * f + cos * s, wz = -cos * f - sin * s;
     const wl = Math.hypot(wx, wz);
@@ -68,12 +68,14 @@ export const PlayerPart = {
     const surface = this.level.surfaceAt(p.x, p.z);
     this.sfx.footstep(null, { vol: p.crouch ? 0.3 : run ? 1.1 : 0.65, surface });
     const wet = this.marks.splash(p.x, p.z); // wading: every step splashes
-    this.noise((p.crouch ? 1 : run ? this.ab.sprintNoise : 3) * this.inc.stepScale * (wet ? 1.6 : STEP_CARRY[surface] || 1), 'step');
+    this.noise((p.crouch ? 1 : run ? this.ab.sprintNoise : 3) * this.inc.stepScale * (wet ? 1.6 : STEP_CARRY[surface] || 1) * this.ab.stepMul, 'step');
+    if (this.ab.id === 'mechanic' && !p.crouch) this.sfx.clink(); // the tools on their belt
   },
 
   // Something the mimic might hear, at my position.
   noise(radius, kind) {
     const p = this.p;
+    if (this.tr.masking()) return; // a train going by drowns everything
     if (this.isHost) {
       if (kind === 'voice' && p.hidden && Math.hypot(this.mimic.x - p.x, this.mimic.z - p.z) < Math.min(radius, 8)) this.mimic.foundHidden(p.hidden, this.me);
       else this.mimic.hear(p.x, p.z, radius, kind);
@@ -111,7 +113,7 @@ export const PlayerPart = {
     const p = this.p;
     let on = !this.hunt.me && ((p.flashOn && p.battery > 0 && !p.hidden && !this.lan.on) || this.state === 'caught');
     if (this.state === 'spectate') on = !!this.specTarget()?.flash;
-    if (on && this.state === 'playing') p.battery = Math.max(0, p.battery - (dt * 100) / (BATTERY_LIFE * this.diff.battery));
+    if (on && this.state === 'playing') p.battery = Math.max(0, p.battery - (dt * 100) / (BATTERY_LIFE * this.diff.battery * this.ab.flashMul));
     let I = on ? (this.state === 'caught' ? 20 : 42) : 0; // a little dimmer in its face, so it isn't washed out
     if (this.state === 'caught' && this.scare === 'dark') { // the light dies, then stutters back on with it in your face
       if (this.ct < 0.85) I = 0;
@@ -127,7 +129,7 @@ export const PlayerPart = {
     const c = this.camera;
     const fwd = c.getWorldDirection(new THREE.Vector3());
     this.flashDir.lerp(fwd, 1 - Math.exp(-dt * 16)).normalize();
-    this.hand.update(dt, { yaw: p.yaw, pitch: p.pitch, bob: p.bob, speed: p.speed, fear: this.fear, on: on && I > 0, visible: this.state === 'playing' && !p.hidden && !this.hunt.me && !this.lan.on });
+    this.hand.update(dt, { yaw: p.yaw, pitch: p.pitch, bob: p.bob, speed: p.speed, fear: Math.min(1, this.fear + this.ab.shaky), on: on && I > 0, visible: this.state === 'playing' && !p.hidden && !this.hunt.me && !this.lan.on });
     this.flash.position.copy(this.state === 'playing' && !p.hidden ? this.hand.lensWorld(new THREE.Vector3()) : c.localToWorld(new THREE.Vector3(0.12, -0.12, 0.05)));
     this.flash.target.position.copy(this.flash.position).addScaledVector(this.flashDir, 5);
     this.hud.batteryBar.style.width = `${p.battery}%`;

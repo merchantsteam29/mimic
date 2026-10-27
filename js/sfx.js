@@ -10,6 +10,7 @@ const DISTANT = {
   facility: ['clank', 'vent', 'pipes', 'slam'], house: ['creak', 'creak', 'pipes', 'slam'], hospital: ['squeak', 'clank', 'vent', 'slam'],
   mall: ['cart', 'clank', 'slam'], school: ['locker', 'locker', 'bell', 'creak'], hotel: ['ding', 'creak', 'pipes', 'slam'],
   church: ['wings', 'creak', 'gust'], asylum: ['whimper', 'clank', 'pipes', 'slam'], forest: ['owl', 'gust', 'creak'],
+  subway: ['screech', 'vent', 'clank', 'pipes', 'screech'],
 };
 
 function distortionCurve(k) {
@@ -343,13 +344,23 @@ export class Sfx {
     } else if (style === 'phone') { // your own voice, down a telephone line
       rate = rand(0.98, 1.0); vol = 1.5; ws.curve = distortionCurve(8); hp.frequency.value = 320; lp.frequency.value = 3300; pk.frequency.value = 1200; pk.gain.value = 6; wet.gain.value = 0.15;
     } else if (style === 'ellie') { rate = 1.2; vol = 1.2; ws.curve = distortionCurve(2); lp.frequency.value = 6000; wet.gain.value = 0.4; }
+    else if (style === 'sing') { rate = 0.74; vol = 1.1; ws.curve = distortionCurve(2); hp.frequency.value = 120; lp.frequency.value = 3200; wet.gain.value = 1; }
     else { rate = rand(0.955, 1.01); vol = 1.15; ws.curve = distortionCurve(3); }
     out.gain.value = vol;
 
     const sources = [];
+    let vib = null;
+    if (style === 'sing') { // a slow wobble in the pitch, like someone singing who can't hold the note
+      vib = ctx.createOscillator(); vib.frequency.value = 5.2;
+      const depth = ctx.createGain(); depth.gain.value = 45; // cents
+      vib.connect(depth);
+      vib.depth = depth;
+      vib.start();
+    }
     const play = (when, offset, dur, r, gain = 1, node = hp) => {
       const s = ctx.createBufferSource();
       s.buffer = buffer; s.playbackRate.value = r;
+      if (vib) vib.depth.connect(s.detune);
       const g = ctx.createGain(); g.gain.value = gain;
       s.connect(g).connect(node);
       if (dur === undefined) s.start(when, offset); else s.start(when, offset, dur);
@@ -358,15 +369,16 @@ export class Sfx {
 
     let at = t0;
     // The tell: sometimes it stutters on the first syllable, like a skipping recording.
-    if (style !== 'echo' && style !== 'whisper' && style !== 'tape' && Math.random() < 0.35 && buffer.duration > 0.6) {
+    if (style !== 'echo' && style !== 'whisper' && style !== 'tape' && style !== 'sing' && Math.random() < 0.35 && buffer.duration > 0.6) {
       const seg = Math.min(buffer.duration * 0.3, rand(0.12, 0.22));
       const reps = Math.random() < 0.3 ? 2 : 1;
       for (let i = 0; i < reps; i++) { play(at, 0, seg, rate); at += seg / rate + 0.02; }
     }
     play(at, 0, undefined, rate);
     if (style === 'scream') play(at, 0, undefined, rate * 0.5, 0.7); // the voice underneath
-    const total = at - t0 + buffer.duration / (style === 'scream' ? rate * 0.5 : rate);
-    setTimeout(() => { try { out.disconnect(); wet.disconnect(); } catch { /* ignore */ } }, (total + 4) * 1000);
+    if (style === 'sing') play(at + 0.05, 0, undefined, rate * 0.5, 0.5); // and an octave under it
+    const total = at - t0 + buffer.duration / (style === 'scream' || style === 'sing' ? rate * 0.5 : rate);
+    setTimeout(() => { try { out.disconnect(); wet.disconnect(); vib?.stop(); } catch { /* ignore */ } }, (total + 4) * 1000);
     return total;
   }
 
@@ -657,6 +669,23 @@ export class Sfx {
         const g = ctx.createGain(); g.gain.value = [0.012, 0.01, 0.008, 0.005][i];
         o.connect(lp).connect(g).connect(bus); g.connect(this.send); o.start(); nodes.push(o);
       });
+    } else if (theme === 'subway') {
+      // The tunnels breathing: a low rumble that comes and goes, the tube lights buzzing, water dripping on the track.
+      const src = ctx.createBufferSource(); src.buffer = this.brown; src.loop = true;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 90;
+      const rg = ctx.createGain(); rg.gain.value = 0.05;
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.045; const lg = ctx.createGain(); lg.gain.value = 0.035;
+      lfo.connect(lg).connect(rg.gain); lfo.start(); nodes.push(lfo);
+      src.connect(lp).connect(rg).connect(bus); src.start(); nodes.push(src);
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 100;
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1200; bp.Q.value = 4;
+      const hg = ctx.createGain(); hg.gain.value = 0.004;
+      o.connect(bp).connect(hg).connect(bus); o.start(); nodes.push(o);
+      const sr = ctx.sampleRate, drip = ctx.createBuffer(1, Math.floor(sr * 3.9), sr), d = drip.getChannelData(0);
+      for (let i = 0; i < sr * 0.1; i++) { const t = i / sr; d[i] = Math.sin(2 * Math.PI * (1100 - t * 3000) * t) * Math.exp(-t * 45); }
+      const ds = ctx.createBufferSource(); ds.buffer = drip; ds.loop = true;
+      const dg = ctx.createGain(); dg.gain.value = 0.016;
+      ds.connect(dg).connect(bus); dg.connect(this.send); ds.start(); nodes.push(ds);
     } else if (theme === 'hotel') {
       // The lift, somewhere, going up and down with nobody in it.
       const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = 62;
@@ -798,7 +827,93 @@ export class Sfx {
         this._tone(d, { t: t + 0.55, freq: 410, to: 370, dur: 0.6, peak: 0.12, attack: 0.08 });
         break;
       case 'gust': this._noise(d, { t, dur: 4, type: 'bandpass', freq: 900, q: 0.4, peak: 0.16, attack: 1.8 }); break;
+      case 'screech': // a train braking, a long way down the tunnel
+        this._tone(d, { t, type: 'sawtooth', freq: 2300, to: 1900, dur: 2.4, peak: 0.018, attack: 0.5 });
+        this._noise(d, { t, dur: 2.6, type: 'bandpass', freq: 2800, q: 6, peak: 0.08, attack: 0.6 });
+        break;
     }
+  }
+
+  // The Sound guy's speaker: a crackle, then its own noises, too loud, through a cheap cone.
+  speaker(emitter) {
+    const d = emitter ? emitter.input : this.master, t = this.now;
+    this._noise(d, { t, dur: 0.25, type: 'bandpass', freq: 2500, q: 1.5, peak: 0.25 });
+    if (!this.rec('snarl', emitter, { vol: 1.5, rate: 0.95, lowpass: 3500 })) this._noise(d, { t: t + 0.2, dur: 1.2, type: 'bandpass', freq: 420, q: 3, peak: 0.5 });
+    for (let i = 0; i < 4; i++) setTimeout(() => this.footstep(emitter, { heavy: true, vol: 1 }), 900 + i * 300);
+    this._noise(d, { t: t + 2.2, dur: 0.2, type: 'bandpass', freq: 2500, q: 1.5, peak: 0.2 });
+  }
+
+  // The Priest's crucifix: one held, bright chord, like a choir far off.
+  holy(emitter) {
+    const d = emitter ? emitter.input : this.master, t = this.now;
+    for (const f of [392, 494, 587, 784]) this._tone(d, { t, freq: f, dur: 1.6, peak: 0.05, attack: 0.25 });
+    this._tone(this.send, { t, freq: 587, dur: 2.2, peak: 0.04, attack: 0.3 });
+  }
+
+  // The Mechanic's tools, clinking on their belt.
+  clink() {
+    if (Math.random() < 0.45) return;
+    const t = this.now;
+    this._tone(this.master, { t, freq: 2900 + Math.random() * 600, dur: 0.09, peak: 0.018 });
+    this._tone(this.master, { t: t + 0.035, freq: 4100 + Math.random() * 500, dur: 0.07, peak: 0.012 });
+  }
+
+  // The Scout's mark appearing.
+  ping() {
+    const t = this.now;
+    this._tone(this.master, { t, freq: 1320, dur: 0.25, peak: 0.05 });
+    this._tone(this.master, { t: t + 0.1, freq: 1760, dur: 0.35, peak: 0.04 });
+  }
+
+  // The Mother's lullaby (mother.js): a slow wordless tune, "ooh", a little flat. Returns its length in seconds.
+  lullaby(emitter) {
+    const ctx = this.ctx, t = this.now + 0.05, d = emitter ? emitter.input : this.master;
+    const NOTES = [67, 64, 64, 65, 62, 62, 60, 62, 64, 60], len = 0.62;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 520; bp.Q.value = 2.5; // the vowel
+    const g = ctx.createGain(); g.gain.value = 0.5;
+    bp.connect(g).connect(d); g.connect(this.send);
+    NOTES.forEach((n, k) => {
+      const at = t + k * len * (k % 3 === 2 ? 1.5 : 1) + (k > 2 ? len * 0.5 : 0) + (k > 5 ? len * 0.5 : 0);
+      const f = 440 * 2 ** ((n - 69 - 0.3) / 12);
+      const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
+      const v = ctx.createOscillator(); v.frequency.value = 5; const vg = ctx.createGain(); vg.gain.value = f * 0.012;
+      v.connect(vg).connect(o.frequency);
+      const e = ctx.createGain();
+      e.gain.setValueAtTime(0, at); e.gain.linearRampToValueAtTime(0.16, at + 0.12); e.gain.setValueAtTime(0.16, at + len * 0.9); e.gain.exponentialRampToValueAtTime(0.001, at + len * 1.6);
+      o.connect(e).connect(bp);
+      o.start(at); v.start(at); o.stop(at + len * 1.7); v.stop(at + len * 1.7);
+    });
+    const dur = NOTES.length * len * 1.25 + len * 2;
+    setTimeout(() => { try { g.disconnect(); } catch { /* ignore */ } }, (dur + 3) * 1000);
+    return dur;
+  }
+
+  // A subway train (subway.js): a rumble growing for `warn` seconds, the horn, then it goes through for `pass`
+  // seconds (wheels clattering over the joints, the brakes screaming) and fades off down the tunnel.
+  train(emitter, warn, pass) {
+    const ctx = this.ctx, t = this.now, d = emitter ? emitter.input : this.master, end = t + warn + pass;
+    const rumble = (dest, peak, freq) => {
+      const src = ctx.createBufferSource(); src.buffer = this.brown; src.loop = true;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = freq;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak * 0.35, t + warn);
+      g.gain.linearRampToValueAtTime(peak, t + warn + 0.6);
+      g.gain.setValueAtTime(peak, end - 0.6);
+      g.gain.exponentialRampToValueAtTime(0.0001, end + 2.5);
+      src.connect(lp).connect(g).connect(dest);
+      src.start(t); src.stop(end + 2.6);
+    };
+    rumble(d, 1.6, 260);           // from the train
+    rumble(this.master, 0.5, 70);  // and through the floor, everywhere
+    for (const [at, len] of [[warn - 3.2, 1.0], [warn - 1.3, 1.7]]) { // the horn: two flat, sour notes
+      for (const f of [277, 349]) this._tone(d, { t: t + at, type: 'sawtooth', freq: f, dur: len, peak: 0.09, attack: 0.05 });
+    }
+    for (let k = t + warn; k < end; k += 0.19) { // the wheels over the joints: clack-clack
+      this._noise(d, { t: k, dur: 0.05, type: 'highpass', freq: 700, q: 0.7, peak: 0.35 });
+      this._noise(d, { t: k + 0.06, dur: 0.05, type: 'highpass', freq: 800, q: 0.7, peak: 0.28 });
+    }
+    this._noise(d, { t: t + warn, dur: pass, type: 'bandpass', freq: 3200, q: 9, peak: 0.12, attack: 0.4 }); // the brakes, screaming
   }
 
   snap(emitter = null) {

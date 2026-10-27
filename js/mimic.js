@@ -492,11 +492,20 @@ export class Mimic {
     if (this.opening) {
       this.speed = 0;
       this.opening.t -= dt;
-      if (this.opening.t <= 0) { this.hooks.openDoor?.(this.opening.door); this.opening = null; }
+      if (this.opening.t <= 0) {
+        if (this.opening.wedged) { this.state = 'wander'; this.wait = 1.5; this.path = []; this.opening = null; return true; } // it won't give: elsewhere
+        this.hooks.openDoor?.(this.opening.door); this.opening = null;
+      }
       return false;
     }
     const door = lv.idoors.find((d) => !d.open && Math.hypot(d.x - this.x, d.z - this.z) < 1.5
       && this.path.slice(0, 3).some((w) => Math.hypot(w.x - d.x, w.z - d.z) < 1.8));
+    if (door && door.wedgeUntil > this.now) { // wedged shut (the Mechanic): it hammers on it
+      this.opening = { door, t: 2.2, wedged: true };
+      this.hooks.bangDoor?.(door);
+      this.speed = 0;
+      return false;
+    }
     if (door) {
       this.opening = { door, t: this.state === 'chase' ? 0.45 : 1.7 };
       this.hooks.creakDoor?.(door, this.state === 'chase');
@@ -535,6 +544,7 @@ export class Mimic {
   // ---------- main update ----------
   // players: everyone it can hunt (alive, not escaped): { id, x, z, yaw, hidden, crouch, flashOn, lookX, lookZ }
   update(dt, players, t) {
+    this.now = t;
     if (this.frozen) return; // posed by the jumpscare
     this.speaking = Math.max(0, this.speaking - dt);
     this.speakCd -= dt; this.screamCd -= dt; this.stalkCd -= dt; this.enraged -= dt; this.shyT -= dt; this.graceT -= dt;

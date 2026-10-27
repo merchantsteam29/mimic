@@ -24,6 +24,12 @@ const SECTIONS = [
     { name: 'The double', file: 'Subject 06', what: 'Online, if the host lets it in. It walks the way one of you walked a minute or two ago: their coat, their light, their steps, sometimes their voice. It is not them.',
       tells: 'It never looks at you. It walks through doors that are shut. Your friend is somewhere else, talking.',
       survive: 'Let it pass. Don\'t walk up to it, don\'t hold your light on it, and if it\'s wearing you, don\'t look at it. Once it turns round, run: it gives up after a few seconds.' },
+    { name: 'The Mother', file: 'Subject 08', what: 'Online, if the host lets it in. Huge, slow, bent double under the ceiling, something wrapped in a blanket held to her chest. She can\'t fit through a doorway.',
+      tells: 'Heavy, slow footsteps. A lullaby, in your voices, all at once. When she sings, the mimic comes to listen.',
+      survive: 'Walk away: she\'s slower than you. Get through a door and shut it behind you, and she can only stand outside. Don\'t be near her when she starts to sing.' },
+    { name: 'The trains', file: 'Subject 09', what: 'Only in the subway. They still run. Nobody\'s driving them and they don\'t stop.',
+      tells: 'A rumble that keeps growing, the horn, a light in the tunnel mouth. Then it\'s there.',
+      survive: 'Get off the track and onto a platform. While one goes by nothing can hear you, not even it. If it\'s standing on the track, the train knocks it flat.' },
   ]],
   ['hiding', 'Where to hide', [
     { name: 'Lockers, wardrobes, fitting rooms, confessionals, padded cells, outhouses', file: 'Hiding 01', what: 'If it saw you go in, it comes to the door and listens.',
@@ -32,6 +38,8 @@ const SECTIONS = [
       survive: 'Half the time it doesn\'t think to look. If it does, the heartbeat.' },
     { name: 'Vents', file: 'Hiding 03', what: 'Low grates in the walls of the bigger buildings.', tells: 'They clang when you get in and out, and it hears that.',
       survive: 'It can\'t follow you in. It will wait outside the grate for a while.' },
+    { name: 'Ticket booths', file: 'Hiding 05', what: 'In the subway. A booth with a window and a door.', tells: 'The heartbeat, like a locker.',
+      survive: 'Keep away from the track while you wait in there: the trains are loud, but they don\'t stop it looking.' },
     { name: 'Curtains', file: 'Hiding 04', what: 'Hospital screens.', tells: 'Your feet show under the curtain.',
       survive: 'Quick to get behind. If it comes close, it sees your feet, and a curtain stops nothing.' },
   ]],
@@ -41,6 +49,9 @@ const SECTIONS = [
     { name: 'Bottles, cans, camera', file: 'Item 03', what: 'Throw a bottle or a can where you want it to look. The disposable camera has three flashes.', tells: '', survive: 'A flash in its face blinds it for a couple of seconds. Run then.' },
     { name: 'Walkie-talkie', file: 'Item 04', what: 'Online. Hold B to talk to everyone, anywhere.', tells: 'Every other radio crackles while you talk. It hears the radios.', survive: 'If a friend calls you on the radio, check they\'re still alive. It has a radio too.' },
     { name: 'The lantern', file: 'Item 06', what: 'Escort mode, online. No flashlights work. One of you carries the only light.', tells: 'If it takes whoever is carrying it, the light goes out for everyone.', survive: 'Stay close to it: it\'s slower in the lantern\'s light. If it falls, someone has to pick it up, in the dark, and wait for it to catch. Hiding shutters it.' },
+    { name: 'Speaker, crucifix, marks, wedges', file: 'Item 07', what: 'What the Sound guy, the Priest, the Scout and the Mechanic carry.',
+      tells: 'The speaker plays its own noises; the crucifix gives off a warm light and a held note; a mark glows blue through the walls.',
+      survive: 'Put the speaker down somewhere far before you need it. The crucifix only works when it\'s close and can see it. A wedged door keeps you out as well.' },
     { name: 'A friend\'s tape', file: 'Item 05', what: 'Online. Left where someone was taken.', tells: '', survive: 'Play it at the power panel to bring them back, or carry it out of the exit. Once a game.' },
   ]],
   ['events', 'When it goes wrong', [
@@ -83,8 +94,9 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'alpha1-2026-10-27c';
+export const RELEASE = 'alpha1-2026-10-28a';
 const NOTES = [
+  ['The last train left at 12:40. We heard another one at 2:13. Then we heard her singing.', 'A new place: a closed subway station, where the trains still run, so stay off the track. Online, the Mother: huge, slow, too big for a doorway, and she sings in your voices. And four new classes: the Sound guy (a speaker that pulls it away), the Priest (a crucifix that makes it back off), the Scout (marks everyone can see) and the Mechanic (fast repairs, and doors wedged shut).'],
   ['I got a better look at it tonight. I wish I hadn\'t. It drags one leg. Its fingers don\'t stop moving.', 'It looks worse now: starved, bruised grey skin, ribs and spine pushing through, black eyes, the corners of its mouth split. It drags a leg, breathes, and its neck snaps over too far. And every place sounds like itself: carpet in the hotel, stone in the church, leaves in the woods, and things far off you\'d rather not hear.'],
   ['This is still a rough cut. Some of the tape is missing. Tell us where it skips.', 'We\'re in alpha now. Online voices are smaller and sent in pieces, so games shouldn\'t stutter when someone talks, and anyone who joins late still gets everyone\'s voices. A tidier lobby, with Start always in reach.'],
   ['Only one of the lanterns still worked. We took turns carrying it. Then nobody wanted to.', 'Escort (lobby Mode): no flashlights, one lantern. The host can pick the map now (alone too, on the class screen). The end screen plays the voice that fooled you. And online, friends\' voices now reach the mimic: they never got through before.'],
