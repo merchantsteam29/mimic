@@ -323,6 +323,18 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   ends it alone (`end(true)`) or broadcasts `out` with `dawn` for everyone alive. `nightRules(n)` multiplies the difficulty (speed, sight,
   hunger, battery, grace) up to night 8. Alone: the end screen offers the next night, or night 1 again; best in localStorage `mimic.nights`.
   Online: `session.night` (sent with `mode`, `start.night`); the host's end screen calls `setNight` (next night if anyone lasted, else 1).
+- **Map picker**: `#mapSolo` (class screen, `settings.map`, hidden for stories) and `#mapRoom` (lobby Settings tab; `session.map`, host
+  `setMap`, sent with `mode`): `'random'` or a theme id (`pickedTheme` in main.js). A building code still wins.
+- `escort.js`: **Escort** (online lobby Mode `escort`; `start` carries `lantern`, the first carrier, Game option `escort`). Nobody's flashlight
+  works (`p.flashOn` false, `toggleFlash` refuses, no hand); one PointLight follows the carrier (their left hand), shuttered while they hide.
+  `near(x, z)` (4.5 m) counts as lit for the mimic (`hooks.isLit`: slower). Host: when the carrier isn't alive (taken, out, left)
+  `lanternDrop` {i (= `nextItem++`), x, z} (item `lantern`, it goes out); intent `lanternTake` -> `lanternHeld` {i, by} (sputters back over
+  2.6 s). Both logged. `end.mode` 'escort'.
+- **The one that worked** (recap.js): `recap.voice(key, buf)` notes each lure (where it was, how far everyone else was); 8 s later anyone 3 m+
+  closer scores 1, anyone taken within 16 s scores 3. `best()`; `end.recap.b` {k, n, c} online (alone the buffer stays local). The end screen's
+  `#bestClip` (main.js `bestClip`) says whose voice and plays it (`echo`), with "Hear it again". Not in stories or the tutorial.
+- **Clips over the network**: PeerJS delivers the `clip` message's `pcm` as a Uint8Array, so `receiveClip` copies its bytes out (it used to
+  require an ArrayBuffer and dropped every clip from other players).
 - **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
   on touch the objectives sit below the pause / jobs buttons.
 

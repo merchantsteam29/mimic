@@ -34,6 +34,7 @@ import { Versus } from './versus.js';
 import { Shadow } from './shadow.js';
 import { Double } from './double.js';
 import { Caller } from './caller.js';
+import { Escort } from './escort.js';
 import { HideSeek, hideLevel } from './hideseek.js';
 import { Escape } from './escape.js';
 import { Landmarks } from './landmarks.js';
@@ -52,7 +53,7 @@ import { DeathPart } from './game-death.js';
 
 export { CUSTOM, ROOM } from './game-shared.js';
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null, teams = null, shadow = false, night = 0, double = false, hideSeek = false, caller = false }) {
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null, teams = null, shadow = false, night = 0, double = false, hideSeek = false, caller = false, escort = null }) {
     Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs, room, custom, themeId, seed });
     this.distort = 0;    // camcorder distortion, 0..1
     this.peekHud = 0;    // seconds the HUD stays visible after something changes
@@ -148,7 +149,7 @@ export class Game {
       onCatch: (id) => this.hostCatch(id),
       onSpotted: (id) => this.sendTo(id, { t: 'sting' }),
       onSniff: (id) => { this.sniffing = id; this.sendTo(id, { t: 'sniff' }); },
-      isLit: (x, z) => this.world.fixtures.some((L) => L.level > 0.5 && (!L.broken || this.power) && !L.dead && Math.hypot(L.x - x, L.z - z) < 3.2),
+      isLit: (x, z) => this.world.fixtures.some((L) => L.level > 0.5 && (!L.broken || this.power) && !L.dead && Math.hypot(L.x - x, L.z - z) < 3.2) || !!this.lan?.near(x, z),
       openDoor: (d) => this.broadcast({ t: 'doorSet', i: d.i, open: true, by: 'm' }),
       creakDoor: (d, fast) => this.broadcast({ t: 'creak', i: d.i, fast: fast ? 1 : 0 }),
       onPeekSeen: () => {}, // each player notices a peek themselves (see watchPeek)
@@ -161,6 +162,7 @@ export class Game {
     this.sd = new Shadow(this, shadow && !hunter);     // online: the thing that lives in the dark
     this.db = new Double(this, double && !hunter);     // online: the thing that walks where you walked
     this.cl = new Caller(this, caller && !hunter);     // online: phones that ring with the voices of the taken
+    this.lan = new Escort(this, room ? null : escort);  // Escort mode: one lantern for everyone
     if (this.hunt.on) this.status.set(hunter, 'hunter');
     if (story) this.mimic.graceT = story.grace;
     const base = DIFFICULTY[difficulty] || DIFFICULTY.normal;
@@ -356,6 +358,7 @@ export class Game {
     this.sd.dispose();
     this.db.dispose();
     this.cl.dispose();
+    this.lan.dispose();
     this.esc.dispose();
     this.marks.dispose();
     this.rec.dispose();
@@ -454,6 +457,7 @@ export class Game {
     this.sd.update(dt);
     this.db.update(dt);
     this.cl.update(dt);
+    this.lan.update(dt);
     if (this.state === 'playing' || this.state === 'spectate') this.rec.update(dt);
     this.thr.update(dt);
     if (this.state === 'playing' || this.state === 'spectate') this.inc.update(dt);

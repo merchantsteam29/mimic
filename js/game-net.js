@@ -23,7 +23,7 @@ export const NetPart = {
   // Host: a player's intent.
   hostHandle(m, from) {
     const r = this.remotes.get(from);
-    if (this.hunt.hostHandle(m, from) || this.chat.hostHandle(m, from) || this.radio.hostHandle(m, from) || this.rec.hostHandle(m, from) || this.thr.hostHandle(m, from) || this.sig.hostHandle(m, from) || this.revival.hostHandle(m, from) || this.haunt.hostHandle(m, from) || this.obj.hostHandle(m, from) || this.esc.hostHandle(m, from) || this.cl.hostHandle(m, from) || this.ab.hostHandle(m, from) || this.traitor.hostHandle(m, from)) return;
+    if (this.hunt.hostHandle(m, from) || this.chat.hostHandle(m, from) || this.radio.hostHandle(m, from) || this.rec.hostHandle(m, from) || this.thr.hostHandle(m, from) || this.sig.hostHandle(m, from) || this.revival.hostHandle(m, from) || this.haunt.hostHandle(m, from) || this.obj.hostHandle(m, from) || this.esc.hostHandle(m, from) || this.cl.hostHandle(m, from) || this.lan.hostHandle(m, from) || this.ab.hostHandle(m, from) || this.traitor.hostHandle(m, from)) return;
     switch (m.t) {
       case 'door': { // open / close a real door
         const d = this.level.idoors[m.i | 0];
@@ -104,7 +104,7 @@ export const NetPart = {
 
   // Everyone: what happened.
   onNet(m) {
-    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m) || this.radio.onNet(m) || this.rec.onNet(m) || this.thr.onNet(m) || this.sig.onNet(m) || this.revival.onNet(m) || this.sd.onNet(m) || this.db.onNet(m) || this.esc.onNet(m) || this.cl.onNet(m)) return;
+    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m) || this.radio.onNet(m) || this.rec.onNet(m) || this.thr.onNet(m) || this.sig.onNet(m) || this.revival.onNet(m) || this.sd.onNet(m) || this.db.onNet(m) || this.esc.onNet(m) || this.cl.onNet(m) || this.lan.onNet(m)) return;
     switch (m.t) {
       case 'doorSet': {
         const d = this.level.idoors[m.i | 0];
@@ -274,7 +274,7 @@ export const NetPart = {
     if ([...this.status.values()].some((s) => s === 'alive')) return;
     this.ended = true;
     if (!this.mp) return; // alone, the jumpscare / escape ends the run itself
-    this.broadcast({ t: 'end', st: Object.fromEntries(this.status), time: this.time, mode: this.hunt.id ? 'hunt' : this.traitor.on ? 'story' : this.vs.on ? 'versus' : this.ns.on ? 'nights' : this.hs.on ? 'hide' : 'normal', night: this.ns.night, hour: this.ns.hour, hunter: this.hunt.id, recap: this.recap.data(), ...this.traitor.result(), ...this.vs.result(), ...this.hs.result() });
+    this.broadcast({ t: 'end', st: Object.fromEntries(this.status), time: this.time, mode: this.hunt.id ? 'hunt' : this.traitor.on ? 'story' : this.vs.on ? 'versus' : this.ns.on ? 'nights' : this.hs.on ? 'hide' : this.lan.on ? 'escort' : 'normal', night: this.ns.night, hour: this.ns.hour, hunter: this.hunt.id, recap: this.recap.data(), ...this.traitor.result(), ...this.vs.result(), ...this.hs.result() });
   },
 
   // Host: the mimic (or, by 'sw', the skinwalker; 'ls', the listener) reached a player.

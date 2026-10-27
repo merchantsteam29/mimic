@@ -109,6 +109,10 @@ Guess wrong, and it gets hungrier.
   and some have a **strange room**: flooded, a fallen ceiling, a ring of candles. Your stats keep your fastest time out of each place.
 - **Hide and seek** (online, a lobby Mode): you get a minute to hide while it waits, then it comes looking, and every so often
   it simply knows where one of you is. Whoever it hasn't found after four minutes wins; if it finds everyone, the last one found wins.
+- **Escort** (online, a lobby Mode): none of the flashlights work. One of you carries the only lantern and everyone else has to
+  see by it; it's slower in its light. If it takes the carrier, the light goes out and someone has to pick the lantern up in the dark.
+- **Pick the map:** Random, or any building, on the class screen alone, or in the lobby's Settings tab for the host.
+- **The one that worked:** the end screen plays back the voice that fooled someone (they walked toward it, or it took them soon after).
 - **Name tags** (Settings, off by default): your friends' names over their heads, faint in the dark. Things wearing your friends
   get their names too.
 - **Night Shift** (title screen, or a lobby Mode online): midnight to 6 a.m., no jobs, the doors chained. Each hour is a minute and

@@ -52,7 +52,7 @@ export const WorldPart = {
           const d = this.sfx.playStitch(a.buffer, b.buffer, emitter, 'stranger');
           this.voice.suppress(d + 0.3);
           this.lures++;
-          this.recap.voice(null);
+          this.recap.voice(null, a.buffer);
           return d;
         }
       }
@@ -66,7 +66,7 @@ export const WorldPart = {
     const d = this.sfx.playVoice(buffer, emitter, style);
     this.voice.suppress(d + 0.3);
     this.lures++;
-    if (!this.mp) this.recap.voice(null);
+    if (!this.mp) this.recap.voice(null, buffer);
     return d;
   },
 

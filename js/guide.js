@@ -40,6 +40,7 @@ const SECTIONS = [
     { name: 'Tape recorder', file: 'Item 02', what: 'Two in every building. Record yourself, put it down, and walk away.', tells: '', survive: 'It plays your voice three times, loudly. It goes to see who\'s there. Its own trick, used on it.' },
     { name: 'Bottles, cans, camera', file: 'Item 03', what: 'Throw a bottle or a can where you want it to look. The disposable camera has three flashes.', tells: '', survive: 'A flash in its face blinds it for a couple of seconds. Run then.' },
     { name: 'Walkie-talkie', file: 'Item 04', what: 'Online. Hold B to talk to everyone, anywhere.', tells: 'Every other radio crackles while you talk. It hears the radios.', survive: 'If a friend calls you on the radio, check they\'re still alive. It has a radio too.' },
+    { name: 'The lantern', file: 'Item 06', what: 'Escort mode, online. No flashlights work. One of you carries the only light.', tells: 'If it takes whoever is carrying it, the light goes out for everyone.', survive: 'Stay close to it: it\'s slower in the lantern\'s light. If it falls, someone has to pick it up, in the dark, and wait for it to catch. Hiding shutters it.' },
     { name: 'A friend\'s tape', file: 'Item 05', what: 'Online. Left where someone was taken.', tells: '', survive: 'Play it at the power panel to bring them back, or carry it out of the exit. Once a game.' },
   ]],
   ['events', 'When it goes wrong', [
@@ -82,8 +83,9 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'alpha1-2026-10-26h';
+export const RELEASE = 'alpha1-2026-10-27a';
 const NOTES = [
+  ['Only one of the lanterns still worked. We took turns carrying it. Then nobody wanted to.', 'Escort (lobby Mode): no flashlights, one lantern. The host can pick the map now (alone too, on the class screen). The end screen plays the voice that fooled you. And online, friends\' voices now reach the mimic: they never got through before.'],
   ['We found the cabin. The phone inside was ringing. There are no phone lines out here.', 'A new place: the woods, outdoors, with a cabin to start in. And online, the Caller: answer the phone if you dare.'],
   ['It isn\'t the same every night. We think it gets bored.', 'It has moods now (you find out which at the end), and most nights one thing is different. Keypads, lifts, flooded rooms, and your fastest time out of each place.'],
   ['We wrote it all down for the new ones. Shorter this time. They never finish the long version.', 'A shorter tutorial that also covers hiding spots, throwing things and the tape recorder (How to play > Tutorial).'],

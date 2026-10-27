@@ -2,6 +2,8 @@
 // were, plus who was taken or got out (where and when) and whose voice it used. That goes out with
 // 'end', and the end screen replays it on a map of the building: everyone's route, its route in red,
 // and an X where someone was taken.
+// It also keeps score of its lures: a clip "worked" when someone walked toward it afterwards, or was taken soon after.
+// The best one is played on the end screen ('end' carries its key; alone, the buffer stays in this browser).
 import { CELL, WALL, EXIT } from './level.js';
 
 const EVERY = 2;
@@ -16,6 +18,8 @@ export class Recap {
     this.ev = [];     // [kind ('caught' | 'out'), id, x, z, t, by]
     this.voices = {}; // id -> times it used their voice
     this.t = 0;
+    this.lures = [];          // [{ ref, x, z, t, d: { id: distance then }, checked }]
+    this.worked = new Map();  // ref (clip key, or alone the buffer) -> { ref, pts, who: Set, caught }
   }
 
   where(id) {
@@ -35,6 +39,28 @@ export class Recap {
       if (at) this.add(this.paths[id] ||= [], at.x, at.z);
     }
     if (g.mimic.model.root.visible || g.hunt.on) this.add(this.mimic, g.mimic.x, g.mimic.z);
+    // 8 s after a lure: did anyone walk toward where it came from?
+    for (const L of this.lures) {
+      if (L.checked || g.time - L.t < 8) continue;
+      L.checked = true;
+      for (const [id, d0] of Object.entries(L.d)) {
+        const at = g.alive(id) && this.where(id);
+        if (at && d0 < 30 && d0 - Math.hypot(at.x - L.x, at.z - L.z) >= 3) this.score(L.ref, 1, id);
+      }
+    }
+    this.lures = this.lures.filter((L) => g.time - L.t < 16);
+  }
+
+  score(ref, pts, id, caught = false) {
+    const w = this.worked.get(ref) || { ref, pts: 0, who: new Set(), caught: false };
+    w.pts += pts; w.who.add(id); w.caught ||= caught;
+    this.worked.set(ref, w);
+  }
+
+  // The lure that worked best: { ref, n (people it fooled), caught }, or null.
+  best() {
+    const w = [...this.worked.values()].sort((a, b) => b.pts - a.pts)[0];
+    return w ? { ref: w.ref, n: w.who.size, caught: w.caught } : null;
   }
 
   add(path, x, z, force = false) {
@@ -49,15 +75,28 @@ export class Recap {
     if (!at) return;
     this.add(this.paths[id] ||= [], at.x, at.z, true);
     this.ev.push([kind, id, Math.round(at.x * 2) / 2, Math.round(at.z * 2) / 2, Math.round(this.g.time), ['sw', 'ls', 'sk', 'sd', 'db'].includes(by) ? by : 0]);
+    if (kind === 'caught') for (const L of this.lures) if (this.g.time - L.t < 16 && id in L.d) this.score(L.ref, 3, id, true); // it brought them to it
   }
 
-  // The mimic used a clip (online: its key says whose; alone: yours).
-  voice(key) {
+  // The mimic used a clip (online: its key says whose; alone: yours, and buf is the recording).
+  voice(key, buf = null) {
     const g = this.g, owner = key == null ? g.me : g.mp?.clips.get(key)?.owner;
     if (owner) this.voices[owner] = (this.voices[owner] || 0) + 1;
+    const ref = key ?? buf;
+    if (ref == null) return;
+    const d = {}; // everyone who could fall for it (not the one whose voice it is), and how far they were
+    for (const id of g.order) {
+      if (!g.alive(id) || (key != null && id === owner)) continue;
+      const at = this.where(id);
+      if (at) d[id] = Math.hypot(at.x - g.mimic.x, at.z - g.mimic.z);
+    }
+    this.lures.push({ ref, x: g.mimic.x, z: g.mimic.z, t: g.time, d });
   }
 
-  data() { return { p: this.paths, m: this.mimic, ev: this.ev, v: this.voices }; }
+  data() {
+    const b = this.best();
+    return { p: this.paths, m: this.mimic, ev: this.ev, v: this.voices, b: b && typeof b.ref === 'string' ? { k: b.ref, n: b.n, c: b.caught } : null };
+  }
 }
 
 // ---------- the end screen ----------

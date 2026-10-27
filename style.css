@@ -475,6 +475,12 @@ body.input-touch #objective { top: 112px; left: 20px; }
 
 /* ---------- building codes ---------- */
 .code-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 12px 0 4px; font-size: 13px; color: var(--dim); }
+.code-row select { width: 194px; padding: 7px 8px; background: #0a0909; border: 1px solid var(--line); color: var(--ink); font: 14px "Special Elite", monospace; }
+.code-row select:disabled { opacity: .6; }
+#bestClip { margin: 12px 0 4px; text-align: center; }
+#bestClip .kicker { margin: 0 0 2px; }
+#bestClip p { margin: 2px 0; }
+#bestClip .small { margin-top: 6px; padding: 4px 12px; font-size: 11px; }
 .code-row input { width: 170px; padding: 7px 10px; background: #0a0909; border: 1px solid var(--line); color: var(--ink); font: 15px "Special Elite", monospace; letter-spacing: .12em; text-transform: uppercase; }
 
 /* ---------- field guide: case files ---------- */

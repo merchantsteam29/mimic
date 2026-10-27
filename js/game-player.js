@@ -101,14 +101,14 @@ export const PlayerPart = {
   },
 
   toggleFlash() {
-    if (this.p.hidden) return;
+    if (this.p.hidden || this.lan.noFlash()) return;
     this.p.flashOn = !this.p.flashOn;
     this.sfx.click();
   },
 
   updateFlash(dt) {
     const p = this.p;
-    let on = !this.hunt.me && ((p.flashOn && p.battery > 0 && !p.hidden) || this.state === 'caught');
+    let on = !this.hunt.me && ((p.flashOn && p.battery > 0 && !p.hidden && !this.lan.on) || this.state === 'caught');
     if (this.state === 'spectate') on = !!this.specTarget()?.flash;
     if (on && this.state === 'playing') p.battery = Math.max(0, p.battery - (dt * 100) / (BATTERY_LIFE * this.diff.battery));
     let I = on ? (this.state === 'caught' ? 20 : 42) : 0; // a little dimmer in its face, so it isn't washed out
@@ -126,7 +126,7 @@ export const PlayerPart = {
     const c = this.camera;
     const fwd = c.getWorldDirection(new THREE.Vector3());
     this.flashDir.lerp(fwd, 1 - Math.exp(-dt * 16)).normalize();
-    this.hand.update(dt, { yaw: p.yaw, pitch: p.pitch, bob: p.bob, speed: p.speed, fear: this.fear, on: on && I > 0, visible: this.state === 'playing' && !p.hidden && !this.hunt.me });
+    this.hand.update(dt, { yaw: p.yaw, pitch: p.pitch, bob: p.bob, speed: p.speed, fear: this.fear, on: on && I > 0, visible: this.state === 'playing' && !p.hidden && !this.hunt.me && !this.lan.on });
     this.flash.position.copy(this.state === 'playing' && !p.hidden ? this.hand.lensWorld(new THREE.Vector3()) : c.localToWorld(new THREE.Vector3(0.12, -0.12, 0.05)));
     this.flash.target.position.copy(this.flash.position).addScaledVector(this.flashDir, 5);
     this.hud.batteryBar.style.width = `${p.battery}%`;
@@ -150,7 +150,7 @@ export const PlayerPart = {
       best = it; bestDot = dot;
     }
     this.focus = best;
-    let custom = best && (this.obj.prompt(best) ?? this.esc.prompt(best) ?? this.cl.prompt(best) ?? this.scares.prompt(best));
+    let custom = best && (this.obj.prompt(best) ?? this.esc.prompt(best) ?? this.cl.prompt(best) ?? this.lan.prompt?.(best) ?? this.scares.prompt(best));
     if (best?.type === 'idoor') custom = this.level.idoors[best.i].open ? 'Close door' : 'Open door';
     if (custom !== undefined) { this.setPrompt(custom); return; }
     const text = {
@@ -173,7 +173,7 @@ export const PlayerPart = {
 
   interact() {
     const f = this.focus;
-    if (!f || this.obj.interact(f) || this.esc.interact(f) || this.cl.interact(f) || this.scares.interact(f)) return;
+    if (!f || this.obj.interact(f) || this.esc.interact(f) || this.cl.interact(f) || this.lan.interact?.(f) || this.scares.interact(f)) return;
     if (f.type === 'idoor') { this.send({ t: 'door', i: f.i }); return; }
     switch (f.type) {
       case 'unhide': this.exitHide(); break;

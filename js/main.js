@@ -41,13 +41,19 @@ if (window.MIMIC_VERSION !== VERSION) { // (pages from before this check have no
   }
 }
 const randomTheme = () => { const ids = Object.keys(THEMES); return ids[Math.floor(Math.random() * ids.length)]; };
+// The map picker (class screen alone, lobby for the host): 'random' or a theme id.
+const pickedTheme = (id) => (id in THEMES ? id : randomTheme());
+function fillMaps(sel, cur) {
+  sel.innerHTML = `<option value="random">Random</option>${Object.keys(THEMES).map((id) => `<option value="${id}">${placeName(id)}</option>`).join('')}`;
+  sel.value = cur in THEMES ? cur : 'random';
+}
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 // ---------- settings ----------
 // Graphics start on Auto: phones and tablets begin at medium, and it steps down by itself when the game runs slowly
 // (`tier` is where Auto has settled on this device).
 const COARSE = matchMedia('(pointer: coarse)').matches;
-const DEFAULTS = { mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1, quality: 'auto', tier: COARSE ? 'medium' : 'high', captions: false, calm: false, pads: true, tags: false, diff: 'normal', voiceMode: 'clear', voiceVol: 1, look: { ...DEFAULT_LOOK } };
+const DEFAULTS = { map: 'random', mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1, quality: 'auto', tier: COARSE ? 'medium' : 'high', captions: false, calm: false, pads: true, tags: false, diff: 'normal', voiceMode: 'clear', voiceVol: 1, look: { ...DEFAULT_LOOK } };
 let settings = { ...DEFAULTS };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('mimic.settings') || '{}')); } catch { /* private mode */ }
 const saveSettings = () => { try { localStorage.setItem('mimic.settings', JSON.stringify(settings)); } catch { /* ignore */ } };
@@ -335,6 +341,8 @@ let myClass = (() => { try { return localStorage.getItem('mimic.class'); } catch
 if (!CLASSES[myClass]) myClass = 'runner';
 
 function renderClassPick() {
+  fillMaps($('mapSolo'), settings.map);
+  $('mapSolo').onchange = () => { settings.map = $('mapSolo').value; saveSettings(); };
   for (const box of document.querySelectorAll('.class-pick')) {
     box.innerHTML = CLASS_ORDER.map((id) =>
       `<button data-cls="${id}" class="${id === myClass ? 'on' : ''}"><b>${CLASSES[id].name}</b><span>${esc(CLASSES[id].blurb)}</span></button>`).join('');
@@ -450,7 +458,7 @@ function finishVoiceCheck() {
 const tutorialSeen = () => { try { return !!localStorage.getItem('mimic.tutorial'); } catch { return true; } };
 const markTutorial = () => { try { localStorage.setItem('mimic.tutorial', '1'); } catch { /* ignore */ } };
 let nightNo = 0; // Night Shift alone: the night the class screen starts (0 = an ordinary run)
-const pickClass = (night = 0) => { storyIdx = null; nightNo = night; renderClassPick(); show('classes'); };
+const pickClass = (night = 0) => { storyIdx = null; nightNo = night; renderClassPick(); $('mapSoloRow').hidden = false; show('classes'); };
 $('btnNights').onclick = () => voiceCheck(() => pickClass(1));
 $('btnPlay').onclick = () => voiceCheck(() => (tutorialSeen() ? pickClass() : show('first')));
 $('btnFirstTut').onclick = () => { markTutorial(); startTutorial(); };
@@ -485,7 +493,7 @@ function openStory() {
     return `<button data-ch="${i}" ${open ? '' : 'disabled'}><b>Chapter ${i + 1}</b><span>${open ? esc(c.title) : '???'}</span>${i < done ? '<i>finished</i>' : ''}</button>`;
   }).join('');
   $('chapters').querySelectorAll('button').forEach((b) => {
-    b.onclick = () => { storyIdx = Number(b.dataset.ch); nightNo = 0; renderClassPick(); show('classes'); };
+    b.onclick = () => { storyIdx = Number(b.dataset.ch); nightNo = 0; renderClassPick(); $('mapSoloRow').hidden = true; show('classes'); };
   });
   show('story');
 }
@@ -500,7 +508,7 @@ function startRun(si = null, code = null, night = 0) {
   game?.dispose();
   storyIdx = si;
   const story = si === null ? null : { ...book.chapters[si], index: si, book: book.id, voice: book.voice };
-  const themeId = story ? story.theme : code ? code.theme : params.get('theme') in THEMES ? params.get('theme') : randomTheme();
+  const themeId = story ? story.theme : code ? code.theme : params.get('theme') in THEMES ? params.get('theme') : pickedTheme(settings.map);
   const seed = story ? story.seed : code ? code.seed : params.has('seed') ? Number(params.get('seed')) : Math.floor(Math.random() * 2 ** 31);
   game = new Game({
     renderer, vhs, sfx, voice, settings, hud, themeId, seed, story, night, classes: { h: params.get('class') in CLASSES ? params.get('class') : myClass }, difficulty: settings.diff,
@@ -740,14 +748,15 @@ function endRun(r) {
   $('endStats').innerHTML = stats.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
   showRecap(r);
   offerClip(game?.clip);
+  const best = bestClip(r);
   const ended = game;
   setTimeout(() => {
     if (game !== ended) return; // already back in the lobby (timers can run late in background tabs)
     hud.signal.hidden = true;
     show('end');
-    // One last word from it, in your voice.
-    const clip = !r.mp && !r.story && voice.started ? voice.pick() : null;
-    if (clip) setTimeout(() => sfx.playVoice(clip.buffer, null, 'echo'), 900);
+    // One last word from it: the lure that worked best, or else any of your voice.
+    const buf = best || (!r.mp && !r.story && voice.started ? voice.pick()?.buffer : null);
+    if (buf) setTimeout(() => sfx.playVoice(buf, null, 'echo'), 900);
   }, 300);
 }
 
@@ -775,6 +784,29 @@ function showRecap(r) {
   const run = () => { stopRecap?.(); stopRecap = drawRecap($('recapMap'), level, rc, order); };
   setTimeout(run, 400); // once the end screen is up
   $('btnReplay').onclick = run;
+}
+
+// The lure that worked: someone walked toward it, or was taken soon after. Shows the box and returns the recording.
+function bestClip(r) {
+  $('bestClip').hidden = true;
+  if (r.tutorial || r.story) return null;
+  let buf = null, owner = null, n = 0, caught = false;
+  if (r.mp) {
+    const b = r.recap?.b, c = b && session?.clips.get(b.k);
+    if (!c) return null;
+    buf = c.buffer; owner = c.owner; n = Number(b.n) || 0; caught = !!b.c;
+  } else {
+    const b = game?.recap.best();
+    if (!b || !(b.ref instanceof AudioBuffer)) return null;
+    buf = b.ref; n = b.n; caught = b.caught;
+  }
+  const whose = !r.mp ? 'Your own voice' : owner === session?.id ? 'Your voice' : `${game?.nameOf(owner) || 'Someone'}'s voice`;
+  $('bestText').textContent = !r.mp
+    ? `${whose}. ${caught ? 'You went to it, and it was waiting.' : 'You walked toward it.'}`
+    : `${whose}. ${caught ? `It brought ${n > 1 ? 'some of you' : 'one of you'} right to it.` : `${n > 1 ? `${n} of you` : 'One of you'} walked toward it.`}`;
+  $('btnBestClip').onclick = () => { ensureAudio(); sfx.playVoice(buf, null, 'echo'); };
+  $('bestClip').hidden = false;
+  return buf;
 }
 
 // The jumpscare, to save or share (when it got you, and this browser can record).
@@ -960,6 +992,9 @@ function renderLobby() {
   renderDiff();
   renderCustom();
   renderLook();
+  fillMaps($('mapRoom'), session.map);
+  $('mapRoom').disabled = !session.isHost;
+  $('mapRoom').onchange = () => session.setMap($('mapRoom').value);
   $('btnStart').hidden = !session.isHost;
   $('lobbyStatus').textContent = (session.public ? 'Public room: strangers can join. ' : '') + (session.isHost
     ? (session.roster.length < 2 ? (session.public ? 'Waiting for someone to find you…' : 'Send your friends the code or the invite link.') : `${session.roster.length} of 4 players.`)
@@ -1044,7 +1079,7 @@ $('btnStart').onclick = () => {
   if (!session?.isHost) return;
   const text = $('codeRoom').value.trim(), code = text ? parseCode(text) : null;
   if (text && !code) { toastMenu('That building code isn\'t right. It looks like H-4F2K9A.'); return; }
-  const theme = code ? code.theme : params.get('theme') in THEMES ? params.get('theme') : randomTheme();
+  const theme = code ? code.theme : params.get('theme') in THEMES ? params.get('theme') : pickedTheme(session.map);
   session.start(theme, code ? code.seed : Math.floor(Math.random() * 2 ** 31));
 };
 
@@ -1064,7 +1099,7 @@ function startMpRun(m) {
   const themeId = m.theme in THEMES ? m.theme : 'facility';
   game = new Game({
     renderer, vhs, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order, classes: m.classes || {},
-    mode: m.mode === 'story' ? 'story' : 'normal', night: m.mode === 'nights' ? Math.max(1, Math.min(99, m.night | 0)) : 0, traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, shadow: !!m.sd, double: !!m.db, caller: !!m.cl, hideSeek: m.mode === 'hide', difficulty: m.diff, custom: m.cs, teams: m.mode === 'versus' && m.teams && typeof m.teams === 'object' ? m.teams : null,
+    mode: m.mode === 'story' ? 'story' : 'normal', night: m.mode === 'nights' ? Math.max(1, Math.min(99, m.night | 0)) : 0, traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, shadow: !!m.sd, double: !!m.db, caller: !!m.cl, hideSeek: m.mode === 'hide', escort: m.mode === 'escort' && m.order?.includes(m.lantern) ? m.lantern : null, difficulty: m.diff, custom: m.cs, teams: m.mode === 'versus' && m.teams && typeof m.teams === 'object' ? m.teams : null,
     hunter: m.mode === 'hunt' && m.order?.includes(m.hunter) ? m.hunter : null,
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),
@@ -1081,6 +1116,11 @@ function startMpRun(m) {
     showIntro(themeId, null, ['One of you is not coming with you. It is already in here, somewhere, and it will use your voices.', 'Get the power back on, and get out.']);
     $('introKicker').textContent = 'Hunt';
   } else if (m.mode === 'nights') nightIntro(themeId, game.ns.night);
+  else if (m.mode === 'escort') {
+    showIntro(themeId, null, [game.lan.by === session.id ? 'You have the only light. None of the flashlights work in here, so they need you close.' : `None of the flashlights work in here. ${game.nameOf(game.lan.by)} has the only light. Stay close to it.`,
+      "It's slower in the lantern's light. If it takes whoever is carrying it, the light goes out. Someone has to pick it up."]);
+    $('introKicker').textContent = 'Escort';
+  }
   else if (m.mode === 'hide') {
     showIntro(themeId, null, ['You have one minute to hide. It will wait. It will count.', 'Then it comes looking, and every so often it simply knows where one of you is. Move if you have to. The last one it finds wins.']);
     $('introKicker').textContent = 'Hide and seek';
