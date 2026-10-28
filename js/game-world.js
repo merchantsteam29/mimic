@@ -16,9 +16,13 @@ export const WorldPart = {
     }
   },
 
+  // How good it is at being you by now, 0..1: clumsy early on (the pitch off, the tape catching), cleaner as the
+  // run goes on and the more it has practised.
+  mimicSkill() { return clamp((this.time - 20) / 300 + this.lures * 0.025, 0, 1); },
+
   // The mimic (host) talks: everyone hears the same clip from it.
   mimicSpeaks(style, emitter) {
-    const dead = (owner) => this.status.get(owner) === 'dead';
+    const dead = (owner) => this.status.get(owner) === 'dead', c0 = (k) => k && this.mp?.clips.get(k);
     if (style === 'chorus') {
       if (!this.mp) {
         const bufs = this.voice.clips.slice().sort(() => Math.random() - 0.5).slice(0, 3).map((c) => c.buffer);
@@ -34,12 +38,14 @@ export const WorldPart = {
     const wearing = this.mimic.wearId;
     const key = this.mp.pickKey(dead, wearing);
     this.recap.voice(key);
-    const say = { t: 'say', key, style: wearing && style !== 'scream' ? 'lure' : style };
+    const q = +this.mimicSkill().toFixed(2);
+    if (c0(key)) this.gait.follow(c0(key).owner); // it walks like whoever it's pretending to be
+    const say = { t: 'say', key, style: wearing && style !== 'scream' ? 'lure' : style, q };
     // Sometimes a sentence they never said, cut from their recordings (everyone builds it from the same plan).
     const c = key && this.mp.clips.get(key);
     if (c && style !== 'scream' && Math.random() < 0.4) {
       const more = [...this.mp.clips.keys()].filter((k) => k !== key && this.mp.clips.get(k).owner === c.owner).sort(() => Math.random() - 0.5).slice(0, 2);
-      const keys = [key, ...more], p = more.length && plan(keys.map((k) => this.mp.clips.get(k).buffer));
+      const keys = [key, ...more], p = more.length && plan(keys.map((k) => this.mp.clips.get(k).buffer), Math.random, q);
       if (p) {
         say.sp = { keys, p };
         this.broadcast(say);
@@ -60,10 +66,10 @@ export const WorldPart = {
       else if (r < 0.3) style = 'stranger';
       else if (r < 0.75 && this.voice.clips.length > 1) {
         const bufs = [...new Set([0, 1, 2].map(() => this.voice.pick()?.buffer).filter(Boolean))];
-        const p = bufs.length > 1 && plan(bufs);
+        const q = this.mimicSkill(), p = bufs.length > 1 && plan(bufs, Math.random, q);
         if (p) {
           const buf = build(this.sfx.ctx, p, bufs);
-          const d = this.sfx.playVoice(buf, emitter, r < 0.45 ? 'stranger' : style);
+          const d = this.sfx.playVoice(buf, emitter, r < 0.45 ? 'stranger' : style, q);
           this.voice.suppress(d + 0.3);
           this.lures++;
           this.recap.voice(null, buf);
@@ -77,7 +83,7 @@ export const WorldPart = {
       buffer = key && this.mp.clips.get(key).buffer;
     } else buffer = (this.voice.started ? this.voice.pick() : null)?.buffer;
     if (!buffer) return this.sfx.whisper(emitter);
-    const d = this.sfx.playVoice(buffer, emitter, style);
+    const d = this.sfx.playVoice(buffer, emitter, style, this.mp ? 1 : this.mimicSkill());
     this.voice.suppress(d + 0.3);
     this.lures++;
     if (!this.mp) this.recap.voice(null, buffer);

@@ -514,7 +514,9 @@ export class Mimic {
     }
     const dx = wp.x - this.x, dz = wp.z - this.z, dist = Math.hypot(dx, dz);
     if (dist < 0.2) { this.path.shift(); return !this.path.length; }
-    const step = Math.min(dist, speed * this.diff.speed * dt);
+    const pace = this.gaitStep(dt);
+    if (!pace) { this.speed = 0; return false; } // stopped dead, the way you do
+    const step = Math.min(dist, speed * pace * this.diff.speed * dt);
     const p = { x: this.x + (dx / dist) * step, z: this.z + (dz / dist) * step };
     lv.collide(p, RADIUS);
     const moved = Math.hypot(p.x - this.x, p.z - this.z);
@@ -523,10 +525,7 @@ export class Mimic {
     this.speed = moved / dt;
     this.phase += moved * 2.3;
     this.stepDist += moved;
-    if (this.stepDist > (speed > 3 ? 1.5 : 1.05)) {
-      this.stepDist = 0;
-      this.sfx.footstep(this.emitter, { heavy: true, vol: speed > 3 ? 1 : 0.55 });
-    }
+    this.stepSound(speed * pace > 3);
     // Stuck on a corner: ask for a fresh path.
     if (moved < step * 0.3) {
       this.stuckT += dt;
@@ -813,6 +812,7 @@ export class Mimic {
     this.setForm(s[6] === 2 ? 2 : 1);
     this.wearId = s[7] ? String(s[7]) : null;
     this.hunger = Number(s[8]) || 0;
+    this.gait = (s[9] | 0) % 5; // (walking like one of you: its steps sound like theirs)
     if (this.tx0 === undefined) { this.x = this.tx; this.z = this.tz; this.yaw = this.tyaw; this.tx0 = 1; }
   }
 
@@ -827,16 +827,35 @@ export class Mimic {
     this.speed = moved / dt;
     this.phase += moved * 2.3;
     this.stepDist += moved;
-    if (this.stepDist > (this.speed > 3 ? 1.5 : 1.05)) {
-      this.stepDist = 0;
-      this.sfx.footstep(this.emitter, { heavy: true, vol: this.speed > 3 ? 1 : 0.55 });
-    }
+    this.stepSound(this.speed > 3);
     this.animate(dt, t);
+  }
+
+  // Walking like one of you (gait.js), when it isn't hunting: 1 walk, 2 crouch (silent), 3 run, 4 stopped; 0 its own
+  // walk. Returns how fast, against its usual pace (0 = standing still for a moment).
+  gaitStep(dt) {
+    const prof = ['wander', 'investigate', 'stalk'].includes(this.state) && !this.ceiling && !this.wearId ? this.hooks.gait?.() : null;
+    if (!prof) { this.gait = 0; return 1; }
+    if ((this.gaitT = (this.gaitT ?? 0) - dt) <= 0 || !this.gait) {
+      const r = Math.random();
+      this.gait = r < prof.stop ? 4 : r < prof.stop + prof.crouch ? 2 : r < prof.stop + prof.crouch + prof.run * 0.6 ? 3 : 1;
+      this.gaitT = this.gait === 4 ? 0.8 + Math.random() * 1.6 : 2.5 + Math.random() * 4;
+    }
+    return [1, 0.9, 0.55, 1.6, 0][this.gait];
+  }
+
+  // A footstep when it's gone far enough: its own heavy dragging step, or, walking like you, a person's (none when crouched).
+  stepSound(fast) {
+    const human = this.gait > 0;
+    if (this.stepDist <= (human ? (this.gait === 3 ? 1.4 : 0.9) : fast ? 1.5 : 1.05)) return;
+    this.stepDist = 0;
+    if (!human) this.sfx.footstep(this.emitter, { heavy: true, vol: fast ? 1 : 0.55 });
+    else if (this.gait !== 2) this.sfx.footstep(this.emitter, { vol: this.gait === 3 ? 1 : 0.6, surface: this.level.surfaceAt(this.x, this.z) });
   }
 
   snap() {
     return [+this.x.toFixed(2), +this.z.toFixed(2), +this.yaw.toFixed(2), STATES.indexOf(this.state), this.speaking > 0 ? 1 : 0,
-      this.ceiling ? 1 : 0, this.form, this.wearId || 0, this.hunger];
+      this.ceiling ? 1 : 0, this.form, this.wearId || 0, this.hunger, this.gait || 0];
   }
 
   // Jumpscare pose: crouched right in front of the camera, or hanging upside down from above.

@@ -40,6 +40,7 @@ import { Mascot } from './mascot.js';
 import { Fair } from './fair.js';
 import { KillCam } from './killcam.js';
 import { Trailer } from './trailer.js';
+import { Gait } from './gait.js';
 import { Escort } from './escort.js';
 import { HideSeek, hideLevel } from './hideseek.js';
 import { Escape } from './escape.js';
@@ -152,6 +153,7 @@ export class Game {
 
     this.mimic = new Mimic(level, scene, sfx, {
       speak: (style, emitter) => this.mimicSpeaks(style, emitter),
+      gait: () => this.gait.profile(), // walking like one of you
       onCatch: (id) => this.hostCatch(id),
       onSpotted: (id) => this.sendTo(id, { t: 'sting' }),
       onSniff: (id) => { this.sniffing = id; this.sendTo(id, { t: 'sniff' }); },
@@ -221,6 +223,7 @@ export class Game {
     this.inc = new Incidents(this, !story && !tutorial && !room && !hideSeek && custom?.events !== false); // power cuts, storms, alarms, lockdowns
     this.kc = new KillCam(this);                       // the replay of how someone was taken
     this.trailer = new Trailer(this);                  // (hidden: ?trailer) a camera for filming trailers
+    this.gait = new Gait(this);                        // how each of you walks (the mimic copies it)
     // Hunger: every couple of minutes it gets bolder, and lights die for good (in the same order for everyone).
     this.hungerT = 0;
     this.hungerSeen = 0;
@@ -501,6 +504,7 @@ export class Game {
       } else r.head.rotation.z = 0;
     }
     this.kc.update(dt);
+    if (this.state === 'playing' || this.state === 'spectate') this.gait.update(dt);
     if (this.mp) { this.netTick(dt); this.routeVoices(); this.updateTags(); }
     if (this.isHost && (this.state === 'playing' || this.state === 'spectate')) this.recap.update(dt);
   }

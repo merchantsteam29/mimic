@@ -50,7 +50,8 @@ const r3 = (v) => Math.round(v * 1000) / 1000;
 // A sentence from 2-4 pieces of the given clips (buffers[i]). It starts like one of them starts and ends
 // like one of them ends, so it sounds like a whole thing someone said. Returns null if there's too little.
 // Each step: [clip, start, end, rate, gap before, gain, stutter (seconds of the piece said twice, or 0)].
-export function plan(buffers, rand = Math.random) {
+export function plan(buffers, rand = Math.random, skill = 1) {
+  const c = 1 - Math.max(0, Math.min(1, skill)); // early on it's worse at it: more drift, worse gaps, more stutters
   const all = buffers.map((b, k) => pieces(b).map((p, i, list) => ({ k, s: p[0], e: p[1], first: i === 0, last: i === list.length - 1 })));
   const flat = all.flat();
   if (flat.length < 2) return null;
@@ -74,10 +75,10 @@ export function plan(buffers, rand = Math.random) {
   const drift = 0.97 + rand() * 0.06;
   return chosen.map((p, i) => [
     p.k, r3(p.s), r3(p.e),
-    r3(drift + (rand() - 0.5) * 0.07),                    // each piece a shade higher or lower
-    i ? r3(rand() < 0.25 ? 0.01 : 0.04 + rand() * 0.2) : 0, // too short, or a beat too long
+    r3(drift + (rand() - 0.5) * 0.07 * (1 + c * 1.5)),    // each piece a shade higher or lower
+    i ? r3(rand() < 0.25 ? 0.01 : 0.04 + rand() * (0.2 + c * 0.25)) : 0, // too short, or a beat too long
     r3(0.8 + rand() * 0.35),
-    rand() < 0.18 ? r3(Math.min(0.2, (p.e - p.s) * 0.45)) : 0,
+    rand() < 0.18 + c * 0.25 ? r3(Math.min(0.2, (p.e - p.s) * 0.45)) : 0,
   ]);
 }
 

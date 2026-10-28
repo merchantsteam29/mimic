@@ -314,7 +314,8 @@ export class Sfx {
   // The mimic speaks with the player's voice. Returns how long it lasts (seconds).
   // style: 'lure' (almost right), 'scream' (fast, distorted, with a demonic octave below), 'echo' (slow, for the end screen),
   //        'whisper' (thin and close, as if breathed into your ear), 'distant' (muffled, from far off: multiplayer lures)
-  playVoice(buffer, emitter, style = 'lure') {
+  // skill (0..1): how good it is at being you yet (game.mimicSkill). Early lures come out wrong: lower, rougher, the tape catching.
+  playVoice(buffer, emitter, style = 'lure', skill = 1) {
     const ctx = this.ctx, t0 = this.now + 0.03;
     const dest = emitter ? emitter.input : this.master;
     const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 140;
@@ -347,6 +348,8 @@ export class Sfx {
     else if (style === 'laugh') { rate = 1.18; vol = 1.25; ws.curve = distortionCurve(6); hp.frequency.value = 260; lp.frequency.value = 5200; pk.frequency.value = 2400; pk.gain.value = 7; wet.gain.value = 0.6; }
     else if (style === 'sing') { rate = 0.74; vol = 1.1; ws.curve = distortionCurve(2); hp.frequency.value = 120; lp.frequency.value = 3200; wet.gain.value = 1; }
     else { rate = rand(0.955, 1.01); vol = 1.15; ws.curve = distortionCurve(3); }
+    const clumsy = ['lure', 'distant', 'stranger', 'phone'].includes(style) ? 1 - Math.max(0, Math.min(1, skill)) : 0;
+    if (clumsy) { rate *= 1 - clumsy * rand(0.02, 0.08); ws.curve = distortionCurve(4 + clumsy * 14); }
     out.gain.value = vol;
 
     const sources = [];
@@ -370,12 +373,21 @@ export class Sfx {
 
     let at = t0;
     // The tell: sometimes it stutters on the first syllable, like a skipping recording.
-    if (style !== 'echo' && style !== 'whisper' && style !== 'tape' && style !== 'sing' && Math.random() < 0.35 && buffer.duration > 0.6) {
+    if (style !== 'echo' && style !== 'whisper' && style !== 'tape' && style !== 'sing' && Math.random() < 0.35 + clumsy * 0.4 && buffer.duration > 0.6) {
       const seg = Math.min(buffer.duration * 0.3, rand(0.12, 0.22));
       const reps = Math.random() < 0.3 ? 2 : 1;
       for (let i = 0; i < reps; i++) { play(at, 0, seg, rate); at += seg / rate + 0.02; }
     }
-    play(at, 0, undefined, rate);
+    if (clumsy > 0.25 && buffer.duration > 1) {
+      // Not good at it yet: the tape catches a few times, a moment of nothing, a slightly different speed after.
+      const cuts = [0, ...Array.from({ length: 1 + Math.floor(clumsy * 2.5) }, () => rand(0.2, 0.85) * buffer.duration).sort((a, b) => a - b), buffer.duration];
+      for (let i = 0; i < cuts.length - 1; i++) {
+        const r = rate * (1 + (Math.random() - 0.5) * 0.06 * clumsy), len = cuts[i + 1] - cuts[i];
+        play(at, cuts[i], len, r);
+        at += len / r + (i < cuts.length - 2 ? rand(0.04, 0.05 + clumsy * 0.1) : 0);
+      }
+      at -= buffer.duration / rate; // (so the total below still works out)
+    } else play(at, 0, undefined, rate);
     if (style === 'scream') play(at, 0, undefined, rate * 0.5, 0.7); // the voice underneath
     if (style === 'sing') play(at + 0.05, 0, undefined, rate * 0.5, 0.5); // and an octave under it
     const total = at - t0 + buffer.duration / (style === 'scream' || style === 'sing' ? rate * 0.5 : rate);

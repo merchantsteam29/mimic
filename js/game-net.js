@@ -178,7 +178,7 @@ export const NetPart = {
           const c = m.key && this.mp?.clips.get(m.key);
           const bufs = Array.isArray(m.sp?.keys) && m.sp.keys.map((k) => this.mp?.clips.get(k)?.buffer);
           const sp = bufs?.length && bufs.every(Boolean) && Array.isArray(m.sp.p) && m.sp.p.length ? build(this.sfx.ctx, m.sp.p, bufs) : null;
-          d = sp || c ? this.sfx.playVoice(sp || c.buffer, this.mimic.emitter, m.style) : this.sfx.whisper(this.mimic.emitter);
+          d = sp || c ? this.sfx.playVoice(sp || c.buffer, this.mimic.emitter, m.style, Number.isFinite(m.q) ? m.q : 1) : this.sfx.whisper(this.mimic.emitter);
         }
         if (!this.isHost) this.mimic.speaking = d;
         this.voice.suppress(d + 0.3);

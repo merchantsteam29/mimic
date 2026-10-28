@@ -99,8 +99,9 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'alpha1-2026-10-28e';
+export const RELEASE = 'alpha1-2026-10-28f';
 const NOTES = [
+  ["Those weren't its footsteps. They were mine. It walks like me now. It stops where I stop.", 'It watches how you move. After a while it walks like you when it isn\'t chasing: your pace, your stops, your footsteps, and if you creep, it creeps without a sound. And it practises: its first tries at your voice come out wrong, lower and catching like old tape. The longer the night goes, the better it gets.'],
   ['We found the tape from the camera that fell. It kept recording. You can see it coming up behind him the whole way.', 'When it gets you, you now see how: a replay from behind you, the last few seconds before it reached you, with the last second slowed down. Space skips it. Online, when a friend is taken while you\'re dead or out, press K to watch theirs.'],
   ['The music came back on by itself. The wheel is turning. We counted nine clowns by the gate. Then ten.', 'A new place: an abandoned fairground, outdoors. The ghost train still runs, the hall of mirrors has more of you in it than it should, and when the music comes on it covers your footsteps. And the clown: it lives there (online, the host can let it in anywhere). It only moves when nobody is looking, and it laughs in your voice.'],
   ['Listen to the tape again. I never said that. Those are my words, but I never said that.', 'It doesn\'t just repeat you any more. It cuts what you said into pieces and puts them back together into things you never said. Listen closely: the pitch slips between words, and the pauses are in the wrong places.'],

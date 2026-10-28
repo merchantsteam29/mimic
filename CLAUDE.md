@@ -409,6 +409,13 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   `store/README.md`.
 - `store/`: the **store kit** for itch.io / CrazyGames: `index.html` (press page), `description.md` (text, tags, content notes,
   controls), `art/` covers (from `art.html?w=&h=&img=`), `screenshots/` (1920x1080 through the trailer camera).
+- `gait.js`: **it walks like you**. The host samples every living player 4x a second (moving share crouched / running, stops a minute);
+  after 60 s of moving, `profile()` {crouch, run, stop} is the walk of whoever's voice it used last (`follow`, from `mimicSpeaks`; alone,
+  you). `Mimic.gaitStep` (wander / investigate / stalk only) picks walk / crouch (silent) / run / stop every few seconds and scales the
+  pace; `stepSound` then plays a person's footstep on that floor instead of its heavy one. `gait` is snap[9], so clients hear it too.
+- **It learns over the round**: `game.mimicSkill()` = (time - 20) / 300 + 0.025 per lure, 0..1; sent as `q` in `say`. `playVoice(..., skill)`
+  makes lure / distant / stranger / phone clumsier the lower it is (lower pitch, rougher, the tape catching with gaps, more stutters);
+  `splice.plan(buffers, rand, skill)` drifts and stumbles more early on.
 - **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
   on touch the objectives sit below the pause / jobs buttons.
 
