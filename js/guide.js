@@ -94,8 +94,9 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'alpha1-2026-10-28a';
+export const RELEASE = 'alpha1-2026-10-28b';
 const NOTES = [
+  ['Somebody else is down here. You can see their light from the stairs.', 'Quick Play now shows the public rooms open right now: whose they are, how full, and whether they\'re already playing. And the voice that fooled you can be saved as a short video to send to whoever it was. Saved jumpscares are MP4 now, so they play on more phones.'],
   ['The last train left at 12:40. We heard another one at 2:13. Then we heard her singing.', 'A new place: a closed subway station, where the trains still run, so stay off the track. Online, the Mother: huge, slow, too big for a doorway, and she sings in your voices. And four new classes: the Sound guy (a speaker that pulls it away), the Priest (a crucifix that makes it back off), the Scout (marks everyone can see) and the Mechanic (fast repairs, and doors wedged shut).'],
   ['I got a better look at it tonight. I wish I hadn\'t. It drags one leg. Its fingers don\'t stop moving.', 'It looks worse now: starved, bruised grey skin, ribs and spine pushing through, black eyes, the corners of its mouth split. It drags a leg, breathes, and its neck snaps over too far. And every place sounds like itself: carpet in the hotel, stone in the church, leaves in the woods, and things far off you\'d rather not hear.'],
   ['This is still a rough cut. Some of the tape is missing. Tell us where it skips.', 'We\'re in alpha now. Online voices are smaller and sent in pieces, so games shouldn\'t stutter when someone talks, and anyone who joins late still gets everyone\'s voices. A tidier lobby, with Start always in reach.'],

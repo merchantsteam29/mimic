@@ -73,6 +73,8 @@ Guess wrong, and it gets hungrier.
   while you talk, and it can hear that. It has a radio too. If a friend calls you over the radio, check they're still alive.
 - **Waiting room:** while you wait for the host, walk around a small house together and talk.
 - **Save the jumpscare:** when it gets you, the end screen lets you save (or share, on a phone) a clip of the moment.
+- **Share the voice that fooled you:** the end screen can turn it into a short camcorder-style video (the voice, whose it was,
+  "It wasn't them.", and the building code) to save or send. It's made in your browser; there are no accounts and nothing is uploaded.
 - **Your stats** (title screen) and a **Fewer flashes** setting for players sensitive to flashing light.
 - **Your own tape recorder:** pick one up, press `X` and say something, then put it down. It plays your voice a few times, loudly,
   and it goes to see who's there. Use its trick against it.
@@ -90,7 +92,8 @@ Guess wrong, and it gets hungrier.
 - **Field guide** (title screen): case files on every creature, hiding spot, item and event: what it does, its tells, how to survive it.
 - **Building codes:** the end screen and the pause menu show a code like `H-4F2K9A`. Enter it (class screen, or the lobby's Settings tab)
   to play that exact building again, or send it to a friend.
-- **Quick Play:** no friends online? It finds you a public room with strangers, or opens one they can find.
+- **Quick Play:** no friends online? It lists the public rooms open right now, whose they are, how full, whether they're playing or
+  waiting, the mode and the map. Join one, or open your own for strangers to find.
 - **Dead, but not done:** press R to drift around the building on your own instead of watching through a friend's eyes.
 - **The Shadow** (online, Normal mode, a lobby switch): it lives where the lights are dead. Stay in the light, and keep your flashlight on it.
 - **New here?** The first time you play alone, a short tutorial walks you through it (it's also under How to play).

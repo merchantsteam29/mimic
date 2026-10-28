@@ -3,7 +3,7 @@
 // Recording starts when it starts chasing you (or when it catches you without a chase), and stops just
 // after SIGNAL LOST. A chase you get away from is thrown away.
 const W = 640, H = 360, MAX = 14; // seconds kept before the catch
-const TYPES = ['video/mp4;codecs=avc1,mp4a', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'];
+const TYPES = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'];
 
 export class ScareClip {
   constructor(sfx) {

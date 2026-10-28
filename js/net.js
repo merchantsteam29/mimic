@@ -17,31 +17,41 @@ export function newCode() {
 // Quick Play: there's no server to list games, so public rooms use a fixed set of codes everyone knows.
 export const QUICK_CODES = 'ABCDEFGHJKMN'.split('').map((c) => `QQ${c}2`);
 
-// Which of these rooms exist right now? One throwaway peer tries them all at once. -> { open: [codes], free: [codes] }
+// Which of these rooms exist right now, and what's in them? One throwaway peer tries them all at once and asks each
+// host to 'peek' (the host answers 'peeked' {n, max, started, host, mode, map} and hangs up).
+// -> { open: [codes], free: [codes], info: { code: {...} or null (an older version that doesn't answer) } }
 export function probe(codes, ms = 6000) {
   return new Promise((resolve) => {
     const peer = new Peer();
-    const open = [], free = [], conns = [];
+    const open = [], free = [], conns = [], info = {};
     let done = false;
     const finish = () => {
       if (done) return;
       done = true;
       for (const c of conns) try { c.close(); } catch { /* ignore */ }
       setTimeout(() => { try { peer.destroy(); } catch { /* ignore */ } }, 300);
-      resolve({ open, free: codes.filter((c) => !open.includes(c)) });
+      for (const c of open) if (!(c in info)) info[c] = null;
+      resolve({ open, free: codes.filter((c) => !open.includes(c)), info });
     };
+    const settled = () => free.length + Object.keys(info).length >= codes.length;
     setTimeout(finish, ms);
     peer.on('error', (e) => {
       // "Could not connect to peer mimic-v1-QQA2": nobody is hosting that one.
       const m = /mimic-v1-([A-Z0-9]{4})/.exec(e.message || '');
-      if (e.type === 'peer-unavailable' && m) { free.push(m[1]); if (open.length + free.length >= codes.length) finish(); }
+      if (e.type === 'peer-unavailable' && m) { free.push(m[1]); if (settled()) finish(); }
       else if (e.type !== 'peer-unavailable') finish();
     });
     peer.on('open', () => {
       for (const code of codes) {
         const conn = peer.connect(PREFIX + code, { reliable: true });
         conns.push(conn);
-        conn.on('open', () => { open.push(code); if (open.length + free.length >= codes.length) finish(); });
+        conn.on('open', () => { open.push(code); conn.send({ t: 'peek' }); });
+        conn.on('data', (m) => {
+          if (m?.t !== 'peeked') return;
+          const n = Math.max(1, Math.min(MAX_PLAYERS, m.n | 0));
+          info[code] = { n, max: MAX_PLAYERS, started: !!m.started, host: cleanName(m.host), mode: typeof m.mode === 'string' ? m.mode : null, map: typeof m.map === 'string' ? m.map : null };
+          if (settled()) finish();
+        });
       }
     });
   });
@@ -108,6 +118,11 @@ export class Net {
     conn.on('data', (m) => {
       conn.lastSeen = Date.now();
       if (!m || typeof m !== 'object' || m.t === 'ping') return;
+      if (m.t === 'peek' && !conn.pid) { // Quick Play looking in: how full, playing or not, then goodbye
+        conn.send({ t: 'peeked', n: this.roster.length, started: this.locked, host: this.roster[0]?.name, ...(this.peekInfo?.() || {}) });
+        setTimeout(() => conn.close(), 400);
+        return;
+      }
       if (m.t === 'hello' && !conn.pid) {
         // Back after a drop: same player, same place.
         const back = m.rejoin && this.away.has(m.rejoin.id) && this.secrets.get(m.rejoin.id) === m.rejoin.secret ? m.rejoin.id : null;

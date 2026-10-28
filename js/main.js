@@ -24,6 +24,7 @@ import { TUTORIAL } from './tutorial.js';
 import { drawRecap, PLAYER_COLORS } from './recap.js';
 import { recordRun, statRows, resetStats, placeName } from './stats.js';
 import { buildingCode, parseCode } from './codes.js';
+import { canMakeVideo, makeVoiceVideo } from './voiceclip.js';
 import { renderGuide, newTape, RELEASE } from './guide.js';
 
 const $ = (id) => document.getElementById(id);
@@ -812,8 +813,42 @@ function bestClip(r) {
     ? `${whose}. ${caught ? 'You went to it, and it was waiting.' : 'You walked toward it.'}`
     : `${whose}. ${caught ? `It brought ${n > 1 ? 'some of you' : 'one of you'} right to it.` : `${n > 1 ? `${n} of you` : 'One of you'} walked toward it.`}`;
   $('btnBestClip').onclick = () => { ensureAudio(); sfx.playVoice(buf, null, 'echo'); };
+  // ...and as a short video to send someone. Made here, in real time (it plays while it records).
+  const vb = $('btnBestVideo'), who = !r.mp || owner === session?.id ? null : game?.nameOf(owner) || 'them';
+  const place = game ? THEMES[game.themeId]?.kicker || '' : '', code = game ? buildingCode(game.themeId, game.seed) : '';
+  let made = null;
+  vb.hidden = !canMakeVideo();
+  vb.disabled = false;
+  vb.textContent = 'Save it as a video';
+  vb.onclick = async () => {
+    if (made) { shareOrSave(made.blob, `mimic-the-voice.${made.ext}`); return; }
+    ensureAudio();
+    vb.disabled = true;
+    try {
+      made = await makeVoiceVideo({
+        buffer: buf, sfx, place, code,
+        whose: who ? `${who}'s voice.` : 'Your own voice.',
+        punch: who ? `It wasn't ${who}.` : 'It wasn\'t you.',
+        onProgress: (k) => { vb.textContent = `Making the video… ${Math.round(k * 100)}%`; },
+      });
+      vb.textContent = 'Save the video';
+      vb.disabled = false;
+      shareOrSave(made.blob, `mimic-the-voice.${made.ext}`);
+    } catch { vb.textContent = 'Couldn\'t make the video'; }
+  };
   $('bestClip').hidden = false;
   return buf;
+}
+
+// A video file: the share sheet on phones (straight to a chat or a story), else a download.
+async function shareOrSave(blob, name) {
+  const file = new File([blob], name, { type: blob.type });
+  if (controls.mode === 'touch' && navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: 'Mimic' }); return; } catch { /* cancelled: fall back to saving */ }
+  }
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: file.name });
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
 
 // The jumpscare, to save or share (when it got you, and this browser can record).
@@ -823,15 +858,7 @@ function offerClip(clip) {
   if (!clip) return;
   const ready = (blob) => {
     b.hidden = false;
-    b.onclick = async () => {
-      const file = new File([blob], `mimic-jumpscare.${clip.ext}`, { type: blob.type });
-      if (controls.mode === 'touch' && navigator.canShare?.({ files: [file] })) {
-        try { await navigator.share({ files: [file], title: 'Mimic' }); return; } catch { /* cancelled: fall back to saving */ }
-      }
-      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: file.name });
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-    };
+    b.onclick = () => shareOrSave(blob, `mimic-jumpscare.${clip.ext}`);
   };
   if (clip.blob) ready(clip.blob); else clip.onReady = ready;
 }
@@ -950,41 +977,60 @@ $('btnJoin').onclick = async () => {
     mpBusy(false, e.message);
   }
 };
-// Quick Play: join an open public room with space, or open one for strangers to find.
-$('btnQuick').onclick = async () => {
+// Quick Play: the public rooms open right now (how full, playing or in the lobby, the mode and the map), to join one,
+// or open one for strangers to find. The list refreshes itself every 20 s while it's on screen.
+const MODE_NAME = { normal: 'Normal', story: 'The Signal', hunt: 'Hunt', versus: 'Versus', nights: 'Night Shift', hide: 'Hide and seek', escort: 'Escort' };
+let quickFree = [], quickT = 0, quickBusy = false;
+const quickButtons = (on) => { for (const id of ['btnQuick', 'btnQuickOpen', 'btnQuickRefresh']) $(id).disabled = !on; };
+async function listQuick() {
+  if (quickBusy) return;
+  quickBusy = true;
+  clearTimeout(quickT);
+  quickButtons(false);
+  mpBusy(true, 'Looking for public rooms…');
+  const { free, info } = await probe(QUICK_CODES.slice());
+  quickBusy = false;
+  if (session || $('mp').hidden) return;
+  mpBusy(false);
+  quickButtons(true);
+  quickFree = free;
+  const can = (r) => !r || (!r.started && r.n < r.max);
+  const rooms = Object.entries(info).sort(([, a], [, b]) => can(b) - can(a) || (b?.n || 0) - (a?.n || 0));
+  $('quick').hidden = false;
+  $('quickList').innerHTML = rooms.length ? rooms.map(([code, r]) => {
+    const full = r && r.n >= r.max, playing = r?.started;
+    const what = r ? [playing ? 'playing' : 'in the lobby', r.mode && MODE_NAME[r.mode], r.map && (r.map === 'random' ? 'any map' : placeName(r.map))].filter(Boolean).join(' · ') : '';
+    const fill = r ? '<u class="on"></u>'.repeat(r.n) + '<u></u>'.repeat(Math.max(0, r.max - r.n)) : '';
+    return `<li><span><b>${esc(r?.host ? `${r.host}'s room` : `Room ${code}`)}</b>${fill ? `<i class="fill" aria-label="${r.n} of ${r.max}">${fill}</i>` : ''}${esc(what)}</span>`
+      + `<button type="button" data-code="${code}" ${full || playing ? 'disabled' : ''}>${full ? 'Full' : playing ? 'Playing' : 'Join'}</button></li>`;
+  }).join('') : '<li class="none">No public rooms right now. Open one and strangers can find you.</li>';
+  $('quickList').querySelectorAll('button[data-code]').forEach((b) => { b.onclick = () => enterPublic(b.dataset.code, 'join'); });
+  quickT = setTimeout(() => { if (!session && !$('mp').hidden && !$('quick').hidden) listQuick(); }, 20000);
+}
+// Join that public room, or host one (on the first free public code).
+async function enterPublic(code, how) {
   ensureAudio();
-  $('btnQuick').disabled = true;
-  mpBusy(true, 'Looking for an open room…');
-  const order = QUICK_CODES.slice().sort(() => Math.random() - 0.5);
-  const { open, free } = await probe(order);
-  for (const code of open) { // a public room: try to get in (it may be full, or already playing)
-    mpBusy(true, 'Found a room. Joining…');
+  clearTimeout(quickT);
+  quickButtons(false);
+  const codes = how === 'join' ? [code] : (quickFree.length ? quickFree : QUICK_CODES).slice().sort(() => Math.random() - 0.5);
+  for (const c of codes) {
+    mpBusy(true, how === 'join' ? 'Joining…' : 'Opening a public room: strangers can find you.');
     const { s, name } = newSession();
     try {
-      await s.join(code, name);
+      if (how === 'join') await s.join(c, name); else await s.host(c, name);
       session = s; s.public = true;
       s.setClass(myClass); s.setLook(settings.look);
-      mpBusy(false); $('btnQuick').disabled = false;
+      mpBusy(false); quickButtons(true);
       openRoom(); show('lobby'); renderLobby();
       return;
-    } catch { s.dispose(); }
+    } catch (e) { s.dispose(); if (how === 'join') { mpBusy(false, e.message || 'Couldn\'t get in.'); quickButtons(true); listQuick(); return; } }
   }
-  // Nobody to join: open a public room.
-  for (const code of free.length ? free : order) {
-    mpBusy(true, 'No open rooms. Opening one: strangers can find you.');
-    const { s, name } = newSession();
-    try {
-      await s.host(code, name);
-      session = s; s.public = true;
-      s.setClass(myClass); s.setLook(settings.look);
-      mpBusy(false); $('btnQuick').disabled = false;
-      openRoom(); show('lobby'); renderLobby();
-      return;
-    } catch { s.dispose(); }
-  }
-  mpBusy(false, 'Couldn\'t find or open a public room. Try again in a moment.');
-  $('btnQuick').disabled = false;
-};
+  mpBusy(false, 'Couldn\'t open a public room. Try again in a moment.');
+  quickButtons(true);
+}
+$('btnQuick').onclick = () => { ensureAudio(); listQuick(); };
+$('btnQuickRefresh').onclick = () => listQuick();
+$('btnQuickOpen').onclick = () => enterPublic(null, 'host');
 
 $('mpCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btnJoin').click(); });
 

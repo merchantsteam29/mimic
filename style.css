@@ -533,6 +533,18 @@ body.input-touch #objective { top: 112px; left: 20px; }
 #lookHat button, #lookLight button { font-size: 11px; }
 
 /* ---------- recent rooms ---------- */
+#quick { margin-top: 12px; text-align: left; }
+#quickList { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 6px; }
+#quickList li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.02); }
+#quickList li.none { justify-content: flex-start; color: var(--dim); font-size: 13px; }
+#quickList li span { font-size: 13px; color: var(--dim); min-width: 0; }
+#quickList li b { color: var(--fg, #e9e4da); font-weight: 600; margin-right: 6px; }
+#quickList .fill { display: inline-flex; gap: 3px; margin-right: 8px; vertical-align: middle; }
+#quickList .fill u { width: 8px; height: 8px; border-radius: 50%; border: 1px solid #c9332f; }
+#quickList .fill u.on { background: #c9332f; }
+#quickList button { font-size: 12px; padding: 6px 12px; flex: none; }
+.quick-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+#btnBestVideo { margin-left: 6px; }
 #recent { margin-top: 14px; text-align: left; }
 #recentList { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 6px; }
 #recentList li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }

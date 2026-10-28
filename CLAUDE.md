@@ -167,7 +167,12 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - `clip.js`: **save the jumpscare**. `ScareClip` records a 640x360 canvas (the game frame plus a REC stamp and the site address) with
   the whole mix (`sfx.tap`, a MediaStreamDestination after the master trim) through MediaRecorder. It starts when it chases you
   (`updateFear`; restarted after 14 s, thrown away 5 s after a chase ends) or on the catch, and is kept at SIGNAL LOST + 1 s. The end
-  screen's "Save the jumpscare" (`offerClip`) shares it (touch) or downloads it.
+  screen's "Save the jumpscare" (`offerClip` -> `shareOrSave`) shares it (touch) or downloads it. Recording type: Chrome only records MP4
+  with an exact codec string (`video/mp4;codecs=avc1.42E01E,mp4a.40.2`, first in `TYPES`); before that, clips were WebM with no duration.
+- `voiceclip.js`: **the voice that fooled you, as a video** (end screen `#btnBestVideo`, next to "Hear it again"). `makeVoiceVideo` draws
+  a 640x360 canvas in real time (static, "THE VOICE THAT FOOLED YOU", the clip with its waveform from an AnalyserNode, "Bob's voice.",
+  "It wasn't Bob.", an end card with the building code and the address) and records it with the clip's sound (its own
+  MediaStreamDestination; you hear it too) through MediaRecorder. Made once per end screen, then `shareOrSave`. Nothing is uploaded.
 - **Feedback** (beta): "Report a bug / idea" (title) and "Report a bug" (pause) open the Google Form (`FEEDBACK_FORM` in main.js:
   https://forms.gle/CG3PAo4xpdrp7y6u6) in a new tab, after copying the version, device, settings and what you were doing to the clipboard.
 - `guide.js`: the **field guide** (title > Field guide, `#guide`): case files on the creatures, hiding spots, items and events
@@ -218,8 +223,11 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - Haunting also has V: **a mark** (a red handprint on the floor where the watched player is looking, 25 s; `aim()`, `haunted` k `mark`),
   and the dead see **where it is** (`haunt.marker`, a red sprite over the mimic, through walls).
 - **Quick Play** (Play with friends > Quick Play): no server, so public rooms use fixed codes (`QUICK_CODES` in net.js, `QQ?2`;
-  `newCode` never makes a QQ code). `probe(codes)` tries them all from one throwaway peer: the ones that connect are open rooms (join
-  them in turn; full or started ones refuse), and if none take you, you host a free one (`session.public`, shown in the lobby).
+  `newCode` never makes a QQ code). `probe(codes)` tries them all from one throwaway peer and sends each open one `peek`; the host
+  (`Net.accept`, before any `hello`) answers `peeked` {n, started, host, mode, map (from `net.peekInfo`, set by Session)} and hangs up.
+  main.js `listQuick` shows them in `#quickList` (host's name, filled dots for players, playing / in the lobby, mode, map; Join, or
+  Full / Playing disabled), refreshing every 20 s while shown; `enterPublic(code, 'join' | 'host')` (`#btnQuickOpen` hosts on a free
+  QQ code; `session.public`). Older hosts that don't answer `peek` show as "Room QQx2" with no details.
 - **Drifting** (the dead): R in spectate toggles `game.freeCam` ({x, z, y, yaw, pitch}; `updateFreeCam`, walls still stop you; Space / E
   goes back to watching). Haunting then reaches the living player nearest the camera (`nearestLiving`), and a mark goes where you look.
 - `shadow.js`: the **shadow**: online, **Normal mode only**, a host lobby toggle (`session.setShadow`, `start` carries `sd`). A shape of

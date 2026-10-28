@@ -50,6 +50,7 @@ export class Session {
     this.sfx = sfx;
     this.voice = voice;
     this.net = new Net();
+    this.net.peekInfo = () => ({ mode: this.mode, map: this.map }); // what Quick Play shows about this room
     this.vc = null;
     this.clips = new Map(); // key -> { buffer, owner, plays, data (encoded, to pass on to newcomers) }
     this.clipQ = [];        // parts waiting to go: { m, to (an id, or null = everyone), except }
