@@ -24,7 +24,7 @@ export const NetPart = {
   // Host: a player's intent.
   hostHandle(m, from) {
     const r = this.remotes.get(from);
-    if (this.hunt.hostHandle(m, from) || this.chat.hostHandle(m, from) || this.radio.hostHandle(m, from) || this.rec.hostHandle(m, from) || this.thr.hostHandle(m, from) || this.sig.hostHandle(m, from) || this.revival.hostHandle(m, from) || this.haunt.hostHandle(m, from) || this.obj.hostHandle(m, from) || this.esc.hostHandle(m, from) || this.cl.hostHandle(m, from) || this.lan.hostHandle(m, from) || this.ab.hostHandle(m, from) || this.traitor.hostHandle(m, from)) return;
+    if (this.hunt.hostHandle(m, from) || this.chat.hostHandle(m, from) || this.radio.hostHandle(m, from) || this.rec.hostHandle(m, from) || this.thr.hostHandle(m, from) || this.sig.hostHandle(m, from) || this.revival.hostHandle(m, from) || this.haunt.hostHandle(m, from) || this.obj.hostHandle(m, from) || this.esc.hostHandle(m, from) || this.cl.hostHandle(m, from) || this.lan.hostHandle(m, from) || this.ab.hostHandle(m, from) || this.traitor.hostHandle(m, from) || this.sw.hostHandle?.(m, from)) return;
     switch (m.t) {
       case 'door': { // open / close a real door
         const d = this.level.idoors[m.i | 0];
@@ -106,7 +106,7 @@ export const NetPart = {
 
   // Everyone: what happened.
   onNet(m) {
-    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m) || this.radio.onNet(m) || this.rec.onNet(m) || this.thr.onNet(m) || this.sig.onNet(m) || this.revival.onNet(m) || this.sd.onNet(m) || this.db.onNet(m) || this.esc.onNet(m) || this.cl.onNet(m) || this.lan.onNet(m) || this.mo.onNet(m) || this.tr.onNet(m) || this.fair.onNet(m) || this.mc.onNet(m)) return;
+    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m) || this.radio.onNet(m) || this.rec.onNet(m) || this.thr.onNet(m) || this.sig.onNet(m) || this.revival.onNet(m) || this.sd.onNet(m) || this.db.onNet(m) || this.esc.onNet(m) || this.cl.onNet(m) || this.lan.onNet(m) || this.mo.onNet(m) || this.tr.onNet(m) || this.fair.onNet(m) || this.mc.onNet(m) || this.pt.onNet(m)) return;
     switch (m.t) {
       case 'doorSet': {
         const d = this.level.idoors[m.i | 0];
@@ -163,6 +163,7 @@ export const NetPart = {
         if (m.db && this.state !== 'caught') this.db.applySnap(m.db);
         if (m.mo && this.state !== 'caught') this.mo.applySnap(m.mo);
         if (m.mc && this.state !== 'caught') this.mc.applySnap(m.mc);
+        if (m.pt && this.state !== 'caught') this.pt.applySnap(m.pt);
         for (const row of m.p || []) {
           const r = this.remotes.get(row[0]);
           if (r) r.setState(row.slice(1).map((v) => num(v)));
@@ -179,6 +180,7 @@ export const NetPart = {
           const bufs = Array.isArray(m.sp?.keys) && m.sp.keys.map((k) => this.mp?.clips.get(k)?.buffer);
           const sp = bufs?.length && bufs.every(Boolean) && Array.isArray(m.sp.p) && m.sp.p.length ? build(this.sfx.ctx, m.sp.p, bufs) : null;
           d = sp || c ? this.sfx.playVoice(sp || c.buffer, this.mimic.emitter, m.style, Number.isFinite(m.q) ? m.q : 1) : this.sfx.whisper(this.mimic.emitter);
+          if (m.style !== 'scream') this.echoVoice(sp || c?.buffer, Number.isFinite(m.q) ? m.q : 1);
         }
         if (!this.isHost) this.mimic.speaking = d;
         this.voice.suppress(d + 0.3);
@@ -241,9 +243,9 @@ export const NetPart = {
       case 'power': this.powerOn(m.by); break;
       case 'caught': {
         this.status.set(m.id, 'dead');
-        const at = ['sw', 'ls', 'sk', 'sd', 'db', 'mo', 'tr', 'mc'].map((k) => m[k]).find(Array.isArray) || null;
-        this.kc.caught(m.id, ['sw', 'ls', 'sk', 'sd', 'db', 'mo', 'tr', 'mc'].find((k) => m[k]));
-        if (m.id === this.me && this.state !== 'intro') this.caught(at ? { x: num(at[0]), z: num(at[1]), ceiling: false, dropT: 0, sw: !!m.sw, ls: !!m.ls, sk: !!m.sk, sd: !!m.sd, db: !!m.db, mo: !!m.mo, tr: !!m.tr, mc: !!m.mc } : null);
+        const at = ['sw', 'ls', 'sk', 'sd', 'db', 'mo', 'tr', 'mc', 'pt'].map((k) => m[k]).find(Array.isArray) || null;
+        this.kc.caught(m.id, ['sw', 'ls', 'sk', 'sd', 'db', 'mo', 'tr', 'mc', 'pt'].find((k) => m[k]));
+        if (m.id === this.me && this.state !== 'intro') this.caught(at ? { x: num(at[0]), z: num(at[1]), ceiling: false, dropT: 0, sw: !!m.sw, ls: !!m.ls, sk: !!m.sk, sd: !!m.sd, db: !!m.db, mo: !!m.mo, tr: !!m.tr, mc: !!m.mc, pt: !!m.pt } : null);
         // Nobody else is told. Their voice just stops, as if they wandered off.
         else if (this.alive(this.me)) this.mp?.vc?.route(m.id, { on: false });
         this.checkEnd();
@@ -281,7 +283,7 @@ export const NetPart = {
     if ([...this.status.values()].some((s) => s === 'alive')) return;
     this.ended = true;
     if (!this.mp) return; // alone, the jumpscare / escape ends the run itself
-    this.broadcast({ t: 'end', st: Object.fromEntries(this.status), time: this.time, mode: this.hunt.id ? 'hunt' : this.traitor.on ? 'story' : this.vs.on ? 'versus' : this.ns.on ? 'nights' : this.hs.on ? 'hide' : this.lan.on ? 'escort' : 'normal', night: this.ns.night, hour: this.ns.hour, hunter: this.hunt.id, recap: this.recap.data(), ...this.traitor.result(), ...this.vs.result(), ...this.hs.result() });
+    this.broadcast({ t: 'end', st: Object.fromEntries(this.status), time: this.time, mode: this.hunt.id ? 'hunt' : this.traitor.on ? 'story' : this.vs.on ? 'versus' : this.ns.on ? 'nights' : this.hs.on ? 'hide' : this.lan.on ? 'escort' : this.sw.imp ? 'imposter' : 'normal', night: this.ns.night, hour: this.ns.hour, hunter: this.hunt.id, recap: this.recap.data(), ...this.traitor.result(), ...this.vs.result(), ...this.hs.result() });
   },
 
   // Host: the mimic (or, by 'sw', the skinwalker; 'ls', the listener) reached a player.
@@ -298,6 +300,7 @@ export const NetPart = {
     if (by === 'sk') { this.broadcast({ t: 'caught', id, sk: [+this.sk.x.toFixed(2), +this.sk.z.toFixed(2)] }); return; }
     if (by === 'sd') { this.broadcast({ t: 'caught', id, sd: [+this.sd.x.toFixed(2), +this.sd.z.toFixed(2)] }); return; }
     if (by === 'db') { this.broadcast({ t: 'caught', id, db: [+this.db.x.toFixed(2), +this.db.z.toFixed(2)] }); return; }
+    if (by === 'pt') { this.broadcast({ t: 'caught', id, pt: [+this.pt.x.toFixed(2), +this.pt.z.toFixed(2)] }); return; }
     if (by === 'mc') { this.broadcast({ t: 'caught', id, mc: [+this.mc.x.toFixed(2), +this.mc.z.toFixed(2)] }); return; }
     if (by === 'mo') { this.broadcast({ t: 'caught', id, mo: [+this.mo.x.toFixed(2), +this.mo.z.toFixed(2)] }); return; }
     if (by === 'tr') { this.broadcast({ t: 'caught', id, tr: [+(this.tr.front() ?? 0).toFixed(2), +this.tr.zc.toFixed(2)] }); return; }

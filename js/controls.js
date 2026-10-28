@@ -207,7 +207,7 @@ function gamePad(dt, g, { now, down, up, ax }) {
   }
   if (down(pb.signal) && g.sig?.can()) { tap('KeyZ'); return; }
   if (down(pb.chat)) { tap('KeyT'); return; }
-  const voting = g.traitor?.voting;
+  const voting = g.traitor?.voting || g.sw?.voting;
   const spectating = g.state === 'spectate';
   if (spectating && g.kc?.offer && g.t < g.kc.offer.until && down(pb.jobs)) { tap('KeyK'); return; } // watch how a friend was taken
   // Hiding with it at the door: "use" is the heartbeat too (pressing "use" would walk you out).
@@ -458,7 +458,7 @@ function updateTouch(g) {
   show('KeyG', haunt || (!spec && g.ab?.id !== 'runner'));
   show('KeyQ', !spec && !!(tr?.on && tr.me));
   show('KeyR', spec || !!(tr?.on && tr.me));
-  show('KeyV', haunt || (!spec && !!(tr?.on && !tr.voteUsed && g.focus?.type === 'fusebox')));
+  show('KeyV', haunt || (!spec && !!(tr?.on && !tr.voteUsed && g.focus?.type === 'fusebox')) || (!spec && !!g.sw?.canAccuse?.()));
   for (const b of root.querySelectorAll('[data-toggle]')) b.classList.toggle('on', !spec && held.has(b.dataset.k));
 }
 

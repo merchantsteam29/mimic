@@ -14,7 +14,7 @@ import { VoiceChat } from './vc.js';
 import { CLASSES } from './classes.js';
 import { cleanLook } from './look.js';
 
-const HOST_TYPES = new Set(['st', 'noise', 'take', 'insert', 'escaped', 'work', 'bang', 'smash', 'unlock', 'lever', 'flare', 'rescue', 'sniffRes', 'door', 'trapped', 'fakeDone', 'jam', 'sab', 'accuse', 'ballot', 'mst', 'bite', 'msay', 'mlight', 'chat', 'haunt', 'radio', 'recDrop', 'sig', 'revive', 'throw', 'camFlash', 'keypad', 'callLift', 'answer', 'lanternTake', 'spkPut', 'spkPlay', 'cross', 'mark', 'wedge']);
+const HOST_TYPES = new Set(['st', 'noise', 'take', 'insert', 'escaped', 'work', 'bang', 'smash', 'unlock', 'lever', 'flare', 'rescue', 'sniffRes', 'door', 'trapped', 'fakeDone', 'jam', 'sab', 'accuse', 'ballot', 'mst', 'bite', 'msay', 'mlight', 'chat', 'haunt', 'radio', 'recDrop', 'sig', 'revive', 'throw', 'camFlash', 'keypad', 'callLift', 'answer', 'lanternTake', 'spkPut', 'spkPlay', 'cross', 'mark', 'wedge', 'impAccuse', 'impBallot']);
 const CLIP_RATE = 16000;
 const PART = 8000;        // bytes per part (half a second)
 const PACE = 45;          // ms between parts
@@ -68,6 +68,7 @@ export class Session {
     this.double = false;     // Normal mode only: the thing that walks where you walked
     this.mother = false;     // Normal mode only: the huge thing that sings in your voices
     this.mascot = false;     // Normal mode only: the clown that stands still while you look
+    this.patient = false;    // Normal mode only: the body on the bed that gets up when you run
     this.caller = false;     // Normal mode only: phones that ring with the voices of the taken
     this.map = 'random';     // the host's pick of building (a theme id), or a new random one each game
     this.night = 1;          // Night Shift: the night you're on (the host moves it on when anyone lasts one)
@@ -243,7 +244,7 @@ export class Session {
       return;
     }
     if (m.t === 'start') { this.net.locked = true; this.lastStart = m; this.onStart(m); return; }
-    if (m.t === 'mode') { if (from === 'h') { this.mode = ['story', 'hunt', 'versus', 'nights', 'hide', 'escort'].includes(m.mode) ? m.mode : 'normal'; this.night = Math.max(1, Math.min(99, m.night | 0)); this.skinwalker = !!m.sw; this.listener = !!m.ls; this.stalker = !!m.sk; this.shadow = !!m.sd; this.double = !!m.db; this.caller = !!m.cl; this.mother = !!m.mo; this.mascot = !!m.mc; this.map = typeof m.map === 'string' ? m.map : 'random'; this.custom = cleanCustom(m.cs); this.difficulty = ['easy', 'nightmare'].includes(m.diff) ? m.diff : 'normal'; this.onRoster(this.roster); } return; }
+    if (m.t === 'mode') { if (from === 'h') { this.mode = ['story', 'hunt', 'versus', 'nights', 'hide', 'escort', 'imposter'].includes(m.mode) ? m.mode : 'normal'; this.night = Math.max(1, Math.min(99, m.night | 0)); this.skinwalker = !!m.sw; this.listener = !!m.ls; this.stalker = !!m.sk; this.shadow = !!m.sd; this.double = !!m.db; this.caller = !!m.cl; this.mother = !!m.mo; this.mascot = !!m.mc; this.patient = !!m.pt; this.map = typeof m.map === 'string' ? m.map : 'random'; this.custom = cleanCustom(m.cs); this.difficulty = ['easy', 'nightmare'].includes(m.diff) ? m.diff : 'normal'; this.onRoster(this.roster); } return; }
     if (m.t === 'role') { if (from === 'h') this.game?.traitor.onNet(m); return; }
     if (m.t === 'look') { // a player changed their look (host keeps it in the roster)
       const r = this.isHost && this.roster.find((x) => x.id === from);
@@ -280,7 +281,7 @@ export class Session {
       for (let i = sh.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [sh[i], sh[j]] = [sh[j], sh[i]]; }
       teams = Object.fromEntries(sh.map((id, i) => [id, i % 2]));
     }
-    this.net.broadcast({ t: 'start', theme, seed, order: ids, classes, mode: hunter ? 'hunt' : teams ? 'versus' : ['hunt', 'versus'].includes(this.mode) ? 'normal' : this.mode, teams, sw: this.mode === 'normal' && this.skinwalker, ls: this.mode === 'normal' && this.listener, sk: this.mode === 'normal' && this.stalker, sd: this.mode === 'normal' && this.shadow, db: this.mode === 'normal' && this.double, cl: this.mode === 'normal' && this.caller, mo: this.mode === 'normal' && this.mother, mc: this.mode === 'normal' && this.mascot, hunter, lantern, diff: this.difficulty, cs: this.custom, night: this.mode === 'nights' ? this.night : 0 });
+    this.net.broadcast({ t: 'start', theme, seed, order: ids, classes, mode: hunter ? 'hunt' : teams ? 'versus' : ['hunt', 'versus'].includes(this.mode) ? 'normal' : this.mode, teams, sw: this.mode === 'normal' && this.skinwalker, ls: this.mode === 'normal' && this.listener, sk: this.mode === 'normal' && this.stalker, sd: this.mode === 'normal' && this.shadow, db: this.mode === 'normal' && this.double, cl: this.mode === 'normal' && this.caller, mo: this.mode === 'normal' && this.mother, mc: this.mode === 'normal' && this.mascot, pt: this.mode === 'normal' && this.patient, hunter, lantern, diff: this.difficulty, cs: this.custom, night: this.mode === 'nights' ? this.night : 0 });
     if (this.traitorId && this.traitorId !== 'h') this.net.sendTo(this.traitorId, { t: 'role', traitor: true });
   }
 
@@ -294,7 +295,7 @@ export class Session {
 
   setMode(mode) {
     if (!this.isHost) return;
-    this.mode = ['story', 'hunt', 'versus', 'nights', 'hide', 'escort'].includes(mode) ? mode : 'normal';
+    this.mode = ['story', 'hunt', 'versus', 'nights', 'hide', 'escort', 'imposter'].includes(mode) ? mode : 'normal';
     this.sendMode();
     this.onRoster(this.roster);
   }
@@ -332,7 +333,7 @@ export class Session {
   }
 
   // The lobby's settings, to everyone else.
-  sendMode() { this.net.broadcast({ t: 'mode', mode: this.mode, night: this.night, sw: this.skinwalker, ls: this.listener, sk: this.stalker, sd: this.shadow, db: this.double, cl: this.caller, mo: this.mother, mc: this.mascot, map: this.map, diff: this.difficulty, cs: this.custom }, { self: false }); }
+  sendMode() { this.net.broadcast({ t: 'mode', mode: this.mode, night: this.night, sw: this.skinwalker, ls: this.listener, sk: this.stalker, sd: this.shadow, db: this.double, cl: this.caller, mo: this.mother, mc: this.mascot, pt: this.patient, map: this.map, diff: this.difficulty, cs: this.custom }, { self: false }); }
 
   setMap(id) {
     if (!this.isHost) return;
@@ -351,6 +352,13 @@ export class Session {
   setMother(on) {
     if (!this.isHost) return;
     this.mother = !!on;
+    this.sendMode();
+    this.onRoster(this.roster);
+  }
+
+  setPatient(on) {
+    if (!this.isHost) return;
+    this.patient = !!on;
     this.sendMode();
     this.onRoster(this.roster);
   }

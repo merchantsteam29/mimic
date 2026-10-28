@@ -28,12 +28,12 @@ it coming.
 - The dead can haunt the living: flicker lights, knock, whisper. You can't tell it from the real thing.
 
 **What's in there:**
-- 11 places, a new layout every time: a research facility, an old house, a hospital, a mall, a school at night, a
-  hotel, a church, an asylum, the woods, a subway station where the trains still run, and an abandoned fairground.
+- 12 places, a new layout every time: a research facility, an old house, a hospital, a mall, a school at night, a
+  hotel, a church, an asylum, the woods, a subway station where the trains still run, an abandoned fairground, and an old mine.
 - More than the mimic: the skinwalker that wears a living friend, a blind listener, a stalker that only moves when
   nobody's looking, a shadow that dies in the light, your own double, a phone that rings with the voices of the taken,
-  a huge singing Mother, and a clown that looks just like the statues.
-- Modes: Normal, a traitor story, Hunt (one of you plays the mimic), Versus, Night Shift (last until 6 a.m.), Hide and
+  a huge singing Mother, a clown that looks just like the statues, and a patient that gets up when you run.
+- Modes: Normal, Imposter voices (one more of you than there should be), a traitor story, Hunt (one of you plays the mimic), Versus, Night Shift (last until 6 a.m.), Hide and
   seek, Escort (one lantern for everyone).
 - Two solo stories, voiced: *Ellie* (8 chapters) and *The Operator* (5 chapters).
 - 8 classes, all free from the start.

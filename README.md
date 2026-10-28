@@ -58,7 +58,7 @@ Guess wrong, and it gets hungrier.
   pickups are it. A body on the floor isn't where you left it. Mirrors show it standing behind you (usually it isn't).
   It opens doors, slowly. It gets hungrier over time, and lights die for good. When the power comes back, it changes.
   Online, it can walk around as a friend it took. Old tapes from people who came before tell you what happened to them.
-- **Random maps:** each run is a research facility, an old house, an abandoned hospital, a closed-down mall, a school at night, an old hotel, an abandoned church, a closed asylum, the woods, a subway station or an abandoned fairground, with a new layout every time.
+- **Random maps:** each run is a research facility, an old house, an abandoned hospital, a closed-down mall, a school at night, an old hotel, an abandoned church, a closed asylum, the woods, a subway station, an abandoned fairground or an old mine, with a new layout every time.
 - **Hunt** (online mode): one of you, picked at random, IS the mimic. You see in the dark, you see their flashlights, you
   see where they made noise through the walls, and you can call to them in any of their voices. Bite them, rip open their
   hiding spots, kill the lights. Everyone else plays the normal game against you. The mimic wins if fewer than half get out.
@@ -110,6 +110,12 @@ Guess wrong, and it gets hungrier.
 - **The fairground:** outdoors, lots between the striped canvas of the stalls, a ticket office to start in, photo booths to hide in.
   The Ferris wheel turns over everything, the ghost train still goes round (and the mimic goes to see), there's a hall of mirrors,
   and when the music comes back on it covers your footsteps.
+- **The mine:** pitch-black tunnels propped up with timber, rails, chambers cut out of the rock, crawl spaces to hide in (it can't
+  follow you in), and every voice echoes back from somewhere else.
+- **The patient** (always in the hospital and the asylum; online, Normal mode, a lobby switch, anywhere): a body on a bed. Walk past
+  and it sits up; run near it and it gets up and follows.
+- **Imposter voices** (online lobby Mode): there's one more of you than there should be. Look at who you think it is, press V, and
+  everyone votes.
 - **Kill-cam:** when it gets you, a replay from behind you shows the last few seconds before it reached you (Space skips). Online, when a
   friend is taken while you're dead or out, K watches theirs.
 - **The clown** (always in the fairground; online, Normal mode, a lobby switch, anywhere): a mascot in a clown suit that looks

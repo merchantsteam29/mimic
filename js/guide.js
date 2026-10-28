@@ -30,6 +30,9 @@ const SECTIONS = [
     { name: 'The clown', file: 'Subject 10', what: 'In the fairground, always. Online, anywhere, if the host lets it in. A fairground mascot in a clown suit: a big foam head, a painted grin. There are statues of it all over the fairground. One of them isn\'t a statue.',
       tells: 'Big shoes slapping the ground when you aren\'t looking. It\'s closer each time you look back, and posed differently. Stare at it and its head turns to follow you. It laughs, in your voice.',
       survive: 'Like the stalker: someone keeps it in view, in the light. Count the statues when you pass them. If the count changes, you know which one it is. Its laugh brings the mimic.' },
+    { name: 'The patient', file: 'Subject 11', what: 'In the hospital and the asylum, always. Online, anywhere, if the host lets it in. A thin body in a gown, its head wrapped in bandages, lying on a bed, a gurney, a bench. Some of the others lying about really are dead.',
+      tells: 'It sits up after you pass and turns its head to watch you go. A moan, a creak of springs: it\'s getting up.',
+      survive: 'Don\'t run near the bodies. If it\'s up, stop running, get out of its sight, or hide: it gives up and goes back to bed.' },
     { name: 'The trains', file: 'Subject 09', what: 'Only in the subway. They still run. Nobody\'s driving them and they don\'t stop.',
       tells: 'A rumble that keeps growing, the horn, a light in the tunnel mouth. Then it\'s there.',
       survive: 'Get off the track and onto a platform. While one goes by nothing can hear you, not even it. If it\'s standing on the track, the train knocks it flat.' },
@@ -41,6 +44,8 @@ const SECTIONS = [
       survive: 'Half the time it doesn\'t think to look. If it does, the heartbeat.' },
     { name: 'Vents', file: 'Hiding 03', what: 'Low grates in the walls of the bigger buildings.', tells: 'They clang when you get in and out, and it hears that.',
       survive: 'It can\'t follow you in. It will wait outside the grate for a while.' },
+    { name: 'Crawl spaces', file: 'Hiding 07', what: 'In the mine. Low holes dug into the rock, propped up with timber.', tells: 'Like a vent: it can\'t follow you in.',
+      survive: 'It will wait outside for a while. Getting in and out knocks rock loose, and it hears that.' },
     { name: 'Photo booths', file: 'Hiding 06', what: 'In the fairground. A booth with a curtain across the front.', tells: 'The heartbeat, like a locker.',
       survive: 'Pull the curtain and keep still.' },
     { name: 'Ticket booths', file: 'Hiding 05', what: 'In the subway. A booth with a window and a door.', tells: 'The heartbeat, like a locker.',
@@ -99,8 +104,9 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'alpha1-2026-10-28f';
+export const RELEASE = 'alpha1-2026-10-28g';
 const NOTES = [
+  ['There were four of us when we went down the shaft. There are still four of us. One of them has been very quiet.', 'A new place: an old mine, pitch black, timber holding up the roof, crawl spaces to hide in, and every voice coming back off the rock from somewhere else. A new creature: the patient, a body on a bed that sits up when you pass and gets up if you run (always in the hospital and the asylum; online, the host can let it in anywhere). And a new mode, Imposter voices: there\'s one more of you than there should be. Look at who you think it is, accuse, and vote.'],
   ["Those weren't its footsteps. They were mine. It walks like me now. It stops where I stop.", 'It watches how you move. After a while it walks like you when it isn\'t chasing: your pace, your stops, your footsteps, and if you creep, it creeps without a sound. And it practises: its first tries at your voice come out wrong, lower and catching like old tape. The longer the night goes, the better it gets.'],
   ['We found the tape from the camera that fell. It kept recording. You can see it coming up behind him the whole way.', 'When it gets you, you now see how: a replay from behind you, the last few seconds before it reached you, with the last second slowed down. Space skips it. Online, when a friend is taken while you\'re dead or out, press K to watch theirs.'],
   ['The music came back on by itself. The wheel is turning. We counted nine clowns by the gate. Then ten.', 'A new place: an abandoned fairground, outdoors. The ghost train still runs, the hall of mirrors has more of you in it than it should, and when the music comes on it covers your footsteps. And the clown: it lives there (online, the host can let it in anywhere). It only moves when nobody is looking, and it laughs in your voice.'],

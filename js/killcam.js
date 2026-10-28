@@ -9,7 +9,7 @@ import { RemotePlayer } from './remote.js';
 import { keyLabel } from './controls.js';
 
 const HZ = 15, KEEP = 10, SHOW = 7; // samples a second, seconds kept, seconds shown
-const KINDS = ['sw', 'ls', 'sk', 'sd', 'db', 'mo', 'mc']; // creatures that can take you (the train doesn't get a replay)
+const KINDS = ['sw', 'ls', 'sk', 'sd', 'db', 'mo', 'mc', 'pt']; // creatures that can take you (the train doesn't get a replay)
 const lerp = (a, b, k) => a + (b - a) * k;
 const lerpAng = (a, b, k) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * k;
 
@@ -140,9 +140,9 @@ export class KillCam {
       P.mimic.applySnap(m);
       P.mimic.puppet(dt, g.t);
       P.who = P.mimic;
-    } else if (P.creature?.model) {
+    } else if (P.creature?.model || P.creature?.wearId) {
       const ca = a.c.find((r) => r[0] === P.by), cb = b.c.find((r) => r[0] === P.by) || ca;
-      const root = P.creature.model.root;
+      const root = P.creature.model?.root || P.creature.avatar(P.creature.wearId).root; // (the skinwalker / imposter: the friend it was wearing)
       root.visible = !!ca;
       if (ca) {
         root.position.set(lerp(ca[1], cb[1], k), 0, lerp(ca[2], cb[2], k));

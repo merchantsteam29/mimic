@@ -56,6 +56,23 @@ export const WorldPart = {
     return c ? c.buffer.duration / (style === 'scream' ? 0.6 : 0.98) : 1.2;
   },
 
+  // The mine: every voice comes back off the rock a moment later, from somewhere else, so you can't tell where it was.
+  echoVoice(buffer, q = 1) {
+    if (!this.level.theme.mine || !buffer) return;
+    const c = this.camera.position, lv = this.level;
+    const spot = lv.randomFloor((s) => { const d = Math.hypot(s.x - c.x, s.z - c.z); return d > 8 && d < 18; });
+    if (!spot) return;
+    const em = this.sfx.emitter();
+    em.setPos(spot.x, 1.6, spot.z);
+    em.setOcclusion(!lv.los(c.x, c.z, spot.x, spot.z));
+    setTimeout(() => {
+      if (this.state === 'ended') { em.dispose(); return; }
+      const d = this.sfx.playVoice(buffer, em, 'distant', q);
+      this.voice.suppress(d + 0.3);
+      setTimeout(() => em.dispose(), (d + 3) * 1000);
+    }, 220 + Math.random() * 220);
+  },
+
   // A voice only I hear (the director's tricks, the jumpscare).
   localSpeak(style, emitter) {
     // Alone, your own voice is too obviously the mimic, so it disguises it: a stranger (pitched, over a
@@ -70,6 +87,7 @@ export const WorldPart = {
         if (p) {
           const buf = build(this.sfx.ctx, p, bufs);
           const d = this.sfx.playVoice(buf, emitter, r < 0.45 ? 'stranger' : style, q);
+          this.echoVoice(buf, q);
           this.voice.suppress(d + 0.3);
           this.lures++;
           this.recap.voice(null, buf);
@@ -84,6 +102,7 @@ export const WorldPart = {
     } else buffer = (this.voice.started ? this.voice.pick() : null)?.buffer;
     if (!buffer) return this.sfx.whisper(emitter);
     const d = this.sfx.playVoice(buffer, emitter, style, this.mp ? 1 : this.mimicSkill());
+    if (style === 'lure' || style === 'distant' || style === 'stranger') this.echoVoice(buffer, this.mp ? 1 : this.mimicSkill());
     this.voice.suppress(d + 0.3);
     this.lures++;
     if (!this.mp) this.recap.voice(null, buffer);
@@ -127,7 +146,7 @@ export const WorldPart = {
     const p = this.p, m = this.mimic;
     const d = Math.hypot(m.x - p.x, m.z - p.z);
     const vis = this.level.los(p.x, p.z, m.x, m.z);
-    let f = Math.max(clamp(1 - d / 12, 0, 1) * (vis ? 1 : 0.45), this.ls.nearness(p.x, p.z) * 0.8, this.sk.nearness(p.x, p.z) * 0.7, this.sd.nearness(p.x, p.z) * 0.8, this.db.nearness(p.x, p.z) * 0.8, this.mo.nearness(p.x, p.z) * 0.8, this.tr.nearness(p.x, p.z), this.mc.nearness(p.x, p.z) * 0.7);
+    let f = Math.max(clamp(1 - d / 12, 0, 1) * (vis ? 1 : 0.45), this.ls.nearness(p.x, p.z) * 0.8, this.sk.nearness(p.x, p.z) * 0.7, this.sd.nearness(p.x, p.z) * 0.8, this.db.nearness(p.x, p.z) * 0.8, this.mo.nearness(p.x, p.z) * 0.8, this.tr.nearness(p.x, p.z), this.mc.nearness(p.x, p.z) * 0.7, this.pt.nearness(p.x, p.z) * 0.8);
     if ((m.state === 'chase' || m.state === 'hunt') && (!this.mp || d < 25)) f = Math.max(f, 0.45);
     this.fear += (f - this.fear) * (1 - Math.exp(-dt * 3));
     this.hud.fear.style.opacity = (this.fear * 0.85).toFixed(3);

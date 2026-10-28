@@ -450,6 +450,11 @@ body.calm #flash.pop { animation: popCalm .5s ease-out; }
 .t-throw { right: calc(14px + env(safe-area-inset-right)); top: 112px; width: 64px; height: 44px; border-radius: 22px; }
 .t-watch { left: 50%; transform: translateX(-50%); top: 120px; height: 48px; padding: 0 20px; border-radius: 24px; font-size: 15px; }
 body.input-touch #killcam span { display: none; }
+#impVote { position: fixed; left: 50%; top: 18%; transform: translateX(-50%); z-index: 6; padding: 12px 18px; background: rgba(5,5,5,.85); border: 1px solid var(--line); font: 16px "Special Elite", monospace; text-align: center; max-width: calc(100% - 32px); pointer-events: auto; }
+#impVote p { margin: 6px 0; }
+#impVote .dim { opacity: .65; font-size: 13px; }
+#impVote button { font: inherit; margin: 4px 6px; padding: 6px 12px; }
+#impVote kbd { font: 800 11px Inter, sans-serif; border: 1px solid var(--dim); border-radius: 4px; padding: 0 5px; margin-right: 6px; }
 /* The trailer camera's clean screen (trailer.js, ?trailer): nothing but the picture. */
 body.trailer-clean #cam, body.trailer-clean #hud, body.trailer-clean #captions, body.trailer-clean #chatFeed, body.trailer-clean #touch,
 body.trailer-clean #killcam, body.trailer-clean #spec, body.trailer-clean #coach, body.trailer-clean #radio, body.trailer-clean #toast, body.trailer-clean #fear { display: none !important; }

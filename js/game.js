@@ -41,6 +41,8 @@ import { Fair } from './fair.js';
 import { KillCam } from './killcam.js';
 import { Trailer } from './trailer.js';
 import { Gait } from './gait.js';
+import { Imposter } from './imposter.js';
+import { Patient } from './patient.js';
 import { Escort } from './escort.js';
 import { HideSeek, hideLevel } from './hideseek.js';
 import { Escape } from './escape.js';
@@ -60,7 +62,7 @@ import { DeathPart } from './game-death.js';
 
 export { CUSTOM, ROOM } from './game-shared.js';
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null, teams = null, shadow = false, night = 0, double = false, hideSeek = false, caller = false, escort = null, mother = false, mascot = false }) {
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null, teams = null, shadow = false, night = 0, double = false, hideSeek = false, caller = false, escort = null, mother = false, mascot = false, imposter = false, patient = false }) {
     Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs, room, custom, themeId, seed });
     this.distort = 0;    // camcorder distortion, 0..1
     this.peekHud = 0;    // seconds the HUD stays visible after something changes
@@ -164,7 +166,7 @@ export class Game {
       onPeekSeen: () => {}, // each player notices a peek themselves (see watchPeek)
     });
     if (mp) { this.mimic.lureStyle = 'distant'; this.mimic.stalkRange = [9, 16]; }
-    this.sw = new Skinwalker(this, skinwalker); // online only: something wearing a living friend
+    this.sw = imposter && mp && !hunter ? new Imposter(this, true) : new Skinwalker(this, skinwalker); // online only: something wearing a living friend (Imposter voices: a fake teammate that never stops pretending)
     this.hunt = new Hunter(this, hunter);       // Hunt mode: a player is the mimic
     this.ls = new Listener(this, listener && !hunter); // online: the blind thing that hunts by sound
     this.sk = new Stalker(this, stalker && !hunter);   // online: the thing that only moves when unseen
@@ -176,6 +178,8 @@ export class Game {
     this.fair = new Fair(this);                        // the fairground: the wheel, the ghost train, the music
     // The clown: online a lobby toggle; alone, it lives in the fairground.
     this.mc = new Mascot(this, !hunter && (mp ? mascot : themeId === 'fair' && !story && !tutorial && !room));
+    // The patient: online a lobby toggle; alone, it lives in the hospital and the asylum.
+    this.pt = new Patient(this, !hunter && !room && (mp ? patient : ['hospital', 'asylum'].includes(themeId) && !story && !tutorial));
     this.lan = new Escort(this, room ? null : escort);  // Escort mode: one lantern for everyone
     if (this.hunt.on) this.status.set(hunter, 'hunter');
     if (story) this.mimic.graceT = story.grace;
@@ -246,6 +250,7 @@ export class Game {
     this.onKeyDown = (e) => {
       if (this.menuOpen) return;
       if (!e.repeat && this.kc.onKey(e.code)) { e.preventDefault(); return; }
+      if (!e.repeat && this.state === 'playing' && this.sw.onKey?.(e.code)) return; // Imposter voices: accuse, vote
       const live = this.state === 'playing' || this.state === 'spectate';
       if (!e.repeat && this.radio.onKey(e.code, true)) return;
       if (live && !e.repeat && this.esc.onKey(e.code)) return; // typing at a keypad
@@ -382,6 +387,7 @@ export class Game {
     this.kc.dispose();
     this.trailer.dispose();
     this.mc.dispose();
+    this.pt.dispose();
     this.lan.dispose();
     this.esc.dispose();
     this.marks.dispose();
@@ -485,6 +491,7 @@ export class Game {
     this.tr.update(dt);
     this.fair.update(dt);
     this.mc.update(dt);
+    this.pt.update(dt);
     this.lan.update(dt);
     if (this.state === 'playing' || this.state === 'spectate') this.rec.update(dt);
     this.thr.update(dt);
@@ -534,7 +541,7 @@ export class Game {
       const rows = [];
       if (mine) rows.push([this.me, ...mine]);
       for (const [id, r] of this.remotes) if (this.alive(id) && r.seen) rows.push([id, +r.tx.toFixed(2), +r.tz.toFixed(2), +r.tyaw.toFixed(2), +r.pitch.toFixed(2), r.crouch ? 1 : 0, r.flash ? 1 : 0, r.hidden]);
-      this.mp.net.broadcast({ t: 'snap', m: this.mimic.snap(), p: rows, sw: this.sw.on ? this.sw.snap() : undefined, ls: this.ls.on ? this.ls.snap() : undefined, sk: this.sk.on ? this.sk.snap() : undefined, sd: this.sd.on ? this.sd.snap() : undefined, db: this.db.on ? this.db.snap() : undefined, mo: this.mo.on ? this.mo.snap() : undefined, mc: this.mc.on ? this.mc.snap() : undefined }, { self: false });
+      this.mp.net.broadcast({ t: 'snap', m: this.mimic.snap(), p: rows, sw: this.sw.on ? this.sw.snap() : undefined, ls: this.ls.on ? this.ls.snap() : undefined, sk: this.sk.on ? this.sk.snap() : undefined, sd: this.sd.on ? this.sd.snap() : undefined, db: this.db.on ? this.db.snap() : undefined, mo: this.mo.on ? this.mo.snap() : undefined, mc: this.mc.on ? this.mc.snap() : undefined, pt: this.pt.on ? this.pt.snap() : undefined }, { self: false });
     } else if (mine) this.send({ t: 'st', s: mine });
   }
 
@@ -575,7 +582,7 @@ export class Game {
   playerInfo() {
     const p = this.p;
     return {
-      id: this.me, x: p.x, z: p.z, yaw: p.yaw, hidden: p.hidden, crouch: p.crouch,
+      id: this.me, x: p.x, z: p.z, yaw: p.yaw, hidden: p.hidden, crouch: p.crouch, running: p.speed > 4,
       flashOn: p.flashOn && p.battery > 0 && !p.hidden,
       lookX: -Math.sin(p.yaw), lookZ: -Math.cos(p.yaw),
     };
@@ -585,7 +592,7 @@ export class Game {
     if (id === this.me) return this.playerInfo();
     const r = this.remotes.get(id);
     return {
-      id, x: r.tx, z: r.tz, yaw: r.tyaw, hidden: r.hidden >= 0 ? this.level.props[r.hidden] : null, crouch: r.crouch,
+      id, x: r.tx, z: r.tz, yaw: r.tyaw, hidden: r.hidden >= 0 ? this.level.props[r.hidden] : null, crouch: r.crouch, running: r.speed > 4,
       flashOn: r.flash, lookX: -Math.sin(r.tyaw), lookZ: -Math.cos(r.tyaw),
     };
   }

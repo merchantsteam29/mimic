@@ -163,7 +163,7 @@ export const PlayerPart = {
       throwable: { bottle: 'Pick up bottle', can: 'Pick up can', camera: 'Pick up camera' }[best?.kind],
       lifetape: best?.owner ? `Pick up ${this.nameOf(best.owner)}'s tape` : '',
       fusebox: this.revival.prompt() || (this.fusesHeld && this.fusesIn < 4 ? `Insert fuse${this.fusesHeld > 1 ? 's' : ''} (${this.fusesHeld})` : this.obj.allDone() ? 'Restore power' : 'Power panel') + this.traitor.panelHint(),
-      hide: { bed: 'Hide under the bed', vent: 'Crawl into the vent', curtain: 'Hide behind the curtain' }[best?.prop?.kind] || 'Hide',
+      hide: best?.prop?.type === 'crawlspace' ? 'Crawl into the hole' : { bed: 'Hide under the bed', vent: 'Crawl into the vent', curtain: 'Hide behind the curtain' }[best?.prop?.kind] || 'Hide',
       exit: 'Open exit',
     }[best?.type];
     this.setPrompt(text);

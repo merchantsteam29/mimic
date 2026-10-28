@@ -12,7 +12,7 @@ import { newCode, cleanCode, cleanName, QUICK_CODES, probe } from './net.js';
 import { CLASSES, CLASS_ORDER } from './classes.js';
 import { VERSION } from './version.js';
 import { STORIES, SIGNAL, storyProgress, finishChapter } from './story.js';
-import { controls, initControls, bindsChanged, editTouchLayout } from './controls.js';
+import { controls, initControls, bindsChanged, editTouchLayout, keyLabel } from './controls.js';
 import { ACTIONS, binds, resetBinds, keyName, padName } from './binds.js';
 import { initTitle } from './title.js';
 import { TitleScene } from './title3d.js';
@@ -979,7 +979,7 @@ $('btnJoin').onclick = async () => {
 };
 // Quick Play: the public rooms open right now (how full, playing or in the lobby, the mode and the map), to join one,
 // or open one for strangers to find. The list refreshes itself every 20 s while it's on screen.
-const MODE_NAME = { normal: 'Normal', story: 'The Signal', hunt: 'Hunt', versus: 'Versus', nights: 'Night Shift', hide: 'Hide and seek', escort: 'Escort' };
+const MODE_NAME = { normal: 'Normal', story: 'The Signal', hunt: 'Hunt', versus: 'Versus', nights: 'Night Shift', hide: 'Hide and seek', escort: 'Escort', imposter: 'Imposter voices' };
 let quickFree = [], quickT = 0, quickBusy = false;
 const quickButtons = (on) => { for (const id of ['btnQuick', 'btnQuickOpen', 'btnQuickRefresh']) $(id).disabled = !on; };
 async function listQuick() {
@@ -1101,6 +1101,11 @@ function renderLobby() {
   mc.querySelector('b').textContent = `Clown: ${mcOn ? 'on' : 'off'}`;
   mc.disabled = !session.isHost || session.mode !== 'normal';
   mc.onclick = () => session.setMascot(!session.mascot);
+  const pt = $('btnPatient'), ptOn = session.patient && session.mode === 'normal';
+  pt.classList.toggle('on', ptOn);
+  pt.querySelector('b').textContent = `Patient: ${ptOn ? 'on' : 'off'}`;
+  pt.disabled = !session.isHost || session.mode !== 'normal';
+  pt.onclick = () => session.setPatient(!session.patient);
 }
 
 // The waiting room: a small house to walk around in with everyone while you wait.
@@ -1162,7 +1167,7 @@ function startMpRun(m) {
   const themeId = m.theme in THEMES ? m.theme : 'facility';
   game = new Game({
     renderer, vhs, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order, classes: m.classes || {},
-    mode: m.mode === 'story' ? 'story' : 'normal', night: m.mode === 'nights' ? Math.max(1, Math.min(99, m.night | 0)) : 0, traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, shadow: !!m.sd, double: !!m.db, caller: !!m.cl, mother: !!m.mo, mascot: !!m.mc, hideSeek: m.mode === 'hide', escort: m.mode === 'escort' && m.order?.includes(m.lantern) ? m.lantern : null, difficulty: m.diff, custom: m.cs, teams: m.mode === 'versus' && m.teams && typeof m.teams === 'object' ? m.teams : null,
+    mode: m.mode === 'story' ? 'story' : 'normal', night: m.mode === 'nights' ? Math.max(1, Math.min(99, m.night | 0)) : 0, traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, shadow: !!m.sd, double: !!m.db, caller: !!m.cl, mother: !!m.mo, mascot: !!m.mc, patient: !!m.pt, imposter: m.mode === 'imposter', hideSeek: m.mode === 'hide', escort: m.mode === 'escort' && m.order?.includes(m.lantern) ? m.lantern : null, difficulty: m.diff, custom: m.cs, teams: m.mode === 'versus' && m.teams && typeof m.teams === 'object' ? m.teams : null,
     hunter: m.mode === 'hunt' && m.order?.includes(m.hunter) ? m.hunter : null,
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),
@@ -1183,6 +1188,10 @@ function startMpRun(m) {
     showIntro(themeId, null, [game.lan.by === session.id ? 'You have the only light. None of the flashlights work in here, so they need you close.' : `None of the flashlights work in here. ${game.nameOf(game.lan.by)} has the only light. Stay close to it.`,
       "It's slower in the lantern's light. If it takes whoever is carrying it, the light goes out. Someone has to pick it up."]);
     $('introKicker').textContent = 'Escort';
+  }
+  else if (m.mode === 'imposter') {
+    showIntro(themeId, null, ['There were ' + game.order.length + ' of you when you went in. Count again.', 'Something is walking with you, wearing one of you, talking like them. Look at whoever you think it is and press ' + keyLabel('V') + ' to call it out. Everyone votes. Be sure.']);
+    $('introKicker').textContent = 'Imposter voices';
   }
   else if (m.mode === 'hide') {
     showIntro(themeId, null, ['You have one minute to hide. It will wait. It will count.', 'Then it comes looking, and every so often it simply knows where one of you is. Move if you have to. The last one it finds wins.']);

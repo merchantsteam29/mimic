@@ -10,7 +10,7 @@ const DISTANT = {
   facility: ['clank', 'vent', 'pipes', 'slam'], house: ['creak', 'creak', 'pipes', 'slam'], hospital: ['squeak', 'clank', 'vent', 'slam'],
   mall: ['cart', 'clank', 'slam'], school: ['locker', 'locker', 'bell', 'creak'], hotel: ['ding', 'creak', 'pipes', 'slam'],
   church: ['wings', 'creak', 'gust'], asylum: ['whimper', 'clank', 'pipes', 'slam'], forest: ['owl', 'gust', 'creak'],
-  subway: ['screech', 'vent', 'clank', 'pipes', 'screech'], fair: ['creak', 'gust', 'clank', 'creak'],
+  subway: ['screech', 'vent', 'clank', 'pipes', 'screech'], fair: ['creak', 'gust', 'clank', 'creak'], mine: ['creak', 'clank', 'creak', 'pipes'],
 };
 
 function distortionCurve(k) {
@@ -671,6 +671,19 @@ export class Sfx {
         const g = ctx.createGain(); g.gain.value = [0.012, 0.01, 0.008, 0.005][i];
         o.connect(lp).connect(g).connect(bus); g.connect(this.send); o.start(); nodes.push(o);
       });
+    } else if (theme === 'mine') {
+      // Deep underground: a low moan of air through the shafts, and water dripping, slow, echoing.
+      const src = ctx.createBufferSource(); src.buffer = this.brown; src.loop = true;
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 160; bp.Q.value = 1.2;
+      const wg = ctx.createGain(); wg.gain.value = 0.06;
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.05; const lg = ctx.createGain(); lg.gain.value = 0.04;
+      lfo.connect(lg).connect(wg.gain); lfo.start(); nodes.push(lfo);
+      src.connect(bp).connect(wg).connect(bus); src.start(); nodes.push(src);
+      const sr = ctx.sampleRate, drip = ctx.createBuffer(1, Math.floor(sr * 3.3), sr), d = drip.getChannelData(0);
+      for (let i = 0; i < sr * 0.12; i++) { const t = i / sr; d[i] = Math.sin(2 * Math.PI * (1250 - t * 3500) * t) * Math.exp(-t * 38); }
+      const ds = ctx.createBufferSource(); ds.buffer = drip; ds.loop = true;
+      const dg = ctx.createGain(); dg.gain.value = 0.02;
+      ds.connect(dg).connect(bus); dg.connect(this.send); ds.start(); nodes.push(ds);
     } else if (theme === 'fair') {
       // Wind across the empty fairground, and canvas flapping on the stalls.
       const src = ctx.createBufferSource(); src.buffer = this.brown; src.loop = true;

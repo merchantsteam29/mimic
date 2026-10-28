@@ -1,5 +1,5 @@
 // Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house, a hospital, a mall, a school, a hotel, a church, an asylum,
-// the woods, a subway station or an abandoned fairground.
+// the woods, a subway station, an abandoned fairground or an old mine.
 // Also holds the collision, line-of-sight and path-finding the player and the mimic use.
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
@@ -129,6 +129,18 @@ export const THEMES = {
     fog: 0x040306, fogDensity: 0.07, reverb: [1.3, 0.22],
     props: ['gamestall', 'popcorn', 'mascot', 'balloons', 'teacup', 'strongman', 'mascot', 'gamestall'], hideProp: 'photobooth', surface: 'dirt',
   },
+  // An old mine: tunnels propped up with timber, rail lines, chambers cut out of the rock, a few caged bulbs that still
+  // work. Built like the facility (metal doors to the old offices, keycards) but with no vents: you hide in crawl
+  // spaces dug into the rock (they work like vents: it can't follow you in). Sound carries strangely down here: every
+  // voice comes back off the rock from somewhere else (game.echoVoice).
+  mine: {
+    id: 'mine', look: 'facility', mine: true, kicker: 'Abandoned mine',
+    names: ['Blackmoor Colliery · Seam 4', 'Kestrel Hill Mine (sealed 1961)', 'The Hollow Drift', 'Ashgrove Pit No. 2'],
+    size: 30, roomSize: [3, 6], tries: 150, minRooms: 9,
+    light: 0xffbf70, lightIntensity: 5, corridorLights: true, flicker: 0.7, broken: 0.6,
+    fog: 0x030201, fogDensity: 0.1, reverb: [4.2, 0.65],
+    props: ['minecart', 'crate', 'barrel', 'toolrack', 'rubble', 'minecart', 'tnt', 'crate'], hideProp: 'crawlspace', surface: 'stone',
+  },
 };
 
 // Footprint (w across the front, d front-to-back) of each prop, in metres. Front faces +z.
@@ -144,6 +156,7 @@ const PROP_DEFS = {
   bunk: { w: 0.95, d: 1.95 }, restraint: { w: 0.8, d: 0.8 }, tub: { w: 0.9, d: 1.8 }, isolation: { w: 1.1, d: 1.0 },
   pew: { w: 1.9, d: 0.75 }, altar: { w: 1.6, d: 0.9 }, candelabra: { w: 0.6, d: 0.6 }, lectern: { w: 0.7, d: 0.6 }, statue: { w: 0.7, d: 0.7 },
   confessional: { w: 1.3, d: 1.0 },
+  minecart: { w: 1.0, d: 1.4 }, toolrack: { w: 1.4, d: 0.4 }, rubble: { w: 1.2, d: 1.0 }, tnt: { w: 0.8, d: 0.6 }, crawlspace: { w: 1.2, d: 0.5 },
   gamestall: { w: 1.8, d: 0.9 }, popcorn: { w: 0.9, d: 0.7 }, mascot: { w: 0.8, d: 0.6 }, balloons: { w: 0.8, d: 0.8 }, teacup: { w: 1.5, d: 1.5 },
   strongman: { w: 0.8, d: 0.6 }, photobooth: { w: 1.2, d: 1.1 },
   vending: { w: 1.0, d: 0.8 }, bin: { w: 0.6, d: 0.6 }, mapboard: { w: 1.6, d: 0.2 }, pillar: { w: 0.7, d: 0.7 }, ticketbooth: { w: 1.3, d: 1.1 },
@@ -488,7 +501,7 @@ const center = (c) => (c + 0.5) * CELL;
 //   bed     under a bed: half the time it doesn't think to look; if it does, the heartbeat game
 //   vent    in the wall: it can't follow you in, but getting in and out is loud
 //   curtain behind a curtain: quick, but your feet show: if it comes close, it has you
-export const HIDE_KIND = { bed: 'bed', bunk: 'bed', curtain: 'curtain', vent: 'vent' };
+export const HIDE_KIND = { bed: 'bed', bunk: 'bed', curtain: 'curtain', vent: 'vent', crawlspace: 'vent' };
 
 // How far a footstep carries on each floor (x the usual step noise).
 export const STEP_CARRY = { carpet: 0.7, wood: 1, hard: 1, stone: 1.1, dirt: 1 };
@@ -498,7 +511,7 @@ export class Level {
     Object.assign(this, data);
     this.exitOpen = false;
     // Vents (facility-built places): a few low grates in room walls, from the seed. Added after the layout, so maps don't change.
-    if (this.theme.look === 'facility') {
+    if (this.theme.look === 'facility' && !this.theme.mine) { // (the mine has crawl spaces instead)
       const rand = mulberry32(this.seed ^ 0x7e47), N = this.N, cells = [];
       const taken = new Set(this.props.map((q) => q.cz * N + q.cx));
       for (let z = 1; z < N - 1; z++) for (let x = 1; x < N - 1; x++) {
@@ -860,6 +873,33 @@ function buildProp(type, M) {
       for (let i = 0; i < 3; i++) if (r() < 0.75) g.add(box(0.5 + r() * 0.3, 0.3, 0.42, M.clothes[Math.floor(r() * M.clothes.length)], (r() - 0.5) * 0.3, 0.36 + i * 0.32, 0));
       for (const x of [-0.42, 0.42]) for (const z of [-0.22, 0.22]) g.add(cyl(0.05, 0.05, 0.04, M.black, x, 0.05, z, 8));
       break;
+    case 'minecart': { // an ore cart on a short length of rail, half full of rock
+      g.add(box(0.8, 0.5, 1.2, M.rust, 0, 0.5, 0), box(0.7, 0.12, 1.1, M.stone, 0, 0.72, 0));
+      for (const x of [-0.42, 0.42]) for (const z of [-0.4, 0.4]) { const w = cyl(0.14, 0.14, 0.06, M.black, x, 0.18, z, 10); w.rotation.z = Math.PI / 2; g.add(w); }
+      for (const x of [-0.35, 0.35]) g.add(box(0.05, 0.05, 1.4, M.metal, x, 0.03, 0));
+      for (let z = -0.6; z <= 0.61; z += 0.4) g.add(box(1.0, 0.04, 0.14, M.darkWood, 0, 0.02, z));
+      break;
+    }
+    case 'toolrack': // picks and shovels leaning on a board, a hard hat on a nail
+      g.add(box(1.4, 1.2, 0.06, M.darkWood, 0, 1.1, -0.17));
+      for (let i = 0; i < 4; i++) { const h = cyl(0.025, 0.025, 1.2, M.wood, -0.5 + i * 0.33, 0.62, -0.08, 6); h.rotation.z = (r() - 0.5) * 0.25; g.add(h, box(0.3, 0.06, 0.05, M.metal, -0.5 + i * 0.33, 1.2, -0.08)); }
+      g.add(cyl(0.16, 0.18, 0.12, M.awningHat || M.genPaint, 0.4, 1.55, -0.1, 10));
+      break;
+    case 'rubble': // a fall of rock from the roof, timber snapped under it
+      for (let i = 0; i < 7; i++) { const b = box(0.25 + r() * 0.35, 0.2 + r() * 0.3, 0.25 + r() * 0.3, M.stone, (r() - 0.5) * 0.9, 0.12 + r() * 0.2, (r() - 0.5) * 0.7); b.rotation.set(r(), r(), r()); g.add(b); }
+      { const t = box(0.14, 0.14, 1.3, M.darkWood, 0.1, 0.3, 0); t.rotation.set(0.3, 0.6, 0.2); g.add(t); }
+      break;
+    case 'tnt': // a crate of old dynamite, the lid off
+      g.add(box(0.8, 0.45, 0.55, M.crate, 0, 0.225, 0));
+      for (let i = 0; i < 5; i++) { const s = cyl(0.04, 0.04, 0.5, M.tntRed || M.bag, -0.24 + i * 0.12, 0.5, 0.05, 8); s.rotation.x = Math.PI / 2; g.add(s); }
+      break;
+    case 'crawlspace': { // a low hole dug into the rock, propped with two bits of timber. You can crawl in and hide
+      const dark = new THREE.MeshBasicMaterial({ color: 0x010101 });
+      g.add(box(1.0, 0.6, 0.04, dark, 0, 0.32, -0.22));
+      g.add(box(0.12, 0.7, 0.12, M.darkWood, -0.55, 0.35, -0.18), box(0.12, 0.7, 0.12, M.darkWood, 0.55, 0.35, -0.18), box(1.25, 0.12, 0.14, M.darkWood, 0, 0.72, -0.18));
+      for (let i = 0; i < 4; i++) { const b = box(0.2 + r() * 0.2, 0.12, 0.2, M.stone, (r() - 0.5) * 1.2, 0.06, 0.05 + r() * 0.15); b.rotation.y = r() * 3; g.add(b); }
+      break;
+    }
     case 'vent': { // a low grate in the wall
       g.add(box(0.75, 0.48, 0.05, M.metal, 0, 0.3, -0.02));
       const dark = new THREE.MeshBasicMaterial({ color: 0x020202 });
@@ -1195,6 +1235,41 @@ function buildTrack(level, tex, M, group) {
   }
 }
 
+// The mine: timber frames propping up the tunnels every few metres, and rails down the straight runs.
+function buildMine(level, M, group) {
+  const N = level.N, frames = [], rails = [];
+  for (let z = 1; z < N - 1; z++) for (let x = 1; x < N - 1; x++) {
+    if (level.get(x, z) !== FLOOR || level.roomId[z * N + x] >= 0) continue;
+    const wx = level.get(x - 1, z) === WALL && level.get(x + 1, z) === WALL, wz = level.get(x, z - 1) === WALL && level.get(x, z + 1) === WALL;
+    if (!wx && !wz) continue;
+    rails.push([x, z, wx]); // wx: walls left and right, so it runs along z
+    if ((x + z) % 3 === 0) frames.push([x, z, wx]);
+  }
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(1, 1, 1), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  const posts = new THREE.InstancedMesh(new THREE.BoxGeometry(0.18, WALL_H, 0.18), M.darkWood, Math.max(1, frames.length * 2));
+  const beams = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, 0.2, 0.2), M.darkWood, Math.max(1, frames.length));
+  frames.forEach(([x, z, alongZ], i) => {
+    const cx = center(x), cz = center(z);
+    q.setFromAxisAngle(up, alongZ ? 0 : Math.PI / 2);
+    for (const [k, o] of [[0, -0.88], [1, 0.88]]) posts.setMatrixAt(i * 2 + k, m4.compose(p.set(cx + (alongZ ? o : 0), WALL_H / 2, cz + (alongZ ? 0 : o)), q, s));
+    beams.setMatrixAt(i, m4.compose(p.set(cx, WALL_H - 0.12, cz), q, s));
+  });
+  posts.count = frames.length * 2; beams.count = frames.length;
+  const steel = new THREE.MeshStandardMaterial({ color: 0x4a443c, roughness: 0.5, metalness: 0.8 });
+  const rail = new THREE.InstancedMesh(new THREE.BoxGeometry(0.05, 0.06, CELL), steel, Math.max(1, rails.length * 2));
+  const sleeper = new THREE.InstancedMesh(new THREE.BoxGeometry(0.9, 0.04, 0.14), M.darkWood, Math.max(1, rails.length * 3));
+  rails.forEach(([x, z, alongZ], i) => {
+    const cx = center(x), cz = center(z);
+    q.setFromAxisAngle(up, alongZ ? 0 : Math.PI / 2);
+    for (const [k, o] of [[0, -0.32], [1, 0.32]]) rail.setMatrixAt(i * 2 + k, m4.compose(p.set(cx + (alongZ ? o : 0), 0.03, cz + (alongZ ? 0 : o)), q, s));
+    for (let k = 0; k < 3; k++) { const o = -0.65 + k * 0.65; sleeper.setMatrixAt(i * 3 + k, m4.compose(p.set(cx + (alongZ ? 0 : o), 0.02, cz + (alongZ ? o : 0)), q, s)); }
+  });
+  rail.count = rails.length * 2; sleeper.count = rails.length * 3;
+  for (const im of [posts, beams]) { im.castShadow = im.receiveShadow = true; group.add(im); }
+  rail.receiveShadow = sleeper.receiveShadow = true;
+  group.add(rail, sleeper);
+}
+
 export function buildLevelScene(level) {
   const th = level.theme, N = level.N, S = N * CELL;
   const tex = makeTextures(th.id);
@@ -1230,6 +1305,8 @@ export function buildLevelScene(level) {
     booth: new THREE.MeshStandardMaterial({ color: 0x4a1418, roughness: 1, side: THREE.DoubleSide }),
     books: [0x4a1c1c, 0x1c2f4a, 0x2f3a1c, 0x4a3b1c, 0x2a2a2a, 0x5a4a3a].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.9 })),
     vend: new THREE.MeshStandardMaterial({ color: 0x5a1a16, roughness: 0.5, metalness: 0.3 }),
+    tntRed: new THREE.MeshStandardMaterial({ color: 0x7a1a12, roughness: 0.7 }),
+    awningHat: new THREE.MeshStandardMaterial({ color: 0x8a7a2a, roughness: 0.5 }),
     awning: new THREE.MeshStandardMaterial({ map: tex.stripes || tex.wall, roughness: 0.95, side: THREE.DoubleSide }),
     stallWood: new THREE.MeshStandardMaterial({ color: 0x5a4030, roughness: 0.9 }),
     cup: new THREE.MeshStandardMaterial({ color: 0x5a7a8a, roughness: 0.5, side: THREE.DoubleSide }),
@@ -1271,6 +1348,7 @@ export function buildLevelScene(level) {
     group.add(walls);
   } else buildWoods(level, wallCells, tex, mat, group);
   if (level.tunnel) buildTrack(level, tex, M, group);
+  if (th.mine) buildMine(level, M, group);
 
   // Furniture.
   for (const p of level.props) {
@@ -1291,6 +1369,12 @@ export function buildLevelScene(level) {
       const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.2, 0.14), fm);
       lamp.position.set(0.4, 1.72, 0);
       g.add(lamp);
+    } else if (th.mine) { // a bare bulb in a wire cage, on a cable along the roof
+      g.add(cyl(0.006, 0.006, 0.4, M.black, 0, WALL_H - 0.2, 0, 4));
+      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), fm);
+      bulb.position.y = WALL_H - 0.45;
+      g.add(bulb);
+      for (let i = 0; i < 4; i++) { const w = cyl(0.004, 0.004, 0.2, M.black, Math.cos(i * 1.57) * 0.08, WALL_H - 0.45, Math.sin(i * 1.57) * 0.08, 3); g.add(w); }
     } else if (th.look === 'facility') {
       g.add(box(1.3, 0.08, 0.3, M.metal, 0, WALL_H - 0.04, 0));
       const tube = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.04, 0.2), fm);

@@ -416,6 +416,19 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - **It learns over the round**: `game.mimicSkill()` = (time - 20) / 300 + 0.025 per lure, 0..1; sent as `q` in `say`. `playVoice(..., skill)`
   makes lure / distant / stranger / phone clumsier the lower it is (lower pitch, rougher, the tape catching with gaps, more stutters);
   `splice.plan(buffers, rand, skill)` drifts and stumbles more early on.
+- `imposter.js`: **Imposter voices** (lobby Mode `imposter`, `start.mode`, Game `imposter`). `game.sw` is an `Imposter` (extends Skinwalker, so the
+  snap, `hostCatch(id, 'sw')`, reveal, chase and jumpscare carry over): from ~3 s in it wears a living player (look, name tag, light), stays
+  4-7 m from a buddy and out of sight of the one it copies, says their clips every 22-42 s, and after 100 s takes anyone with nobody else within
+  12 m. V on someone you're looking at (`aimed`, 9 m) -> intent `impAccuse` {target: id or 'sw'} -> `impVote` (target 'x' = the fake); everyone
+  alive but the accused votes (`impBallot`, 1 / 0, D-pad up / B, or the #impVote buttons) for 12 s; more than half yes -> `impVerdict`: the fake
+  is exposed (reveal, chase, gone for good) or a real friend: hunger +1. One call per 40 s.
+- `patient.js`: **the patient** (`game.pt`; alone, always in the hospital and asylum; online the lobby toggle `setPatient`, `start.pt`). Lies on a
+  bed / gurney / bunk / tub / bench / pew / sofa (`BEDS`: height and axis; room floors if there are few), with seeded decoy bodies on others.
+  States lie / sit (someone walked within 3.2 m then on past: `ptSit`, it watches them) / follow (anyone running within 11 m: `ptUp`, 3.1 m/s;
+  gives up 4 s after you stop running or leave its sight, or hide) / back. `targets()` now carry `running` (speed > 4). `hostCatch(id, 'pt')`.
+- **Mine** theme (`mine`, look `facility` but `mine: true`: no vents): rock walls and roof (`mineWall`), `mineFloor`, `buildMine` (timber frames
+  every third corridor cell, rails along the straight runs), caged bulbs, props minecart / toolrack / rubble / tnt, `crawlspace` to hide in
+  (`HIDE_KIND` vent). `game.echoVoice` plays every lure again 0.2-0.45 s later from a random spot 8-18 m away. Code letter `N`.
 - **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
   on touch the objectives sit below the pause / jobs buttons.
 
