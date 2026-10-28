@@ -39,6 +39,7 @@ import { Subway } from './subway.js';
 import { Mascot } from './mascot.js';
 import { Fair } from './fair.js';
 import { KillCam } from './killcam.js';
+import { Trailer } from './trailer.js';
 import { Escort } from './escort.js';
 import { HideSeek, hideLevel } from './hideseek.js';
 import { Escape } from './escape.js';
@@ -219,6 +220,7 @@ export class Game {
     this.doorEm = sfx.emitter();
     this.inc = new Incidents(this, !story && !tutorial && !room && !hideSeek && custom?.events !== false); // power cuts, storms, alarms, lockdowns
     this.kc = new KillCam(this);                       // the replay of how someone was taken
+    this.trailer = new Trailer(this);                  // (hidden: ?trailer) a camera for filming trailers
     // Hunger: every couple of minutes it gets bolder, and lights die for good (in the same order for everyone).
     this.hungerT = 0;
     this.hungerSeen = 0;
@@ -375,6 +377,7 @@ export class Game {
     this.tr.dispose();
     this.fair.dispose();
     this.kc.dispose();
+    this.trailer.dispose();
     this.mc.dispose();
     this.lan.dispose();
     this.esc.dispose();
@@ -420,7 +423,7 @@ export class Game {
   frame(now) {
     const dt = Math.min(0.05, Math.max(0.001, (now - (this.last ?? now)) / 1000));
     this.last = now;
-    this.simulate(dt);
+    this.simulate(dt * this.trailer.scale); // (slow motion, for filming)
     this.render(dt);
   }
 
@@ -506,6 +509,7 @@ export class Game {
     if (this.state !== 'paused') this.updateLights(dt);
     this.updateCamera();
     this.kc.render(dt); // (a replay takes the camera)
+    this.trailer.render(dt);
     this.updateFlash(dt);
     this.sfx.updateListener(this.camera);
     const c = this.camera.position;

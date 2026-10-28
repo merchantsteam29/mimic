@@ -33,6 +33,7 @@ export const controls = {
 
 export function keyLabel(k) {
   const m = controls.mode, fixed = LABELS[m][k];
+  if (k === 'K') return m === 'pad' ? padName(binds.pad.jobs) : m === 'touch' ? 'Watch replay' : 'K'; // a friend's kill-cam (spectating)
   if (fixed !== undefined) return fixed;
   if (m === 'mouse') {
     if (k === 'Next') return keyName(binds.key.skill);
@@ -120,7 +121,7 @@ export function rumble(strength = 1, ms = 200) {
 
 // ---------- the frame loop ----------
 const screenOpen = () => !!document.querySelector('.screen:not([hidden])');
-const playable = (g) => g && (g.state === 'playing' || g.state === 'spectate') && !g.paused;
+const playable = (g) => g && (g.state === 'playing' || g.state === 'spectate' || (g.state === 'caught' && g.kc?.active)) && !g.paused;
 let last = performance.now();
 
 function loop(now) {
@@ -186,6 +187,7 @@ function gamePad(dt, g, { now, down, up, ax }) {
   const mag = Math.min(1, Math.hypot(x, y));
   g.stick = mag > 0 ? { x, y } : null;
   const lx = ax(2), ly = ax(3), s = g.settings.mouse;
+  if (g.kc?.active) { if (down(pb.use) || down(pb.skill)) tap('Space'); return; } // a kill-cam: A skips it
   if (lx || ly) g.look(Math.sign(lx) * lx * lx * 3.4 * s * dt, Math.sign(ly) * ly * ly * 2.4 * s * dt);
 
   if (down(9)) { controls.onPause(); return; }
@@ -207,6 +209,7 @@ function gamePad(dt, g, { now, down, up, ax }) {
   if (down(pb.chat)) { tap('KeyT'); return; }
   const voting = g.traitor?.voting;
   const spectating = g.state === 'spectate';
+  if (spectating && g.kc?.offer && g.t < g.kc.offer.until && down(pb.jobs)) { tap('KeyK'); return; } // watch how a friend was taken
   // Hiding with it at the door: "use" is the heartbeat too (pressing "use" would walk you out).
   const useCode = g.hb?.on ? 'Space' : 'KeyE';
   // Holding something to throw: RT throws it (unless a skill check or the heartbeat needs RT).
@@ -425,6 +428,12 @@ function updateTouch(g) {
   const show = (k, on) => { const b = root.querySelector(`[data-k="${k}"]`); if (b) b.hidden = !on; };
   const name = (k, t) => { const b = root.querySelector(`[data-k="${k}"]`); if (b && b.textContent !== t) b.textContent = t; };
   const hunter = !!g.hunt?.me, haunt = spec && !!g.haunt?.can();
+  if (g.kc?.active) { // a kill-cam: just Skip
+    for (const b of root.querySelectorAll('[data-k]')) b.hidden = b.dataset.k !== 'Space';
+    name('Space', 'Skip');
+    return;
+  }
+  show('KeyK', spec && !!g.kc?.offer && g.t < g.kc.offer.until);
   name('KeyE', hunter ? 'Bite' : 'Use');
   name('KeyQ', hunter ? 'Kill light' : 'Jam');
   name('KeyR', hunter ? 'Voice' : spec ? (g.freeCam ? 'Watch' : 'Drift') : 'Sabotage');

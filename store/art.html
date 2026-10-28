@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mimic · cover art</title>
+<!-- Store covers, drawn from a screenshot: open art.html?w=630&h=500&img=01-hospital at exactly that window size and
+     screenshot it (tools: see store/README.md). -->
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=VT323&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: #000; overflow: hidden; }
+  #c { position: relative; overflow: hidden; background: #050404 center / cover no-repeat; }
+  #c::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, transparent 35%, rgba(0,0,0,.75) 100%); }
+  #c::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px); pointer-events: none; }
+  .t { position: absolute; left: 0; right: 0; text-align: center; color: #ece6da; z-index: 2; text-shadow: 0 0 18px rgba(0,0,0,.9), 3px 3px 0 rgba(0,0,0,.6); }
+  .title { font-family: "Special Elite", monospace; letter-spacing: .12em; }
+  .title span { display: inline-block; }
+  .title span:nth-child(3) { transform: translateY(.06em) rotate(-4deg); color: #d8cfc0; }
+  .tag { font-family: "Special Elite", monospace; color: #cfc6b8; }
+  .tag b { color: #ff3040; font-weight: normal; }
+  .rec { position: absolute; z-index: 2; font-family: VT323, monospace; color: #e8f0e8; letter-spacing: .08em; text-shadow: 2px 2px 0 rgba(0,0,0,.6); }
+  .rec i { color: #ff3040; font-style: normal; }
+</style>
+</head>
+<body>
+<div id="c">
+  <div class="rec" id="rec"><i>●</i> REC</div>
+  <div class="rec" id="stamp">OCT 25 2026<br>02:13:08 AM</div>
+  <div class="t title" id="title"><span>M</span><span>I</span><span>M</span><span>I</span><span>C</span></div>
+  <div class="t tag" id="tag">It learns your voice. <b>Then it uses it.</b></div>
+</div>
+<script>
+  const q = new URLSearchParams(location.search), w = +q.get('w') || 1920, h = +q.get('h') || 1080, img = q.get('img') || '01-hospital';
+  const c = document.getElementById('c'), u = Math.min(w, h) / 100; // a size unit
+  Object.assign(c.style, { width: w + 'px', height: h + 'px', backgroundImage: `url(screenshots/${img}.png)`, backgroundPosition: q.get('pos') || '50% 50%' });
+  const tall = h > w * 1.2;
+  const title = document.getElementById('title'), tag = document.getElementById('tag');
+  title.style.fontSize = (tall ? 19 : 17) * u + 'px';
+  title.style.top = (tall ? 0.62 : 0.64) * h + 'px';
+  tag.style.fontSize = Math.max(14, 4.2 * u) + 'px';
+  tag.style.top = (tall ? 0.62 : 0.64) * h + (tall ? 21 : 19) * u + 'px';
+  for (const [id, css] of [['rec', { top: 4 * u + 'px', left: 5 * u + 'px' }], ['stamp', { bottom: 4 * u + 'px', left: 5 * u + 'px' }]]) Object.assign(document.getElementById(id).style, css, { fontSize: Math.max(16, 5 * u) + 'px' });
+  if (w < 900) document.getElementById('stamp').hidden = true; // (no room on the small covers)
+</script>
+</body>
+</html>

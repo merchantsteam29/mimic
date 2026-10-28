@@ -401,6 +401,14 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   copies; a creature catcher's own model with `posed = true`. `render` (after `updateCamera`) hides the live mimic and remotes and puts the
   camera behind the victim, facing what's coming; the last 1.1 s plays at 0.35x, holding on the catch. Space / E skips. No replay for trains.
   Online, an `end` that arrives while you're `caught` waits (`pendingEnd`) until the jumpscare and the replay are over.
+- Kill-cam on a controller / touch: `playable` also counts `caught` while `kc.active`; A / RT skip it (`gamePad`), touch shows only
+  Skip (`updateTouch`). A friend's replay: View (`binds.pad.jobs`) or the touch `Watch replay` button (`KeyK`); `keyLabel('K')` names it.
+- `trailer.js`: the **trailer camera**, only with `?trailer` in the address: ` toggles a gliding free camera (capture-phase key / mouse
+  listeners swallow input while it's on), H clean screen (`body.trailer-clean` hides every overlay, `#fear` too), V 1080-line VHS, G it
+  ignores you, F freeze it, [ ] slow motion (`frame` scales `simulate`'s dt), K / P / C keyframes played on a Catmull-Rom curve. Keys in
+  `store/README.md`.
+- `store/`: the **store kit** for itch.io / CrazyGames: `index.html` (press page), `description.md` (text, tags, content notes,
+  controls), `art/` covers (from `art.html?w=&h=&img=`), `screenshots/` (1920x1080 through the trailer camera).
 - **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
   on touch the objectives sit below the pause / jobs buttons.
 

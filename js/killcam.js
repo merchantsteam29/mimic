@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { Mimic } from './mimic.js';
 import { RemotePlayer } from './remote.js';
+import { keyLabel } from './controls.js';
 
 const HZ = 15, KEEP = 10, SHOW = 7; // samples a second, seconds kept, seconds shown
 const KINDS = ['sw', 'ls', 'sk', 'sd', 'db', 'mo', 'mc']; // creatures that can take you (the train doesn't get a replay)
@@ -50,7 +51,7 @@ export class KillCam {
     const g = this.g;
     if (id !== g.me && g.state === 'spectate' && by !== 'tr') {
       this.offer = { id, until: g.t + 15 };
-      g.toast(`K: watch how ${g.nameOf(id)} was taken`);
+      g.toast(`${keyLabel('K')}: watch how ${g.nameOf(id)} was taken`);
     }
   }
 

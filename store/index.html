@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mimic · press kit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Inter:wght@400;600;800&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #080707; --ink: #e9e4da; --dim: #8a847a; --red: #ff3040; --line: #2a2522; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 Inter, sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 40px 16px 80px; }
+  h1 { font: 72px/1 "Special Elite", monospace; margin: 0; letter-spacing: .04em; }
+  h1 small { display: block; font: 22px VT323, monospace; color: var(--red); letter-spacing: .3em; margin-top: 10px; }
+  h2 { font: 26px "Special Elite", monospace; margin: 48px 0 12px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  p, li { color: #cfc9be; }
+  a { color: var(--ink); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+  .grid a { display: block; border: 1px solid var(--line); }
+  .grid img { display: block; width: 100%; height: auto; }
+  .art { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+  .art a { border: 1px solid var(--line); }
+  .art img { display: block; height: 160px; width: auto; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; }
+  dt { color: var(--dim); }
+  dd { margin: 0; }
+  code { font: 14px VT323, monospace; background: #151312; padding: 1px 6px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>MIMIC<small>● REC · FOUND FOOTAGE HORROR</small></h1>
+  <p>It learns your voice. Then it uses it.</p>
+  <p><a href="../">Play in your browser</a> · <a href="description.md">Store text and tags</a></p>
+
+  <h2>Store art</h2>
+  <div class="art">
+    <a href="art/cover-630x500.png"><img src="art/cover-630x500.png" alt="Cover 630x500"></a>
+    <a href="art/landscape-1920x1080.png"><img src="art/landscape-1920x1080.png" alt="Landscape cover 1920x1080"></a>
+    <a href="art/portrait-800x1200.png"><img src="art/portrait-800x1200.png" alt="Portrait cover 800x1200"></a>
+    <a href="art/square-800x800.png"><img src="art/square-800x800.png" alt="Square cover 800x800"></a>
+  </div>
+
+  <h2>Screenshots</h2>
+  <div class="grid">
+    <a href="screenshots/01-hospital.png"><img src="screenshots/01-hospital.png" alt="The mimic in a hospital corridor"></a>
+    <a href="screenshots/02-fairground-clown.png"><img src="screenshots/02-fairground-clown.png" alt="The clown at the fairground"></a>
+    <a href="screenshots/03-asylum.png"><img src="screenshots/03-asylum.png" alt="The asylum"></a>
+    <a href="screenshots/04-mall.png"><img src="screenshots/04-mall.png" alt="The mall"></a>
+    <a href="screenshots/05-church.png"><img src="screenshots/05-church.png" alt="The church"></a>
+    <a href="screenshots/06-subway.png"><img src="screenshots/06-subway.png" alt="The mimic on the subway track"></a>
+    <a href="screenshots/07-hotel.png"><img src="screenshots/07-hotel.png" alt="The hotel"></a>
+    <a href="screenshots/08-school.png"><img src="screenshots/08-school.png" alt="The school"></a>
+  </div>
+
+  <h2>Fact sheet</h2>
+  <dl>
+    <dt>Genre</dt><dd>First-person co-op horror, found footage</dd>
+    <dt>Players</dt><dd>1 to 4 (online, peer to peer, with proximity voice chat)</dd>
+    <dt>Platform</dt><dd>Browser (Chrome, Edge, Firefox; desktop and mobile), installable as an app</dd>
+    <dt>Controls</dt><dd>Mouse and keyboard, controller, or touch</dd>
+    <dt>Price</dt><dd>Free. No accounts, no shop, nothing to unlock</dd>
+    <dt>Microphone</dt><dd>Optional. Recordings stay in your browser; online, they only go to the players in your room</dd>
+  </dl>
+</main>
+</body>
+</html>

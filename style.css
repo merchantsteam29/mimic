@@ -448,6 +448,11 @@ body:not(.ready) #title .buttons { opacity: .35; pointer-events: none; }
 body.calm #flash.pop { animation: popCalm .5s ease-out; }
 @keyframes popCalm { 0% { opacity: .35; background: #ddd; } 100% { opacity: 0; } }
 .t-throw { right: calc(14px + env(safe-area-inset-right)); top: 112px; width: 64px; height: 44px; border-radius: 22px; }
+.t-watch { left: 50%; transform: translateX(-50%); top: 120px; height: 48px; padding: 0 20px; border-radius: 24px; font-size: 15px; }
+body.input-touch #killcam span { display: none; }
+/* The trailer camera's clean screen (trailer.js, ?trailer): nothing but the picture. */
+body.trailer-clean #cam, body.trailer-clean #hud, body.trailer-clean #captions, body.trailer-clean #chatFeed, body.trailer-clean #touch,
+body.trailer-clean #killcam, body.trailer-clean #spec, body.trailer-clean #coach, body.trailer-clean #radio, body.trailer-clean #toast, body.trailer-clean #fear { display: none !important; }
 
 /* ---------- feedback ---------- */
 button.feedback { font-size: 11px; opacity: .8; }
