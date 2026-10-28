@@ -14,7 +14,6 @@ const SOUNDS = {
   whisper: [0, () => 'Whispering'],
   playVoice: [1, (b, e, style) => ({ scream: 'A scream', echo: 'Your own voice', distant: 'A voice, far off', ellie: 'A girl\'s voice',
     stranger: 'A stranger\'s voice', radio: 'A voice on the radio', recorder: 'A voice on a tape recorder', phone: 'A voice down a phone line', tape: null, tape: null }[style] ?? (e ? 'Someone calls out' : 'A voice'))],
-  playStitch: [2, () => 'A voice, not quite right'],
   chorus: [1, () => 'Many voices at once'],
   door: [0, (e, open, fast) => (fast ? 'A door bangs open' : open ? 'A door opens' : 'A door closes')],
   handle: [0, () => 'A door handle turns'],

@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { makeFuse } from './level.js';
 import { LOGGED, clamp, num } from './game-shared.js';
+import { build } from './splice.js';
 
 export const NetPart = {
   send(m) { if (this.mp) this.mp.send(m); else this.hostHandle(m, this.me); },
@@ -174,7 +175,9 @@ export const NetPart = {
           d = bufs.length ? this.sfx.chorus(bufs, this.mimic.emitter) : this.sfx.whisper(this.mimic.emitter);
         } else {
           const c = m.key && this.mp?.clips.get(m.key);
-          d = c ? this.sfx.playVoice(c.buffer, this.mimic.emitter, m.style) : this.sfx.whisper(this.mimic.emitter);
+          const bufs = Array.isArray(m.sp?.keys) && m.sp.keys.map((k) => this.mp?.clips.get(k)?.buffer);
+          const sp = bufs?.length && bufs.every(Boolean) && Array.isArray(m.sp.p) && m.sp.p.length ? build(this.sfx.ctx, m.sp.p, bufs) : null;
+          d = sp || c ? this.sfx.playVoice(sp || c.buffer, this.mimic.emitter, m.style) : this.sfx.whisper(this.mimic.emitter);
         }
         if (!this.isHost) this.mimic.speaking = d;
         this.voice.suppress(d + 0.3);

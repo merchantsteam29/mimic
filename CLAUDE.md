@@ -132,7 +132,7 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - `hand.js`: your gloved hand holding the flashlight (drawn on top; the beam starts at its lens; it shakes with `fear`).
 - Danger: it sees 22 m (flashlight on) or 12 m (off) and is fast in the dark (3.6 m/s), but slower under working lights
   (`hooks.isLit`). Hiding makes it lose you faster. Alone, lures are disguised: `stranger` (pitched, over a bad phone line),
-  `playStitch` (half of one clip plus half of another), and `ellie` in the story.
+  a spliced sentence (`splice.js`), and `ellie` in the story.
 - `#ready` ("Before you go in"): tips plus a brightness check (setting `bright` scales `toneMappingExposure`), shown before the first
   intro on this device (`readyShown` in main.js, localStorage `mimic.ready`). "Click to enter" / Resume / clicking the view ask for full screen; leaving it pauses.
 - `classes.js` / `abilities.js`: classes (all free, no unlocks; G = ability). Brute: 2 flares (`flare`: host stuns
@@ -377,6 +377,11 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   **Scout** (`mark` -> `marked`: a glow through walls for 20 s, one every 18 s; `steps` 0.55, `flash` 0.6 battery); **Mechanic**
   (`repair` 1.7x generators, `wedge` -> `wedged` {i, s: 25}: `jamUntil` + `wedgeUntil`; the mimic hammers (`doorBang`) and gives up,
   `steps` 1.25 + `sfx.clink`). Class numbers live in classes.js and are read through `ab.walk / stepMul / flashMul / repairMul / shaky`.
+- `splice.js`: **spliced sentences**. `pieces(buffer)` finds the words (10 ms RMS frames, a 70 ms pause splits, pieces over 1.3 s are
+  cut at their quietest middle frame; cached per buffer); `plan(buffers)` picks 2-4 pieces from different clips (starting like a clip
+  starts, ending like one ends, max 4.5 s) as `[clip, start, end, rate, gap, gain, stutter]` steps, slightly off on purpose (pitch
+  drift, wrong gaps, a stutter); `build(ctx, steps, buffers)` makes the buffer. Alone, `localSpeak` uses it 45% of lures. Online the host's
+  `mimicSpeaks` (40%, not screams) sends `say` with `sp` {keys (one owner), p} and every browser builds the same sentence.
 - **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
   on touch the objectives sit below the pause / jobs buttons.
 

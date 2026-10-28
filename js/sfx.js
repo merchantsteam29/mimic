@@ -588,17 +588,6 @@ export class Sfx {
   // Duck the background. Total silence when it's close is scarier than any noise.
   setAmbient(v) { if (this.ambient) this.ambient.bus.gain.setTargetAtTime(v, this.now, 0.7); }
 
-  // A sentence nobody said: the first half of one recording, then the second half of another.
-  playStitch(a, b, emitter, style = 'stranger') {
-    const sr = a.sampleRate, fade = Math.floor(sr * 0.02);
-    const ha = Math.floor(a.length / 2), hb = Math.floor(b.length / 2);
-    const out = this.ctx.createBuffer(1, ha + (b.length - hb), sr);
-    const o = out.getChannelData(0), da = a.getChannelData(0), db = b.getChannelData(0);
-    for (let i = 0; i < ha; i++) o[i] = da[i] * (i > ha - fade ? (ha - i) / fade : 1);
-    for (let i = hb; i < b.length; i++) o[ha + i - hb] = db[i] * (i < hb + fade ? (i - hb) / fade : 1);
-    return this.playVoice(out, emitter, style);
-  }
-
   // ---------- ambience ----------
   startAmbient(theme) {
     this.stopAmbient();

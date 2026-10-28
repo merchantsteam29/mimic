@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { rumble } from './controls.js';
 import { clamp, angleDiff } from './game-shared.js';
+import { plan, build } from './splice.js';
 
 export const WorldPart = {
   // Host: feet showing under a curtain. If it wanders close and can see the curtain, it knows.
@@ -33,26 +34,39 @@ export const WorldPart = {
     const wearing = this.mimic.wearId;
     const key = this.mp.pickKey(dead, wearing);
     this.recap.voice(key);
-    this.broadcast({ t: 'say', key, style: wearing && style !== 'scream' ? 'lure' : style });
+    const say = { t: 'say', key, style: wearing && style !== 'scream' ? 'lure' : style };
+    // Sometimes a sentence they never said, cut from their recordings (everyone builds it from the same plan).
     const c = key && this.mp.clips.get(key);
+    if (c && style !== 'scream' && Math.random() < 0.4) {
+      const more = [...this.mp.clips.keys()].filter((k) => k !== key && this.mp.clips.get(k).owner === c.owner).sort(() => Math.random() - 0.5).slice(0, 2);
+      const keys = [key, ...more], p = more.length && plan(keys.map((k) => this.mp.clips.get(k).buffer));
+      if (p) {
+        say.sp = { keys, p };
+        this.broadcast(say);
+        return p.reduce((t, s) => t + (s[2] - s[1] + s[6]) / s[3] + s[4], 0) / 0.98;
+      }
+    }
+    this.broadcast(say);
     return c ? c.buffer.duration / (style === 'scream' ? 0.6 : 0.98) : 1.2;
   },
 
   // A voice only I hear (the director's tricks, the jumpscare).
   localSpeak(style, emitter) {
     // Alone, your own voice is too obviously the mimic, so it disguises it: a stranger (pitched, over a
-    // bad phone line), a sentence stitched from two recordings, or, in the story, Ellie.
+    // bad phone line), a sentence you never said (spliced from your recordings), or, in the story, Ellie.
     if (!this.mp && (style === 'lure' || style === 'distant') && this.voice.started && this.voice.clips.length) {
       const r = Math.random();
       if (this.story) { if (r < 0.7) style = this.story.voice || 'ellie'; }
-      else if (r < 0.4) style = 'stranger';
-      else if (r < 0.7 && this.voice.clips.length > 1) {
-        const a = this.voice.pick(), b = this.voice.pick();
-        if (a && b && a !== b) {
-          const d = this.sfx.playStitch(a.buffer, b.buffer, emitter, 'stranger');
+      else if (r < 0.3) style = 'stranger';
+      else if (r < 0.75 && this.voice.clips.length > 1) {
+        const bufs = [...new Set([0, 1, 2].map(() => this.voice.pick()?.buffer).filter(Boolean))];
+        const p = bufs.length > 1 && plan(bufs);
+        if (p) {
+          const buf = build(this.sfx.ctx, p, bufs);
+          const d = this.sfx.playVoice(buf, emitter, r < 0.45 ? 'stranger' : style);
           this.voice.suppress(d + 0.3);
           this.lures++;
-          this.recap.voice(null, a.buffer);
+          this.recap.voice(null, buf);
           return d;
         }
       }
