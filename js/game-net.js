@@ -106,7 +106,7 @@ export const NetPart = {
 
   // Everyone: what happened.
   onNet(m) {
-    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m) || this.radio.onNet(m) || this.rec.onNet(m) || this.thr.onNet(m) || this.sig.onNet(m) || this.revival.onNet(m) || this.sd.onNet(m) || this.db.onNet(m) || this.esc.onNet(m) || this.cl.onNet(m) || this.lan.onNet(m) || this.mo.onNet(m) || this.tr.onNet(m)) return;
+    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m) || this.radio.onNet(m) || this.rec.onNet(m) || this.thr.onNet(m) || this.sig.onNet(m) || this.revival.onNet(m) || this.sd.onNet(m) || this.db.onNet(m) || this.esc.onNet(m) || this.cl.onNet(m) || this.lan.onNet(m) || this.mo.onNet(m) || this.tr.onNet(m) || this.fair.onNet(m) || this.mc.onNet(m)) return;
     switch (m.t) {
       case 'doorSet': {
         const d = this.level.idoors[m.i | 0];
@@ -162,6 +162,7 @@ export const NetPart = {
         if (m.sd && this.state !== 'caught') this.sd.applySnap(m.sd);
         if (m.db && this.state !== 'caught') this.db.applySnap(m.db);
         if (m.mo && this.state !== 'caught') this.mo.applySnap(m.mo);
+        if (m.mc && this.state !== 'caught') this.mc.applySnap(m.mc);
         for (const row of m.p || []) {
           const r = this.remotes.get(row[0]);
           if (r) r.setState(row.slice(1).map((v) => num(v)));
@@ -240,8 +241,8 @@ export const NetPart = {
       case 'power': this.powerOn(m.by); break;
       case 'caught': {
         this.status.set(m.id, 'dead');
-        const at = ['sw', 'ls', 'sk', 'sd', 'db', 'mo', 'tr'].map((k) => m[k]).find(Array.isArray) || null;
-        if (m.id === this.me && this.state !== 'intro') this.caught(at ? { x: num(at[0]), z: num(at[1]), ceiling: false, dropT: 0, sw: !!m.sw, ls: !!m.ls, sk: !!m.sk, sd: !!m.sd, db: !!m.db, mo: !!m.mo, tr: !!m.tr } : null);
+        const at = ['sw', 'ls', 'sk', 'sd', 'db', 'mo', 'tr', 'mc'].map((k) => m[k]).find(Array.isArray) || null;
+        if (m.id === this.me && this.state !== 'intro') this.caught(at ? { x: num(at[0]), z: num(at[1]), ceiling: false, dropT: 0, sw: !!m.sw, ls: !!m.ls, sk: !!m.sk, sd: !!m.sd, db: !!m.db, mo: !!m.mo, tr: !!m.tr, mc: !!m.mc } : null);
         // Nobody else is told. Their voice just stops, as if they wandered off.
         else if (this.alive(this.me)) this.mp?.vc?.route(m.id, { on: false });
         this.checkEnd();
@@ -296,6 +297,7 @@ export const NetPart = {
     if (by === 'sk') { this.broadcast({ t: 'caught', id, sk: [+this.sk.x.toFixed(2), +this.sk.z.toFixed(2)] }); return; }
     if (by === 'sd') { this.broadcast({ t: 'caught', id, sd: [+this.sd.x.toFixed(2), +this.sd.z.toFixed(2)] }); return; }
     if (by === 'db') { this.broadcast({ t: 'caught', id, db: [+this.db.x.toFixed(2), +this.db.z.toFixed(2)] }); return; }
+    if (by === 'mc') { this.broadcast({ t: 'caught', id, mc: [+this.mc.x.toFixed(2), +this.mc.z.toFixed(2)] }); return; }
     if (by === 'mo') { this.broadcast({ t: 'caught', id, mo: [+this.mo.x.toFixed(2), +this.mo.z.toFixed(2)] }); return; }
     if (by === 'tr') { this.broadcast({ t: 'caught', id, tr: [+(this.tr.front() ?? 0).toFixed(2), +this.tr.zc.toFixed(2)] }); return; }
     this.mimic.shyT = 8; // it lets the others breathe for a moment

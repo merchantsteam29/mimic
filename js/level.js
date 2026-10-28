@@ -1,9 +1,10 @@
 // Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house, a hospital, a mall, a school, a hotel, a church, an asylum,
-// the woods or a subway station.
+// the woods, a subway station or an abandoned fairground.
 // Also holds the collision, line-of-sight and path-finding the player and the mimic use.
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 import { makeTextures } from './textures.js';
+import { makeMascot } from './mascot.js';
 
 export const CELL = 2;
 export const WALL_H = 3;
@@ -115,6 +116,19 @@ export const THEMES = {
     fog: 0x020203, fogDensity: 0.08, reverb: [3.6, 0.5],
     props: ['bench', 'vending', 'bin', 'bench', 'mapboard', 'pillar', 'bin', 'vending'], hideProp: 'ticketbooth', surface: 'hard',
   },
+  // Outdoors: an abandoned fairground at night. The "rooms" are open lots between the striped canvas of the stalls and
+  // tents; you start in the ticket office (walls and a roof). Built like the house (lamp posts, wooden gates, a key).
+  // Game stalls, popcorn carts, teacups, a high striker, and mascot statues that turn when you aren't looking (one of
+  // them might not be a statue: mascot.js). Hide in a photo booth. One lot has the ghost train (fair.js), one is the
+  // hall of mirrors. The Ferris wheel turns over all of it, and sometimes the music comes back on.
+  fair: {
+    id: 'fair', look: 'house', outdoor: true, fair: true, kicker: 'Abandoned fairground',
+    names: ['Funland Pier (closed 1994)', 'Kestrel Valley Fair', 'Happy Jack\'s Travelling Carnival', 'Blackmoor Fun Park'],
+    size: 30, roomSize: [4, 8], tries: 140, minRooms: 8,
+    light: 0xffb878, lightIntensity: 5.5, corridorLights: false, flicker: 0.6, broken: 0.4,
+    fog: 0x040306, fogDensity: 0.07, reverb: [1.3, 0.22],
+    props: ['gamestall', 'popcorn', 'mascot', 'balloons', 'teacup', 'strongman', 'mascot', 'gamestall'], hideProp: 'photobooth', surface: 'dirt',
+  },
 };
 
 // Footprint (w across the front, d front-to-back) of each prop, in metres. Front faces +z.
@@ -130,6 +144,8 @@ const PROP_DEFS = {
   bunk: { w: 0.95, d: 1.95 }, restraint: { w: 0.8, d: 0.8 }, tub: { w: 0.9, d: 1.8 }, isolation: { w: 1.1, d: 1.0 },
   pew: { w: 1.9, d: 0.75 }, altar: { w: 1.6, d: 0.9 }, candelabra: { w: 0.6, d: 0.6 }, lectern: { w: 0.7, d: 0.6 }, statue: { w: 0.7, d: 0.7 },
   confessional: { w: 1.3, d: 1.0 },
+  gamestall: { w: 1.8, d: 0.9 }, popcorn: { w: 0.9, d: 0.7 }, mascot: { w: 0.8, d: 0.6 }, balloons: { w: 0.8, d: 0.8 }, teacup: { w: 1.5, d: 1.5 },
+  strongman: { w: 0.8, d: 0.6 }, photobooth: { w: 1.2, d: 1.1 },
   vending: { w: 1.0, d: 0.8 }, bin: { w: 0.6, d: 0.6 }, mapboard: { w: 1.6, d: 0.2 }, pillar: { w: 0.7, d: 0.7 }, ticketbooth: { w: 1.3, d: 1.1 },
   armchair: { w: 0.9, d: 0.85 }, tvstand: { w: 1.1, d: 0.5 }, luggagecart: { w: 1.1, d: 0.6 },
   schooldesk: { w: 1.2, d: 1.1 }, teacherdesk: { w: 1.6, d: 0.8 }, chalkboard: { w: 1.9, d: 0.2 }, cubbies: { w: 1.6, d: 0.45 }, trophycase: { w: 1.4, d: 0.5 },
@@ -262,6 +278,9 @@ function tryGenerate(seed, th, opts = {}) {
   const props = [];
   const roomOrder = shuffle(rooms.slice());
   let hides = 0;
+  // The fairground: one lot is the ghost train's (no stalls in it: the car goes round), another the hall of mirrors.
+  const ghostLots = th.fair ? rooms.filter((r) => r !== spawnRoom && r !== exitRoom && r.w >= 4 && r.h >= 4) : [];
+  const ghostRoom = ghostLots.length ? pick(ghostLots) : null;
   // Cells against a wall of the room, away from its doorways.
   const wallCells = (room) => {
     const cands = [];
@@ -297,6 +316,7 @@ function tryGenerate(seed, th, opts = {}) {
     return p;
   };
   for (const room of roomOrder) {
+    if (room === ghostRoom) continue;
     let want = Math.floor((room.w * room.h) / 7) + (rand() < 0.5 ? 1 : 0);
     let wantHide = room === spawnRoom || rand() < 0.45 || hides < rooms.length / 3;
     for (const c of wallCells(room)) {
@@ -414,6 +434,17 @@ function tryGenerate(seed, th, opts = {}) {
     reserved.add(key(c.x, c.z));
     mirrors.push({ cx: c.x, cz: c.z, dx: c.walls[0][0], dz: c.walls[0][1] });
   }
+  let hall = null;
+  if (th.fair) { // the hall of mirrors: mirrors all round one lot
+    const lots = rooms.filter((r) => r !== spawnRoom && r !== ghostRoom && !mirrors.some((m) => roomId[key(m.cx, m.cz)] === r.id));
+    hall = lots.length ? pick(lots) : null;
+    for (const c of hall ? wallCells(hall) : []) {
+      if (mirrors.length >= 8) break;
+      if (grid[key(c.x, c.z)] !== FLOOR || reserved.has(key(c.x, c.z))) continue;
+      reserved.add(key(c.x, c.z));
+      mirrors.push({ cx: c.x, cz: c.z, dx: c.walls[0][0], dz: c.walls[0][1] });
+    }
+  }
   // Recordings left by people who came before.
   const lore = [];
   const loreRooms = shuffle(middle.slice());
@@ -446,6 +477,7 @@ function tryGenerate(seed, th, opts = {}) {
     spawn: { cx: spawnRoom.cx, cz: spawnRoom.cz }, mimicSpawn: { cx: mimicRoom.cx, cz: mimicRoom.cz },
     exit, fuseBox: box, spawnRoom: spawnRoom.id, exitRoom: exitRoom.id,
     tasks, gens, tapes, doors, keycard, idoors, fakeHide, decoy, mirrors, lore, tunnel,
+    fair: th.fair ? { ghost: ghostRoom ? ghostRoom.id : -1, hall: hall ? hall.id : -1 } : null,
   };
 }
 
@@ -1011,6 +1043,57 @@ function buildProp(type, M) {
       g.add(box(1.4, 0.04, 0.5, M.darkWood, 0, 1.92, 0), box(1.4, 0.02, 0.45, M.glass, 0, 1.35, 0));
       for (let x = -0.5; x < 0.55; x += 0.25) if (r() < 0.75) g.add(cyl(0.04, 0.06, 0.22, M.brass, x, 0.92, 0, 8), cyl(0.06, 0.03, 0.08, M.brass, x, 1.07, 0, 8));
       break;
+    case 'gamestall': { // a ring-toss stall: a striped awning, a counter, bottles to throw at, prizes hanging off the back
+      g.add(box(1.8, 1.0, 0.5, M.stallWood, 0, 0.5, 0.15), box(1.8, 2.4, 0.06, M.stallWood, 0, 1.2, -0.42));
+      for (const x of [-0.88, 0.88]) g.add(box(0.07, 2.5, 0.07, M.stallWood, x, 1.25, 0.38));
+      const awn = box(1.95, 0.05, 1.0, M.awning, 0, 2.45, 0.05); awn.rotation.x = 0.18; g.add(awn);
+      for (let x = -0.6; x <= 0.61; x += 0.2) g.add(cyl(0.03, 0.04, 0.2, M.bottles[Math.floor(r() * 3)], x, 1.1, 0.1 + (r() - 0.5) * 0.1, 6));
+      for (let i = 0; i < 5; i++) { const p = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), M.prizes[Math.floor(r() * M.prizes.length)]); p.position.set(-0.7 + i * 0.35, 1.8 - r() * 0.3, -0.36); p.scale.y = 1.3; g.add(shadowed(p)); }
+      break;
+    }
+    case 'popcorn': { // a popcorn cart: a glass box on wheels, the kernels gone grey
+      g.add(box(0.8, 0.7, 0.55, M.awning, 0, 0.55, 0), box(0.7, 0.55, 0.5, M.glass, 0, 1.18, 0), box(0.78, 0.05, 0.58, M.metal, 0, 1.48, 0));
+      g.add(box(0.66, 0.15, 0.45, M.paper, 0, 0.98, 0));
+      for (const x of [-0.35, 0.35]) { const w = cyl(0.18, 0.18, 0.05, M.black, x, 0.18, 0.3, 12); w.rotation.x = Math.PI / 2; g.add(w); }
+      break;
+    }
+    case 'mascot': { // a fairground mascot in its clown suit, posed; it turns when you aren't looking (scares.js). Probably a statue
+      const m = makeMascot(r);
+      m.arms.forEach((a, i) => { a.rotation.x = -r() * 1.5; a.rotation.z = (i ? -1 : 1) * (0.1 + r() * 0.5); });
+      m.head.rotation.z = (r() - 0.5) * 0.6;
+      g.add(m.root);
+      g.userData.mannequin = { body: m.body, head: m.head };
+      break;
+    }
+    case 'balloons': { // a balloon seller's stand: a post, and the balloons, mostly gone soft, still on their strings
+      g.add(cyl(0.04, 0.05, 1.6, M.metal, 0, 0.8, 0, 6), cyl(0.25, 0.25, 0.06, M.metal, 0, 0.03, 0, 10));
+      for (let i = 0; i < 7; i++) {
+        const a = r() * Math.PI * 2, h = 1.9 + r() * 0.8, b = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), M.prizes[i % M.prizes.length]);
+        b.position.set(Math.cos(a) * 0.25, h, Math.sin(a) * 0.25); b.scale.set(1, r() < 0.4 ? 0.7 : 1.15, 1);
+        g.add(shadowed(b), cyl(0.003, 0.003, h - 1.6, M.black, Math.cos(a) * 0.12, 1.6 + (h - 1.6) / 2, Math.sin(a) * 0.12, 3));
+      }
+      break;
+    }
+    case 'teacup': { // a teacup off the ride, tipped over on its side
+      const cup = new THREE.Group();
+      cup.add(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.5, 0.8, 16, 1, true), M.cup)), cyl(0.5, 0.5, 0.04, M.cup, 0, -0.4, 0, 16));
+      const handle = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.05, 6, 10, Math.PI), M.cup);
+      handle.position.set(0.68, 0, 0); handle.rotation.z = -Math.PI / 2;
+      cup.add(handle);
+      cup.position.set(0, 0.62, 0); cup.rotation.z = 1.2;
+      g.add(cup);
+      break;
+    }
+    case 'strongman': { // the high striker: a tall board with a bell at the top, the mallet lying at its foot
+      g.add(box(0.5, 0.15, 0.5, M.stallWood, 0, 0.075, 0), box(0.25, 3.6, 0.1, M.awning, 0, 1.95, -0.1), cyl(0.12, 0.08, 0.1, M.metal, 0, 3.8, -0.05, 10));
+      const mallet = cyl(0.03, 0.03, 0.9, M.stallWood, 0.35, 0.05, 0.2, 6); mallet.rotation.z = Math.PI / 2;
+      g.add(mallet, box(0.18, 0.18, 0.3, M.stallWood, 0.8, 0.09, 0.2));
+      break;
+    }
+    case 'photobooth': // a photo booth: a curtain on the front, a stool, a strip of four photos stuck in the slot. You can hide in it
+      g.add(box(1.2, 2.2, 0.05, M.awning, 0, 1.1, -0.52), box(0.05, 2.2, 1.05, M.awning, -0.58, 1.1, 0), box(0.05, 2.2, 1.05, M.awning, 0.58, 1.1, 0));
+      g.add(box(1.25, 0.25, 1.1, M.stallWood, 0, 2.3, 0), box(1.1, 1.9, 0.02, M.curtain, 0, 1.15, 0.52), box(0.06, 0.25, 0.01, M.paper, 0.7, 1.3, 0.3));
+      break;
     case 'vending': { // a drinks machine, its front still faintly lit, half the rows empty
       g.add(box(1.0, 1.9, 0.8, M.vend, 0, 0.95, 0), box(0.62, 1.3, 0.02, M.vendGlass, -0.12, 1.2, 0.41));
       for (let y = 0.7; y < 1.8; y += 0.27) for (let x = -0.38; x < 0.15; x += 0.13) if (r() < 0.55) g.add(cyl(0.035, 0.035, 0.14, M.bottles[Math.floor(r() * 3)], x, y, 0.3, 6));
@@ -1058,19 +1141,20 @@ export function makeFuse(metal = new THREE.MeshStandardMaterial({ color: 0x8a909
 
 // The woods instead of walls: the cabin's log walls around the room you start in; everywhere else a black thicket
 // (tall, so nothing shows over it) with tree trunks standing in front of it.
-function buildWoods(level, wallCells, tex, mat, group) {
+function buildWoods(level, wallCells, tex, mat, group) { // (also the fairground)
   const N = level.N, cab = level.rooms[0], m4 = new THREE.Matrix4(), r = mulberry32((level.seed ^ 0x7ee5) >>> 0);
   const near = (x, z) => x >= cab.x - 1 && x <= cab.x + cab.w && z >= cab.z - 1 && z <= cab.z + cab.h;
   const cabin = wallCells.filter(([x, z]) => near(x, z)), woods = wallCells.filter(([x, z]) => !near(x, z));
   const logs = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, WALL_H, CELL), mat(tex.cabin, { color: 0x9a8a78 }), Math.max(1, cabin.length));
   cabin.forEach(([x, z], i) => logs.setMatrixAt(i, m4.makeTranslation(center(x), WALL_H / 2, center(z))));
   logs.count = cabin.length;
-  const H = 8;
-  const thicket = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, H, CELL), mat(tex.wall, { color: 0x6a7060 }), Math.max(1, woods.length));
+  const fair = level.theme.fair, H = fair ? 4.2 : 8; // the fairground: the striped canvas of tents and stalls, not trees
+  const thicket = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, H, CELL), mat(tex.wall, { color: fair ? 0xb0a8a0 : 0x6a7060 }), Math.max(1, woods.length));
   woods.forEach(([x, z], i) => thicket.setMatrixAt(i, m4.makeTranslation(center(x), H / 2, center(z))));
   thicket.count = woods.length;
   logs.receiveShadow = thicket.receiveShadow = true;
   group.add(logs, thicket);
+  if (fair) return;
   // Trunks along the edge of every clearing and path.
   const spots = [];
   for (const [x, z] of woods) for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -1146,6 +1230,10 @@ export function buildLevelScene(level) {
     booth: new THREE.MeshStandardMaterial({ color: 0x4a1418, roughness: 1, side: THREE.DoubleSide }),
     books: [0x4a1c1c, 0x1c2f4a, 0x2f3a1c, 0x4a3b1c, 0x2a2a2a, 0x5a4a3a].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.9 })),
     vend: new THREE.MeshStandardMaterial({ color: 0x5a1a16, roughness: 0.5, metalness: 0.3 }),
+    awning: new THREE.MeshStandardMaterial({ map: tex.stripes || tex.wall, roughness: 0.95, side: THREE.DoubleSide }),
+    stallWood: new THREE.MeshStandardMaterial({ color: 0x5a4030, roughness: 0.9 }),
+    cup: new THREE.MeshStandardMaterial({ color: 0x5a7a8a, roughness: 0.5, side: THREE.DoubleSide }),
+    prizes: [0x8a2a2a, 0x2a5a8a, 0x8a7a2a, 0x5a2a7a, 0x2a7a4a].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.9 })),
     vendGlass: new THREE.MeshStandardMaterial({ color: 0x223038, emissive: 0x6a8a9a, emissiveIntensity: 0.25, roughness: 0.1, transparent: true, opacity: 0.55 }),
     lineMap: new THREE.MeshStandardMaterial({ map: tex.lineMap, roughness: 0.6 }),
     tile: new THREE.MeshStandardMaterial({ map: tex.wall, color: 0xb8b4aa, roughness: 0.6 }),

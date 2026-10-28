@@ -74,7 +74,7 @@ export class Recap {
     const at = this.where(id);
     if (!at) return;
     this.add(this.paths[id] ||= [], at.x, at.z, true);
-    this.ev.push([kind, id, Math.round(at.x * 2) / 2, Math.round(at.z * 2) / 2, Math.round(this.g.time), ['sw', 'ls', 'sk', 'sd', 'db', 'mo', 'tr'].includes(by) ? by : 0]);
+    this.ev.push([kind, id, Math.round(at.x * 2) / 2, Math.round(at.z * 2) / 2, Math.round(this.g.time), ['sw', 'ls', 'sk', 'sd', 'db', 'mo', 'tr', 'mc'].includes(by) ? by : 0]);
     if (kind === 'caught') for (const L of this.lures) if (this.g.time - L.t < 16 && id in L.d) this.score(L.ref, 3, id, true); // it brought them to it
   }
 

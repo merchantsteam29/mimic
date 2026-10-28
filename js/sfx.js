@@ -10,7 +10,7 @@ const DISTANT = {
   facility: ['clank', 'vent', 'pipes', 'slam'], house: ['creak', 'creak', 'pipes', 'slam'], hospital: ['squeak', 'clank', 'vent', 'slam'],
   mall: ['cart', 'clank', 'slam'], school: ['locker', 'locker', 'bell', 'creak'], hotel: ['ding', 'creak', 'pipes', 'slam'],
   church: ['wings', 'creak', 'gust'], asylum: ['whimper', 'clank', 'pipes', 'slam'], forest: ['owl', 'gust', 'creak'],
-  subway: ['screech', 'vent', 'clank', 'pipes', 'screech'],
+  subway: ['screech', 'vent', 'clank', 'pipes', 'screech'], fair: ['creak', 'gust', 'clank', 'creak'],
 };
 
 function distortionCurve(k) {
@@ -344,6 +344,7 @@ export class Sfx {
     } else if (style === 'phone') { // your own voice, down a telephone line
       rate = rand(0.98, 1.0); vol = 1.5; ws.curve = distortionCurve(8); hp.frequency.value = 320; lp.frequency.value = 3300; pk.frequency.value = 1200; pk.gain.value = 6; wet.gain.value = 0.15;
     } else if (style === 'ellie') { rate = 1.2; vol = 1.2; ws.curve = distortionCurve(2); lp.frequency.value = 6000; wet.gain.value = 0.4; }
+    else if (style === 'laugh') { rate = 1.18; vol = 1.25; ws.curve = distortionCurve(6); hp.frequency.value = 260; lp.frequency.value = 5200; pk.frequency.value = 2400; pk.gain.value = 7; wet.gain.value = 0.6; }
     else if (style === 'sing') { rate = 0.74; vol = 1.1; ws.curve = distortionCurve(2); hp.frequency.value = 120; lp.frequency.value = 3200; wet.gain.value = 1; }
     else { rate = rand(0.955, 1.01); vol = 1.15; ws.curve = distortionCurve(3); }
     out.gain.value = vol;
@@ -658,6 +659,20 @@ export class Sfx {
         const g = ctx.createGain(); g.gain.value = [0.012, 0.01, 0.008, 0.005][i];
         o.connect(lp).connect(g).connect(bus); g.connect(this.send); o.start(); nodes.push(o);
       });
+    } else if (theme === 'fair') {
+      // Wind across the empty fairground, and canvas flapping on the stalls.
+      const src = ctx.createBufferSource(); src.buffer = this.brown; src.loop = true;
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 420; bp.Q.value = 0.6;
+      const wg = ctx.createGain(); wg.gain.value = 0.05;
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.08; const lg = ctx.createGain(); lg.gain.value = 0.035;
+      lfo.connect(lg).connect(wg.gain); lfo.start(); nodes.push(lfo);
+      src.connect(bp).connect(wg).connect(bus); src.start(); nodes.push(src);
+      const sr = ctx.sampleRate, flap = ctx.createBuffer(1, Math.floor(sr * 5.3), sr), f = flap.getChannelData(0);
+      for (const at of [0.4, 0.55, 0.62, 2.9, 3.05]) for (let i = 0; i < sr * 0.08; i++) f[Math.floor(at * sr) + i] = (Math.random() * 2 - 1) * Math.exp(-i / (sr * 0.02));
+      const fs = ctx.createBufferSource(); fs.buffer = flap; fs.loop = true;
+      const flp = ctx.createBiquadFilter(); flp.type = 'lowpass'; flp.frequency.value = 900;
+      const fg = ctx.createGain(); fg.gain.value = 0.05;
+      fs.connect(flp).connect(fg).connect(bus); fs.start(); nodes.push(fs);
     } else if (theme === 'subway') {
       // The tunnels breathing: a low rumble that comes and goes, the tube lights buzzing, water dripping on the track.
       const src = ctx.createBufferSource(); src.buffer = this.brown; src.loop = true;
@@ -875,6 +890,61 @@ export class Sfx {
     const dur = NOTES.length * len * 1.25 + len * 2;
     setTimeout(() => { try { g.disconnect(); } catch { /* ignore */ } }, (dur + 3) * 1000);
     return dur;
+  }
+
+  // The fairground's music (fair.js): a wheezing organ waltz from a speaker pole, slightly out of tune, the tape
+  // warbling, for d seconds. i: which speaker (the further ones play quieter).
+  calliope(emitter, d, i = 0) {
+    const ctx = this.ctx, t = this.now + 0.1, dest = emitter ? emitter.input : this.master;
+    const MEL = [69, 0, 72, 71, 0, 69, 68, 0, 71, 69, 0, 64, 65, 0, 69, 68, 0, 64, 62, 0, 65, 64, 0, 0];
+    const BASS = [45, 40, 40, 44, 40, 40];
+    const beat = 0.34, bar = MEL.length;
+    const out = ctx.createGain();
+    out.gain.setValueAtTime(0.0001, t); out.gain.linearRampToValueAtTime(i ? 0.45 : 0.75, t + 1.5);
+    out.gain.setValueAtTime(i ? 0.45 : 0.75, t + d - 2); out.gain.linearRampToValueAtTime(0.0001, t + d);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600;
+    const warble = ctx.createOscillator(); warble.frequency.value = 0.7;
+    const wg = ctx.createGain(); wg.gain.value = 18; // cents: an old tape
+    warble.connect(wg);
+    lp.connect(out).connect(dest); out.connect(this.send);
+    warble.start(t); warble.stop(t + d);
+    const note = (n, at, len, vol, type) => {
+      const f = 440 * 2 ** ((n - 69 + 0.25) / 12);
+      for (const [ty, det, v] of [[type, 0, 1], ['triangle', 7, 0.6]]) {
+        const o = ctx.createOscillator(); o.type = ty; o.frequency.value = f; o.detune.value = det;
+        wg.connect(o.detune);
+        const e = ctx.createGain();
+        e.gain.setValueAtTime(0, at); e.gain.linearRampToValueAtTime(vol * v, at + 0.02); e.gain.setTargetAtTime(vol * v * 0.6, at + 0.05, 0.1); e.gain.linearRampToValueAtTime(0, at + len);
+        o.connect(e).connect(lp);
+        o.start(at); o.stop(at + len + 0.02);
+      }
+    };
+    for (let k = 0; k * beat < d - 0.5; k++) {
+      const at = t + k * beat * (1 + (Math.random() - 0.5) * 0.04), m = MEL[k % bar];
+      if (m) note(m, at, beat * 1.8, 0.035, 'square');
+      note(k % 3 === 0 ? BASS[Math.floor(k / 3) % BASS.length] : BASS[Math.floor(k / 3) % BASS.length] + 12 + (k % 3 === 1 ? 4 : 7) - 12, at, beat * 0.7, k % 3 === 0 ? 0.05 : 0.025, k % 3 === 0 ? 'sawtooth' : 'square');
+    }
+    setTimeout(() => { try { out.disconnect(); } catch { /* ignore */ } }, (d + 2) * 1000);
+    return d;
+  }
+
+  // The ghost train's speaker: a recorded witch's cackle, worn out (fair.js).
+  cackle(emitter) {
+    const ctx = this.ctx, t = this.now + 0.05, d = emitter ? emitter.input : this.master;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1300; bp.Q.value = 1.5;
+    const ws = ctx.createWaveShaper(); ws.curve = distortionCurve(12);
+    const g = ctx.createGain(); g.gain.value = 0.5;
+    bp.connect(ws).connect(g).connect(d); g.connect(this.send);
+    for (let k = 0; k < 9; k++) {
+      const at = t + k * 0.16 + (k > 5 ? (k - 5) * 0.05 : 0), f = 620 + (k % 2 ? 90 : 0) - k * 14;
+      const o = ctx.createOscillator(); o.type = 'sawtooth';
+      o.frequency.setValueAtTime(f * 1.3, at); o.frequency.exponentialRampToValueAtTime(f, at + 0.1);
+      const e = ctx.createGain();
+      e.gain.setValueAtTime(0, at); e.gain.linearRampToValueAtTime(0.25, at + 0.015); e.gain.exponentialRampToValueAtTime(0.001, at + 0.13);
+      o.connect(e).connect(bp); o.start(at); o.stop(at + 0.15);
+    }
+    setTimeout(() => { try { g.disconnect(); } catch { /* ignore */ } }, 4000);
+    return 1.8;
   }
 
   // A subway train (subway.js): a rumble growing for `warn` seconds, the horn, then it goes through for `pass`

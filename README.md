@@ -58,7 +58,7 @@ Guess wrong, and it gets hungrier.
   pickups are it. A body on the floor isn't where you left it. Mirrors show it standing behind you (usually it isn't).
   It opens doors, slowly. It gets hungrier over time, and lights die for good. When the power comes back, it changes.
   Online, it can walk around as a friend it took. Old tapes from people who came before tell you what happened to them.
-- **Random maps:** each run is a research facility, an old house, an abandoned hospital, a closed-down mall, a school at night, an old hotel, an abandoned church, a closed asylum, the woods or a subway station, with a new layout every time.
+- **Random maps:** each run is a research facility, an old house, an abandoned hospital, a closed-down mall, a school at night, an old hotel, an abandoned church, a closed asylum, the woods, a subway station or an abandoned fairground, with a new layout every time.
 - **Hunt** (online mode): one of you, picked at random, IS the mimic. You see in the dark, you see their flashlights, you
   see where they made noise through the walls, and you can call to them in any of their voices. Bite them, rip open their
   hiding spots, kill the lights. Everyone else plays the normal game against you. The mimic wins if fewer than half get out.
@@ -107,6 +107,11 @@ Guess wrong, and it gets hungrier.
 - **The subway:** platforms either side of a track straight across the station, ticket halls and staff rooms off them, ticket
   booths to hide in. The trains still run: a rumble, the horn, its lights in the tunnel, and anyone on the track is gone. Nothing
   can hear you while one goes by, and one will knock the mimic flat.
+- **The fairground:** outdoors, lots between the striped canvas of the stalls, a ticket office to start in, photo booths to hide in.
+  The Ferris wheel turns over everything, the ghost train still goes round (and the mimic goes to see), there's a hall of mirrors,
+  and when the music comes back on it covers your footsteps.
+- **The clown** (always in the fairground; online, Normal mode, a lobby switch, anywhere): a mascot in a clown suit that looks
+  just like the statues. It only moves when nobody's looking, its head follows you if you stare, and it laughs in your voice.
 - **The Mother** (online, Normal mode, a lobby switch): huge and slow, and too big to fit through a doorway. Every so often she
   stops and sings a lullaby in your voices, and the mimic comes to listen.
 - **The Double** (online, Normal mode, a lobby switch): it walks the routes one of you walked a minute ago, with their coat,

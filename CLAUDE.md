@@ -382,6 +382,18 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   starts, ending like one ends, max 4.5 s) as `[clip, start, end, rate, gap, gain, stutter]` steps, slightly off on purpose (pitch
   drift, wrong gaps, a stutter); `build(ctx, steps, buffers)` makes the buffer. Alone, `localSpeak` uses it 45% of lures. Online the host's
   `mimicSpeaks` (40%, not screams) sends `say` with `sp` {keys (one owner), p} and every browser builds the same sentence.
+- **Fairground** theme (`fair`, look `house`, `outdoor: true`, `fair: true`): `buildWoods` draws striped canvas walls (`fairWall`, 4.2 m, no
+  trunks) and the ticket office (`rooms[0]`, `tex.cabin` = `boothPlanks`); props gamestall / popcorn / mascot (`makeMascot` from mascot.js,
+  `userData.mannequin`, so they turn like the mall's) / balloons / teacup / strongman, `photobooth` to hide in (box kind). Only for `th.fair`,
+  `tryGenerate` picks `level.fair` {ghost (a lot with no props), hall (up to 8 mirrors in all: the hall of mirrors)}. Code letter `G`.
+- `fair.js`: the **fairground's moving parts**: the Ferris wheel outside the map (bulbs with `fog: false`), the ghost train (host `ride`
+  every 55-90 s: the car laps `level.fair.ghost`, `sfx.cackle`, and the host calls `mimic.hear` / `ls.hear` where it is), and the music (host
+  `calliope` {d: 40} every 80-120 s: `sfx.calliope` from the 3 lamp posts nearest each player; `stepScale` 0.5 in the step noise).
+- `mascot.js`: **the clown** (`game.mc`): alone, always on the fairground (not stories / tutorial / waiting room); online a lobby toggle
+  (`session.setMascot`, `start` carries `mc`). Stalker rules (`seenBy`: in view, line of sight, within 7 m or lit) but walks (3.2 m/s), and
+  spawns beside a mascot statue when there are any. Stared at from under 9 m for 2.5 s, its head turns to follow (`look`, in the snap).
+  Laughs every 18-32 s (or when stared at): a piece of a clip (`splice.pieces`) repeated 5-7 times, rising, `playVoice(..., 'laugh')`; online
+  `mcLaugh` {key, s, e}. The host sends the mimic and the listener to the laugh. `hostCatch(id, 'mc')`, `snap.mc`, `poseAt`.
 - **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
   on touch the objectives sit below the pause / jobs buttons.
 

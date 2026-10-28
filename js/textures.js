@@ -272,6 +272,48 @@ function hotelFloor() {
   return toTexture(c);
 }
 
+// ---------- fairground ----------
+function fairWall() {
+  const [c, g] = canvas(256, 384); // tent canvas: faded red and cream stripes, sagging, mildewed, a tear
+  for (let x = 0; x < 256; x += 64) {
+    g.fillStyle = '#6a1e1a'; g.fillRect(x, 0, 32, 384);
+    g.fillStyle = '#b8ab90'; g.fillRect(x + 32, 0, 32, 384);
+  }
+  g.fillStyle = '#3a2a1a'; g.fillRect(0, 0, 256, 18); // the scalloped trim at the top
+  for (let x = 0; x < 256; x += 32) { g.fillStyle = '#6a1e1a'; g.beginPath(); g.arc(x + 16, 18, 16, 0, Math.PI); g.fill(); }
+  streaks(g, 256, 384, 14, 'rgba(30,24,14,.35)');
+  blotches(g, 256, 384, 10, 0.45);
+  stains(g, 256, 384, 6, 'rgba(40,46,20,.35)');
+  g.fillStyle = '#050403'; g.beginPath(); g.moveTo(150, 250); g.lineTo(166, 300); g.lineTo(158, 340); g.lineTo(146, 296); g.fill();
+  grain(g, 256, 384, 22);
+  return toTexture(c);
+}
+
+function fairFloor() {
+  const [c, g] = canvas(256); // trodden dirt and straw, old tickets, popcorn
+  g.fillStyle = '#2e261c'; g.fillRect(0, 0, 256, 256);
+  blotches(g, 256, 256, 10, 0.5);
+  for (let i = 0; i < 90; i++) { g.strokeStyle = `rgba(${120 + Math.random() * 40},${100 + Math.random() * 30},50,.5)`; g.lineWidth = 1.5; const x = Math.random() * 256, y = Math.random() * 256, a = Math.random() * 3; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * 14, y + Math.sin(a) * 14); g.stroke(); }
+  for (let i = 0; i < 8; i++) { g.save(); g.translate(Math.random() * 256, Math.random() * 256); g.rotate(Math.random() * 3); g.fillStyle = Math.random() < 0.5 ? 'rgba(170,60,50,.75)' : 'rgba(190,170,110,.75)'; g.fillRect(-9, -5, 18, 10); g.restore(); }
+  for (let i = 0; i < 30; i++) { g.fillStyle = 'rgba(200,190,160,.6)'; g.beginPath(); g.arc(Math.random() * 256, Math.random() * 256, 2, 0, 7); g.fill(); }
+  grain(g, 256, 256, 26);
+  return toTexture(c);
+}
+
+function boothPlanks() {
+  const [c, g] = canvas(256, 384); // the ticket office: painted boards, the paint flaking off
+  for (let x = 0; x < 256; x += 32) {
+    const v = Math.random() * 14;
+    g.fillStyle = `rgb(${120 + v},${40 + v},${36 + v})`; g.fillRect(x, 0, 31, 384);
+    g.fillStyle = 'rgba(20,10,8,.6)'; g.fillRect(x + 31, 0, 1, 384);
+  }
+  g.fillStyle = 'rgba(200,180,120,.8)'; g.fillRect(0, 150, 256, 10);
+  blotches(g, 256, 384, 8, 0.4);
+  for (let i = 0; i < 40; i++) { g.fillStyle = 'rgba(90,70,50,.8)'; g.fillRect(Math.random() * 256, Math.random() * 384, 4 + Math.random() * 14, 2 + Math.random() * 6); }
+  grain(g, 256, 384, 22);
+  return toTexture(c);
+}
+
 // ---------- forest ----------
 function forestWall() {
   const [c, g] = canvas(256, 384); // a thicket: black tangle, a little dead green
@@ -722,18 +764,18 @@ export function skinNormal() {
 }
 
 export function makeTextures(theme) {
-  const facility = theme === 'facility', hospital = theme === 'hospital', mall = theme === 'mall', school = theme === 'school', hotel = theme === 'hotel', church = theme === 'church', asylum = theme === 'asylum', forest = theme === 'forest', subway = theme === 'subway';
+  const facility = theme === 'facility', hospital = theme === 'hospital', mall = theme === 'mall', school = theme === 'school', hotel = theme === 'hotel', church = theme === 'church', asylum = theme === 'asylum', forest = theme === 'forest', subway = theme === 'subway', fair = theme === 'fair';
   const pair = (name) => [photo(`${name}_color`), photo(`${name}_normal`, false)];
-  const [wall, wallN] = facility ? pair('concreteWall') : [hospital ? hospitalWall() : mall ? mallWall() : school ? schoolWall() : hotel ? hotelWall() : church ? churchWall() : asylum ? asylumWall() : forest ? forestWall() : subway ? subwayWall() : houseWall(), photo('plaster_normal', false)];
+  const [wall, wallN] = facility ? pair('concreteWall') : [hospital ? hospitalWall() : mall ? mallWall() : school ? schoolWall() : hotel ? hotelWall() : church ? churchWall() : asylum ? asylumWall() : forest ? forestWall() : subway ? subwayWall() : fair ? fairWall() : houseWall(), photo('plaster_normal', false)];
   const [floor, floorN] = hospital || mall || school || asylum || subway ? [hospital ? hospitalFloor() : mall ? mallFloor() : asylum ? asylumFloor() : subway ? subwayFloor() : schoolFloor(), photo('concreteFloor_normal', false)]
-    : hotel ? [hotelFloor(), photo('plaster_normal', false)] : forest ? [forestFloor(), photo('concreteFloor_normal', false)] : church ? [churchFloor(), photo('concreteFloor_normal', false)] : pair(facility ? 'concreteFloor' : 'woodFloor');
+    : hotel ? [hotelFloor(), photo('plaster_normal', false)] : forest || fair ? [fair ? fairFloor() : forestFloor(), photo('concreteFloor_normal', false)] : church ? [churchFloor(), photo('concreteFloor_normal', false)] : pair(facility ? 'concreteFloor' : 'woodFloor');
   const [ceiling, ceilingN] = pair(subway ? 'concreteWall' : facility || hospital || mall || school || asylum ? 'officeCeiling' : 'plaster');
   const [woodC, woodN] = pair('wood');
   const [metalC, metalN] = pair('paintedMetal');
   wall.repeat.set(1, 1.5); wallN.repeat.set(1, 1.5); // one 2m x 3m wall face
-  const pad = asylum ? padded() : null, logs = forest ? cabinLogs() : null;
+  const pad = asylum ? padded() : null, logs = forest ? cabinLogs() : fair ? boothPlanks() : null;
   return {
-    padded: pad, cabin: logs,
+    padded: pad, cabin: logs, stripes: fair ? wall : null,
     gravel: subway ? gravel() : null, lineMap: subway ? lineMap() : null, booth: subway ? label('TICKETS', '#141414', '#d8c070', 256, 64, 'bold 40px Inter, sans-serif') : null,
     wall, wallN, floor, floorN, ceiling, ceilingN, woodN, metalN,
     wood: woodC,

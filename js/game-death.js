@@ -8,7 +8,7 @@ export const DeathPart = {
   // by: where the skinwalker got me (null = the mimic).
   caught(by = null) {
     if (this.state !== 'playing') return;
-    this.scareBy = by?.sw && this.sw.wearId ? this.sw : by?.ls && this.ls.on ? this.ls : by?.sk && this.sk.on ? this.sk : by?.sd && this.sd.on ? this.sd : by?.db && this.db.on ? this.db : by?.mo && this.mo.on ? this.mo : by?.tr && this.tr.on ? this.tr : null;
+    this.scareBy = by?.sw && this.sw.wearId ? this.sw : by?.ls && this.ls.on ? this.ls : by?.sk && this.sk.on ? this.sk : by?.sd && this.sd.on ? this.sd : by?.db && this.db.on ? this.db : by?.mo && this.mo.on ? this.mo : by?.tr && this.tr.on ? this.tr : by?.mc && this.mc.on ? this.mc : null;
     if (!this.clip.recording) this.clip.start();
     this.hb.stop();
     this.obj.repairing = null;
@@ -107,6 +107,7 @@ export const DeathPart = {
       this.db.posed = false;
       this.mo.posed = false;
       this.tr.posed = false;
+      this.mc.posed = false;
       this.startSpectate();
     }
   },
@@ -184,7 +185,7 @@ export const DeathPart = {
     this.hud.signal.hidden = true;
     this.hud.root.hidden = false;
     this.renderer.domElement.style.filter = '';
-    this.mimic.frozen = false; this.sw.posed = this.ls.posed = this.sk.posed = this.sd.posed = this.db.posed = this.mo.posed = this.tr.posed = false; this.dragging = false; // (if it was mid-jumpscare)
+    this.mimic.frozen = false; this.sw.posed = this.ls.posed = this.sk.posed = this.sd.posed = this.db.posed = this.mo.posed = this.tr.posed = this.mc.posed = false; this.dragging = false; // (if it was mid-jumpscare)
     this.peekHud = 5;
     this.updateObjective();
     this.sfx.sting();

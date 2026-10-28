@@ -27,6 +27,9 @@ const SECTIONS = [
     { name: 'The Mother', file: 'Subject 08', what: 'Online, if the host lets it in. Huge, slow, bent double under the ceiling, something wrapped in a blanket held to her chest. She can\'t fit through a doorway.',
       tells: 'Heavy, slow footsteps. A lullaby, in your voices, all at once. When she sings, the mimic comes to listen.',
       survive: 'Walk away: she\'s slower than you. Get through a door and shut it behind you, and she can only stand outside. Don\'t be near her when she starts to sing.' },
+    { name: 'The clown', file: 'Subject 10', what: 'In the fairground, always. Online, anywhere, if the host lets it in. A fairground mascot in a clown suit: a big foam head, a painted grin. There are statues of it all over the fairground. One of them isn\'t a statue.',
+      tells: 'Big shoes slapping the ground when you aren\'t looking. It\'s closer each time you look back, and posed differently. Stare at it and its head turns to follow you. It laughs, in your voice.',
+      survive: 'Like the stalker: someone keeps it in view, in the light. Count the statues when you pass them. If the count changes, you know which one it is. Its laugh brings the mimic.' },
     { name: 'The trains', file: 'Subject 09', what: 'Only in the subway. They still run. Nobody\'s driving them and they don\'t stop.',
       tells: 'A rumble that keeps growing, the horn, a light in the tunnel mouth. Then it\'s there.',
       survive: 'Get off the track and onto a platform. While one goes by nothing can hear you, not even it. If it\'s standing on the track, the train knocks it flat.' },
@@ -38,6 +41,8 @@ const SECTIONS = [
       survive: 'Half the time it doesn\'t think to look. If it does, the heartbeat.' },
     { name: 'Vents', file: 'Hiding 03', what: 'Low grates in the walls of the bigger buildings.', tells: 'They clang when you get in and out, and it hears that.',
       survive: 'It can\'t follow you in. It will wait outside the grate for a while.' },
+    { name: 'Photo booths', file: 'Hiding 06', what: 'In the fairground. A booth with a curtain across the front.', tells: 'The heartbeat, like a locker.',
+      survive: 'Pull the curtain and keep still.' },
     { name: 'Ticket booths', file: 'Hiding 05', what: 'In the subway. A booth with a window and a door.', tells: 'The heartbeat, like a locker.',
       survive: 'Keep away from the track while you wait in there: the trains are loud, but they don\'t stop it looking.' },
     { name: 'Curtains', file: 'Hiding 04', what: 'Hospital screens.', tells: 'Your feet show under the curtain.',
@@ -94,8 +99,9 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'alpha1-2026-10-28c';
+export const RELEASE = 'alpha1-2026-10-28d';
 const NOTES = [
+  ['The music came back on by itself. The wheel is turning. We counted nine clowns by the gate. Then ten.', 'A new place: an abandoned fairground, outdoors. The ghost train still runs, the hall of mirrors has more of you in it than it should, and when the music comes on it covers your footsteps. And the clown: it lives there (online, the host can let it in anywhere). It only moves when nobody is looking, and it laughs in your voice.'],
   ['Listen to the tape again. I never said that. Those are my words, but I never said that.', 'It doesn\'t just repeat you any more. It cuts what you said into pieces and puts them back together into things you never said. Listen closely: the pitch slips between words, and the pauses are in the wrong places.'],
   ['Somebody else is down here. You can see their light from the stairs.', 'Quick Play now shows the public rooms open right now: whose they are, how full, and whether they\'re already playing. And the voice that fooled you can be saved as a short video to send to whoever it was. Saved jumpscares are MP4 now, so they play on more phones.'],
   ['The last train left at 12:40. We heard another one at 2:13. Then we heard her singing.', 'A new place: a closed subway station, where the trains still run, so stay off the track. Online, the Mother: huge, slow, too big for a doorway, and she sings in your voices. And four new classes: the Sound guy (a speaker that pulls it away), the Priest (a crucifix that makes it back off), the Scout (marks everyone can see) and the Mechanic (fast repairs, and doors wedged shut).'],

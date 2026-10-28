@@ -1096,6 +1096,11 @@ function renderLobby() {
   mo.querySelector('b').textContent = `Mother: ${moOn ? 'on' : 'off'}`;
   mo.disabled = !session.isHost || session.mode !== 'normal';
   mo.onclick = () => session.setMother(!session.mother);
+  const mc = $('btnMascot'), mcOn = session.mascot && session.mode === 'normal';
+  mc.classList.toggle('on', mcOn);
+  mc.querySelector('b').textContent = `Clown: ${mcOn ? 'on' : 'off'}`;
+  mc.disabled = !session.isHost || session.mode !== 'normal';
+  mc.onclick = () => session.setMascot(!session.mascot);
 }
 
 // The waiting room: a small house to walk around in with everyone while you wait.
@@ -1157,7 +1162,7 @@ function startMpRun(m) {
   const themeId = m.theme in THEMES ? m.theme : 'facility';
   game = new Game({
     renderer, vhs, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order, classes: m.classes || {},
-    mode: m.mode === 'story' ? 'story' : 'normal', night: m.mode === 'nights' ? Math.max(1, Math.min(99, m.night | 0)) : 0, traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, shadow: !!m.sd, double: !!m.db, caller: !!m.cl, mother: !!m.mo, hideSeek: m.mode === 'hide', escort: m.mode === 'escort' && m.order?.includes(m.lantern) ? m.lantern : null, difficulty: m.diff, custom: m.cs, teams: m.mode === 'versus' && m.teams && typeof m.teams === 'object' ? m.teams : null,
+    mode: m.mode === 'story' ? 'story' : 'normal', night: m.mode === 'nights' ? Math.max(1, Math.min(99, m.night | 0)) : 0, traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, shadow: !!m.sd, double: !!m.db, caller: !!m.cl, mother: !!m.mo, mascot: !!m.mc, hideSeek: m.mode === 'hide', escort: m.mode === 'escort' && m.order?.includes(m.lantern) ? m.lantern : null, difficulty: m.diff, custom: m.cs, teams: m.mode === 'versus' && m.teams && typeof m.teams === 'object' ? m.teams : null,
     hunter: m.mode === 'hunt' && m.order?.includes(m.hunter) ? m.hunter : null,
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),
