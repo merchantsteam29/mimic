@@ -38,6 +38,7 @@ import { Mother } from './mother.js';
 import { Subway } from './subway.js';
 import { Mascot } from './mascot.js';
 import { Fair } from './fair.js';
+import { KillCam } from './killcam.js';
 import { Escort } from './escort.js';
 import { HideSeek, hideLevel } from './hideseek.js';
 import { Escape } from './escape.js';
@@ -217,6 +218,7 @@ export class Game {
     this.chaseGoneT = 0;
     this.doorEm = sfx.emitter();
     this.inc = new Incidents(this, !story && !tutorial && !room && !hideSeek && custom?.events !== false); // power cuts, storms, alarms, lockdowns
+    this.kc = new KillCam(this);                       // the replay of how someone was taken
     // Hunger: every couple of minutes it gets bolder, and lights die for good (in the same order for everyone).
     this.hungerT = 0;
     this.hungerSeen = 0;
@@ -238,6 +240,7 @@ export class Game {
     this.keys = new Set();
     this.onKeyDown = (e) => {
       if (this.menuOpen) return;
+      if (!e.repeat && this.kc.onKey(e.code)) { e.preventDefault(); return; }
       const live = this.state === 'playing' || this.state === 'spectate';
       if (!e.repeat && this.radio.onKey(e.code, true)) return;
       if (live && !e.repeat && this.esc.onKey(e.code)) return; // typing at a keypad
@@ -371,6 +374,7 @@ export class Game {
     this.mo.dispose();
     this.tr.dispose();
     this.fair.dispose();
+    this.kc.dispose();
     this.mc.dispose();
     this.lan.dispose();
     this.esc.dispose();
@@ -493,6 +497,7 @@ export class Game {
         r.head.rotation.z = 0.6 + Math.sin(this.t * 25) * 0.15;
       } else r.head.rotation.z = 0;
     }
+    this.kc.update(dt);
     if (this.mp) { this.netTick(dt); this.routeVoices(); this.updateTags(); }
     if (this.isHost && (this.state === 'playing' || this.state === 'spectate')) this.recap.update(dt);
   }
@@ -500,6 +505,7 @@ export class Game {
   render(dt) {
     if (this.state !== 'paused') this.updateLights(dt);
     this.updateCamera();
+    this.kc.render(dt); // (a replay takes the camera)
     this.updateFlash(dt);
     this.sfx.updateListener(this.camera);
     const c = this.camera.position;

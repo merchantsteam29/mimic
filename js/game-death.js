@@ -50,6 +50,7 @@ export const DeathPart = {
   },
 
   updateCaught(dt) {
+    if (this.kc.active) return; // watching the replay
     this.ct += dt;
     const p = this.p, sc = this.scare;
     const fx = -Math.sin(this.catchYaw), fz = -Math.cos(this.catchYaw);
@@ -98,17 +99,22 @@ export const DeathPart = {
       this.clip.stop(true);
       this.renderer.domElement.style.filter = '';
       this.dragging = false;
-      if (!this.mp) { this.end(false); return; }
-      this.mimic.frozen = false;
-      this.sw.posed = false;
-      this.ls.posed = false;
-      this.sk.posed = false;
-      this.sd.posed = false;
-      this.db.posed = false;
-      this.mo.posed = false;
-      this.tr.posed = false;
-      this.mc.posed = false;
-      this.startSpectate();
+      // The kill-cam first (how it got you), then the end screen or spectating.
+      this.kc.start(this.me, () => {
+        if (this.state !== 'caught') return;
+        if (!this.mp) { this.end(false); return; }
+        if (this.pendingEnd) { this.finish(this.pendingEnd, true); return; } // (the game ended while it was getting me)
+        this.mimic.frozen = false;
+        this.sw.posed = false;
+        this.ls.posed = false;
+        this.sk.posed = false;
+        this.sd.posed = false;
+        this.db.posed = false;
+        this.mo.posed = false;
+        this.tr.posed = false;
+        this.mc.posed = false;
+        this.startSpectate();
+      });
     }
   },
 
@@ -208,8 +214,9 @@ export const DeathPart = {
   },
 
   // Online: the host says the game is over.
-  finish(m) {
+  finish(m, now = false) {
     if (this.state === 'ended') return;
+    if (this.state === 'caught' && !now) { this.pendingEnd = m; return; } // let the jumpscare and the replay finish first
     this.state = 'ended';
     this.hud.root.hidden = true;
     this.hud.locker.hidden = true;

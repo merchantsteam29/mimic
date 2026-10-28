@@ -394,6 +394,13 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   spawns beside a mascot statue when there are any. Stared at from under 9 m for 2.5 s, its head turns to follow (`look`, in the snap).
   Laughs every 18-32 s (or when stared at): a piece of a clip (`splice.pieces`) repeated 5-7 times, rising, `playVoice(..., 'laugh')`; online
   `mcLaugh` {key, s, e}. The host sends the mimic and the listener to the laugh. `hostCatch(id, 'mc')`, `snap.mc`, `poseAt`.
+- `killcam.js`: **kill-cam replays** (`game.kc`; not in the waiting room or the tutorial). Every browser records 15 times a second (`record`,
+  10 s kept): `mimic.snap()` (wearId zeroed), each visible living player (`myState` / remotes) and each creature that's out (`KINDS`). 'caught'
+  -> `kc.caught(id, by)`. The victim: `updateCaught` at SIGNAL LOST + 1.1 s calls `kc.start(me, next)` (`next` = end alone / spectate online;
+  while it plays `updateCaught` returns early). Spectators get a K offer for 15 s. Puppets: a second `Mimic` (applySnap + puppet), `RemotePlayer`
+  copies; a creature catcher's own model with `posed = true`. `render` (after `updateCamera`) hides the live mimic and remotes and puts the
+  camera behind the victim, facing what's coming; the last 1.1 s plays at 0.35x, holding on the catch. Space / E skips. No replay for trains.
+  Online, an `end` that arrives while you're `caught` waits (`pendingEnd`) until the jumpscare and the replay are over.
 - **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
   on touch the objectives sit below the pause / jobs buttons.
 

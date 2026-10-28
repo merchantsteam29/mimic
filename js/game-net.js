@@ -242,6 +242,7 @@ export const NetPart = {
       case 'caught': {
         this.status.set(m.id, 'dead');
         const at = ['sw', 'ls', 'sk', 'sd', 'db', 'mo', 'tr', 'mc'].map((k) => m[k]).find(Array.isArray) || null;
+        this.kc.caught(m.id, ['sw', 'ls', 'sk', 'sd', 'db', 'mo', 'tr', 'mc'].find((k) => m[k]));
         if (m.id === this.me && this.state !== 'intro') this.caught(at ? { x: num(at[0]), z: num(at[1]), ceiling: false, dropT: 0, sw: !!m.sw, ls: !!m.ls, sk: !!m.sk, sd: !!m.sd, db: !!m.db, mo: !!m.mo, tr: !!m.tr, mc: !!m.mc } : null);
         // Nobody else is told. Their voice just stops, as if they wandered off.
         else if (this.alive(this.me)) this.mp?.vc?.route(m.id, { on: false });

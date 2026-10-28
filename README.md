@@ -110,6 +110,8 @@ Guess wrong, and it gets hungrier.
 - **The fairground:** outdoors, lots between the striped canvas of the stalls, a ticket office to start in, photo booths to hide in.
   The Ferris wheel turns over everything, the ghost train still goes round (and the mimic goes to see), there's a hall of mirrors,
   and when the music comes back on it covers your footsteps.
+- **Kill-cam:** when it gets you, a replay from behind you shows the last few seconds before it reached you (Space skips). Online, when a
+  friend is taken while you're dead or out, K watches theirs.
 - **The clown** (always in the fairground; online, Normal mode, a lobby switch, anywhere): a mascot in a clown suit that looks
   just like the statues. It only moves when nobody's looking, its head follows you if you stare, and it laughs in your voice.
 - **The Mother** (online, Normal mode, a lobby switch): huge and slow, and too big to fit through a doorway. Every so often she

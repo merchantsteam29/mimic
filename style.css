@@ -219,6 +219,11 @@ body.vhs #grain, body.vhs #vignette { display: none; }
 #cam .counter { bottom: 28px; right: 34px; }
 #signal { position: fixed; inset: 0; display: grid; place-items: center; background: #050805; font: 64px VT323, monospace; color: #e8f0e8; letter-spacing: .2em; z-index: 5; }
 #signal span { animation: recblink 0.8s steps(1) infinite; }
+#killcam { position: fixed; left: 0; right: 0; top: 70px; display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; z-index: 4; text-shadow: 2px 2px 0 rgba(0,0,0,.7); padding: 0 16px; text-align: center; }
+#killcam i { font: 34px VT323, monospace; font-style: normal; color: #ff3040; letter-spacing: .3em; animation: recblink 1.2s steps(1) infinite; }
+#killcam b { font: 22px "Special Elite", monospace; color: #e8f0e8; }
+#killcam span { font: 13px Inter, sans-serif; color: #e8f0e8; opacity: .7; }
+#killcam[hidden] { display: none; }
 
 /* The HUD stays out of the way: it shows while you hold Tab, briefly when something changes, and on its own when it matters. */
 #hud #objective, #hud #ability, #hud #mic, #hud #battery { transition: opacity .4s; }
