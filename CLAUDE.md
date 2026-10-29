@@ -424,7 +424,7 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   is exposed (reveal, chase, gone for good) or a real friend: hunger +1. One call per 40 s.
 - `patient.js`: **the patient** (`game.pt`; alone, always in the hospital and asylum; online the lobby toggle `setPatient`, `start.pt`). Lies on a
   bed / gurney / bunk / tub / bench / pew / sofa (`BEDS`: height and axis; room floors if there are few), with seeded decoy bodies on others.
-  States lie / sit (someone walked within 3.2 m then on past: `ptSit`, it watches them) / follow (anyone running within 11 m: `ptUp`, 3.1 m/s;
+  States lie / sit (someone walked within 3.2 m then on past: `ptSit`, it watches them) / follow (anyone running within 11 m: `ptUp`, 3.1 m/s while they run, 2.1 once they stop;
   gives up 4 s after you stop running or leave its sight, or hide) / back. `targets()` now carry `running` (speed > 4). `hostCatch(id, 'pt')`.
 - **Mine** theme (`mine`, look `facility` but `mine: true`: no vents): rock walls and roof (`mineWall`), `mineFloor`, `buildMine` (timber frames
   every third corridor cell, rails along the straight runs), caged bulbs, props minecart / toolrack / rubble / tnt, `crawlspace` to hide in

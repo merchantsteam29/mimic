@@ -147,10 +147,10 @@ export class Patient {
       case 'follow': {
         const P = T.find((q) => q.id === this.prey);
         const seen = P && !P.hidden && lv.los(P.x, P.z, this.x, this.z) && dist(P, this) < 20;
-        this.lostT = seen ? (P.running ? 0 : this.lostT + dt * 0.5) : this.lostT + dt;
+        this.lostT = seen ? (P.running ? 0 : this.lostT + dt * 0.75) : this.lostT + dt;
         if (!P || P.hidden || this.lostT > 4 || this.stateT > 30) { this.set('back'); return; }
         if (dist(P, this) < 1.0) { g.hostCatch(P.id, 'pt'); this.set('back'); return; }
-        this.walk(P.x, P.z, WALK, dt);
+        this.walk(P.x, P.z, P.running ? WALK : 2.1, dt); // (you walk at 2.7: stop running and you can walk away from it)
         return;
       }
       case 'back': {

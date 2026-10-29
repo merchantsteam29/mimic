@@ -137,7 +137,7 @@ export const THEMES = {
     id: 'mine', look: 'facility', mine: true, kicker: 'Abandoned mine',
     names: ['Blackmoor Colliery · Seam 4', 'Kestrel Hill Mine (sealed 1961)', 'The Hollow Drift', 'Ashgrove Pit No. 2'],
     size: 30, roomSize: [3, 6], tries: 150, minRooms: 9,
-    light: 0xffbf70, lightIntensity: 5, corridorLights: true, flicker: 0.7, broken: 0.6,
+    light: 0xffbf70, lightIntensity: 5.5, corridorLights: true, flicker: 0.7, broken: 0.5,
     fog: 0x030201, fogDensity: 0.1, reverb: [4.2, 0.65],
     props: ['minecart', 'crate', 'barrel', 'toolrack', 'rubble', 'minecart', 'tnt', 'crate'], hideProp: 'crawlspace', surface: 'stone',
   },

@@ -224,7 +224,7 @@ export class Mascot {
     }
     const d = g.sfx.playVoice(out, this.emitter, 'laugh');
     g.voice.suppress(d + 0.3);
-    if (g.isHost) { g.mimic.hear(this.x, this.z, 18, 'voice'); g.ls.hear(this.x, this.z, 12, 'voice'); } // the mimic comes to see what's funny
+    if (g.isHost && Math.random() < 0.5) { g.mimic.hear(this.x, this.z, 18, 'voice'); g.ls.hear(this.x, this.z, 12, 'voice'); } // sometimes the mimic comes to see what's funny
     return d;
   }
 
