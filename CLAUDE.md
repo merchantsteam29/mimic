@@ -441,6 +441,11 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   mimic is within 16 m of someone (every 35-50 s at most), a route from out of their sight, past them, and away (`findPath` twice) goes out
   as `swarm` {p}; every browser runs 40 instanced rats along it (fixed lag / side / speed per rat). Host: anyone not hiding within 2.2 m of
   a rat -> `mimic.hear(x, z, 40)` + `ls.hear`. `sfx.rats`. No catches.
+- `descent.js`: **Endless descent** (title > Endless descent = `pickClass(0, 1)`, `?autostart&depth=N`, or lobby Mode `descent`; Game option `depth`).
+  An ordinary run whose exit is the way down: `descentLevel(d)` (fuses only on floor 1, `broken` rising) and `descentRules(d)` multiply the
+  difficulty up to floor 12; the stamp says `FLOOR -d`; `mode` / `plain` runs get a mood, no twist. Alone, the end screen offers the next floor
+  (`recordDepth`: deepest, localStorage `mimic.depth`) or floor 1 again. Online: `session.depth` (sent with `mode`, `start.depth`); the host's
+  end screen calls `setDepth` (next floor if anyone got out, else 1).
 - **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
   on touch the objectives sit below the pause / jobs buttons.
 

@@ -273,7 +273,7 @@ export const PlayerPart = {
       this.camSec = sec;
       const clock = 2 * 3600 + 13 * 60 + 7 + sec, h = Math.floor(clock / 3600) % 12 || 12;
       const two = (n) => String(n).padStart(2, '0');
-      this.hud.camStamp.textContent = this.ns.on ? this.ns.stamp() : `OCT 25 2026\n${two(h)}:${two(Math.floor(clock / 60) % 60)}:${two(clock % 60)} AM`;
+      this.hud.camStamp.textContent = this.ns.on ? this.ns.stamp() : `${this.depth ? `FLOOR -${this.depth}` : 'OCT 25 2026'}\n${two(h)}:${two(Math.floor(clock / 60) % 60)}:${two(clock % 60)} AM`;
       this.hud.camCounter.textContent = `SP ▶ ${Math.floor(sec / 3600)}:${two(Math.floor(sec / 60) % 60)}:${two(sec % 60)}`;
     }
     this.hud.camBat.style.width = `calc(${this.p.battery}% - 6px)`;

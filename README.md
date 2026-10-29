@@ -112,6 +112,8 @@ Guess wrong, and it gets hungrier.
   and when the music comes back on it covers your footsteps.
 - **The snow station:** huts joined by tunnels, and open yards in a blizzard between them. Out there you get colder: slower, frost at
   the edges, and past halfway your teeth chatter loud enough for it to hear. Inside you warm up. The radio set picks up voices. Yours.
+- **Endless descent** (title screen, or a lobby Mode): floor after floor, each a new building and each worse than the last (faster,
+  sharper-eyed, darker). The first floor is fuses only. Your deepest floor is kept on this device; nothing to unlock.
 - **The swarm** (always in the mine and the subway; online, Normal mode, a lobby switch, anywhere): when it's near, rats run the
   corridor past you, squealing, and it hears exactly where you are.
 - **The mine:** pitch-black tunnels propped up with timber, rails, chambers cut out of the rock, crawl spaces to hide in (it can't

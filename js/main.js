@@ -17,6 +17,7 @@ import { ACTIONS, binds, resetBinds, keyName, padName } from './binds.js';
 import { initTitle } from './title.js';
 import { TitleScene } from './title3d.js';
 import { bestNight, recordNight } from './nightshift.js';
+import { bestDepth, recordDepth } from './descent.js';
 import { MOODS, TWISTS } from './runs.js';
 import { COATS, HATS, LIGHTS, DEFAULT_LOOK, cleanLook } from './look.js';
 import { Captions } from './captions.js';
@@ -412,7 +413,7 @@ function renderLook() {
 $('btnClassGo').onclick = () => {
   const text = $('codeSolo').value.trim(), code = text && storyIdx === null ? parseCode(text) : null;
   if (text && storyIdx === null && !code) { toastMenu('That building code isn\'t right. It looks like H-4F2K9A.'); return; }
-  startRun(storyIdx, code, storyIdx === null ? nightNo : 0);
+  startRun(storyIdx, code, storyIdx === null ? nightNo : 0, storyIdx === null && !nightNo ? depthNo : 0);
 };
 
 // ---------- voice check (before your first game, alone or online) ----------
@@ -465,8 +466,10 @@ function finishVoiceCheck() {
 const tutorialSeen = () => { try { return !!localStorage.getItem('mimic.tutorial'); } catch { return true; } };
 const markTutorial = () => { try { localStorage.setItem('mimic.tutorial', '1'); } catch { /* ignore */ } };
 let nightNo = 0; // Night Shift alone: the night the class screen starts (0 = an ordinary run)
-const pickClass = (night = 0) => { storyIdx = null; nightNo = night; renderClassPick(); $('mapSoloRow').hidden = false; show('classes'); };
+let depthNo = 0; // Endless descent alone: the floor the class screen starts (0 = not a descent)
+const pickClass = (night = 0, depth = 0) => { storyIdx = null; nightNo = night; depthNo = depth; renderClassPick(); $('mapSoloRow').hidden = false; show('classes'); };
 $('btnNights').onclick = () => voiceCheck(() => pickClass(1));
+$('btnDescent').onclick = () => voiceCheck(() => pickClass(0, 1));
 $('btnPlay').onclick = () => voiceCheck(() => (tutorialSeen() ? pickClass() : show('first')));
 $('btnFirstTut').onclick = () => { markTutorial(); startTutorial(); };
 $('btnFirstSkip').onclick = () => { markTutorial(); pickClass(); };
@@ -500,7 +503,7 @@ function openStory() {
     return `<button data-ch="${i}" ${open ? '' : 'disabled'}><b>Chapter ${i + 1}</b><span>${open ? esc(c.title) : '???'}</span>${i < done ? '<i>finished</i>' : ''}</button>`;
   }).join('');
   $('chapters').querySelectorAll('button').forEach((b) => {
-    b.onclick = () => { storyIdx = Number(b.dataset.ch); nightNo = 0; renderClassPick(); $('mapSoloRow').hidden = true; show('classes'); };
+    b.onclick = () => { storyIdx = Number(b.dataset.ch); nightNo = 0; depthNo = 0; renderClassPick(); $('mapSoloRow').hidden = true; show('classes'); };
   });
   show('story');
 }
@@ -511,19 +514,29 @@ $('btnSkipMic').onclick = () => finishVoiceCheck();
 // ---------- solo runs ----------
 // code: a building code ({ theme, seed }) to play that exact building.
 // night: the Night Shift's night (0 = an ordinary run).
-function startRun(si = null, code = null, night = 0) {
+// depth: Endless descent's floor (0 = not a descent).
+function startRun(si = null, code = null, night = 0, depth = 0) {
   game?.dispose();
   storyIdx = si;
   const story = si === null ? null : { ...book.chapters[si], index: si, book: book.id, voice: book.voice };
   const themeId = story ? story.theme : code ? code.theme : params.get('theme') in THEMES ? params.get('theme') : pickedTheme(settings.map);
   const seed = story ? story.seed : code ? code.seed : params.has('seed') ? Number(params.get('seed')) : Math.floor(Math.random() * 2 ** 31);
   game = new Game({
-    renderer, vhs, sfx, voice, settings, hud, themeId, seed, story, night, classes: { h: params.get('class') in CLASSES ? params.get('class') : myClass }, difficulty: settings.diff,
+    renderer, vhs, sfx, voice, settings, hud, themeId, seed, story, night, depth, classes: { h: params.get('class') in CLASSES ? params.get('class') : myClass }, difficulty: settings.diff,
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),
   });
   if (night) nightIntro(themeId, night);
+  else if (depth) descentIntro(themeId, depth);
   else showIntro(themeId, story);
+}
+
+const DESCENT_INTRO = (d) => d === 1
+  ? ['The building goes down further than it should. Every floor has a way down, and something on it.', 'Get the power on, find the way down. Every floor deeper is worse.']
+  : [`Floor ${d}. Deeper than the last, and colder. It came down with you.`, 'Find the way down.'];
+function descentIntro(themeId, d) {
+  showIntro(themeId, null, DESCENT_INTRO(d));
+  $('introKicker').textContent = `Endless descent · floor ${d}`;
 }
 
 const NIGHT_INTRO = (n) => n === 1
@@ -700,7 +713,28 @@ function endRun(r) {
       $('endSub').textContent = out ? `${out === r.results.length ? 'All of you' : `${out} of you`} lasted night ${n}. Night ${n + 1} is next, and it's worse.` : `Night ${n}, a little after ${r.hour || 12} A.M. Back to night 1.`;
       if (session?.isHost) session.setNight(out ? n + 1 : 1);
     }
+    if (r.mode === 'descent' && r.depth) { // Endless descent, together: anyone getting out takes everyone down a floor
+      const d = r.depth;
+      stats.splice(2, 1, ['Floor', d]);
+      $('endTitle').textContent = out ? `Floor ${d} cleared` : 'Nobody found the way down.';
+      $('endSub').textContent = out ? `${out === r.results.length ? 'All of you' : `${out} of you`} got down. Floor ${d + 1} is next, and it's worse.` : `It took all of you on floor ${d}. Back to floor 1.`;
+      if (session?.isHost) session.setDepth(out ? d + 1 : 1);
+    }
     if (session && !session.isHost) $('endSub').textContent += ' Waiting for the host…';
+  } else if (r.depth) { // Endless descent, alone
+    const d = r.depth;
+    if (r.won) recordDepth(d);
+    const best = bestDepth();
+    stats.splice(2, 1, ['Floor', d]);
+    $('endTitle').textContent = r.won ? `Floor ${d} cleared` : 'It got you.';
+    $('endSub').textContent = r.won ? `You found the way down. Floor ${d + 1} is worse.`
+      : `On floor ${d}. ${best ? `Your deepest: floor ${best}.` : 'You haven\'t cleared a floor yet.'}`;
+    $('endPlayers').hidden = true;
+    $('btnAgain').hidden = false;
+    $('btnAgain').textContent = r.won ? `Down to floor ${d + 1}` : 'Start again from floor 1';
+    againAction = () => startRun(null, null, 0, r.won ? d + 1 : 1);
+    $('btnToLobby').hidden = true;
+    $('btnMenu').textContent = 'Main menu';
   } else if (r.night) { // the night shift, alone
     const n = r.night;
     if (r.won) recordNight(n);
@@ -979,7 +1013,7 @@ $('btnJoin').onclick = async () => {
 };
 // Quick Play: the public rooms open right now (how full, playing or in the lobby, the mode and the map), to join one,
 // or open one for strangers to find. The list refreshes itself every 20 s while it's on screen.
-const MODE_NAME = { normal: 'Normal', story: 'The Signal', hunt: 'Hunt', versus: 'Versus', nights: 'Night Shift', hide: 'Hide and seek', escort: 'Escort', imposter: 'Imposter voices' };
+const MODE_NAME = { normal: 'Normal', story: 'The Signal', hunt: 'Hunt', versus: 'Versus', nights: 'Night Shift', hide: 'Hide and seek', escort: 'Escort', imposter: 'Imposter voices', descent: 'Endless descent' };
 let quickFree = [], quickT = 0, quickBusy = false;
 const quickButtons = (on) => { for (const id of ['btnQuick', 'btnQuickOpen', 'btnQuickRefresh']) $(id).disabled = !on; };
 async function listQuick() {
@@ -1057,6 +1091,8 @@ function renderLobby() {
     b.disabled = !session.isHost;
     b.onclick = () => session.setMode(b.dataset.mode);
   });
+  const ds = document.querySelector('.mode-pick [data-mode="descent"] span');
+  if (ds) ds.textContent = session.depth > 1 ? `next up: floor ${session.depth}. Lose everyone and it's back to floor 1` : 'floor after floor, each one worse. How deep can you get?';
   const nb = document.querySelector('.mode-pick [data-mode="nights"] span');
   if (nb) nb.textContent = session.night > 1 ? `next up: night ${session.night}. Lose everyone and it's back to night 1` : 'no way out: hold on until 6 a.m. Every night you last, the next is worse';
   // The skinwalker: a Normal-mode extra the host switches on.
@@ -1172,7 +1208,7 @@ function startMpRun(m) {
   const themeId = m.theme in THEMES ? m.theme : 'facility';
   game = new Game({
     renderer, vhs, sfx, voice, settings, hud, themeId, seed: Number(m.seed) >>> 0, mp: session, order: m.order, classes: m.classes || {},
-    mode: m.mode === 'story' ? 'story' : 'normal', night: m.mode === 'nights' ? Math.max(1, Math.min(99, m.night | 0)) : 0, traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, shadow: !!m.sd, double: !!m.db, caller: !!m.cl, mother: !!m.mo, mascot: !!m.mc, patient: !!m.pt, swarm: !!m.sm, imposter: m.mode === 'imposter', hideSeek: m.mode === 'hide', escort: m.mode === 'escort' && m.order?.includes(m.lantern) ? m.lantern : null, difficulty: m.diff, custom: m.cs, teams: m.mode === 'versus' && m.teams && typeof m.teams === 'object' ? m.teams : null,
+    mode: m.mode === 'story' ? 'story' : 'normal', night: m.mode === 'nights' ? Math.max(1, Math.min(99, m.night | 0)) : 0, traitorId: session.isHost ? session.traitorId : null, skinwalker: !!m.sw, listener: !!m.ls, stalker: !!m.sk, shadow: !!m.sd, double: !!m.db, caller: !!m.cl, mother: !!m.mo, mascot: !!m.mc, patient: !!m.pt, swarm: !!m.sm, depth: m.mode === 'descent' ? Math.max(1, Math.min(999, m.depth | 0)) : 0, imposter: m.mode === 'imposter', hideSeek: m.mode === 'hide', escort: m.mode === 'escort' && m.order?.includes(m.lantern) ? m.lantern : null, difficulty: m.diff, custom: m.cs, teams: m.mode === 'versus' && m.teams && typeof m.teams === 'object' ? m.teams : null,
     hunter: m.mode === 'hunt' && m.order?.includes(m.hunter) ? m.hunter : null,
     noLock: params.has('autostart'),
     onEnd: (r) => endRun(r),
@@ -1194,6 +1230,7 @@ function startMpRun(m) {
       "It's slower in the lantern's light. If it takes whoever is carrying it, the light goes out. Someone has to pick it up."]);
     $('introKicker').textContent = 'Escort';
   }
+  else if (m.mode === 'descent') descentIntro(themeId, game.depth);
   else if (m.mode === 'imposter') {
     showIntro(themeId, null, ['There were ' + game.order.length + ' of you when you went in. Count again.', 'Something is walking with you, wearing one of you, talking like them. Look at whoever you think it is and press ' + keyLabel('V') + ' to call it out. Everyone votes. Be sure.']);
     $('introKicker').textContent = 'Imposter voices';
@@ -1226,7 +1263,7 @@ if (params.has('autostart')) {
   (async () => {
     ensureAudio();
     if (!params.has('nomic')) await voice.start(ctx);
-    if (params.has('tutorial')) startTutorial(); else startRun(null, null, Number(params.get('night')) || 0);
+    if (params.has('tutorial')) startTutorial(); else startRun(null, null, Number(params.get('night')) || 0, Number(params.get('depth')) || 0);
     show(null);
     game.begin();
     window.__game = game;

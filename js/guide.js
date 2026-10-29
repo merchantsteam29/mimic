@@ -107,8 +107,9 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'alpha1-2026-10-28i';
+export const RELEASE = 'alpha1-2026-10-28j';
 const NOTES = [
+  ['The stairs only go down. We counted the floors on the way. We stopped counting.', 'Endless descent (title screen, or a lobby Mode): every way out is the way down to another floor, a new place every time, and every floor is worse than the last. There’s nothing to win. Just how deep you got.'],
   ['You hear them before you see them. Then you see them. Then it hears you.', 'The swarm: when it gets near you, rats pour down the corridor right past you, squealing, and it hears exactly where you are. They don’t bite. Step into a room or hide and let them go by. Always in the mine and the subway; online, the host can let them in anywhere.'],
   ['Day 41. The radio picked something up again last night. It was my voice. I was asleep.', 'A new place: a research station in the snow. Huts joined by tunnels, and between them open yards in a blizzard: stay out there too long and you freeze, slow down, and your teeth chatter loud enough for it to hear. One hut has the radio set. Don\u2019t listen to it.'],
   ['There were four of us when we went down the shaft. There are still four of us. One of them has been very quiet.', 'A new place: an old mine, pitch black, timber holding up the roof, crawl spaces to hide in, and every voice coming back off the rock from somewhere else. A new creature: the patient, a body on a bed that sits up when you pass and gets up if you run (always in the hospital and the asylum; online, the host can let it in anywhere). And a new mode, Imposter voices: there\'s one more of you than there should be. Look at who you think it is, accuse, and vote.'],

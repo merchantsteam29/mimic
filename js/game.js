@@ -52,6 +52,7 @@ import { Landmarks } from './landmarks.js';
 import { pickRun, applyRun } from './runs.js';
 import { LIGHTS, cleanLook } from './look.js';
 import { NightShift, nightLevel, nightRules } from './nightshift.js';
+import { descentLevel, descentRules } from './descent.js';
 
 import { mulberry32 } from './level.js';
 import { keyLabel, rumble } from './controls.js';
@@ -64,7 +65,7 @@ import { DeathPart } from './game-death.js';
 
 export { CUSTOM, ROOM } from './game-shared.js';
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null, teams = null, shadow = false, night = 0, double = false, hideSeek = false, caller = false, escort = null, mother = false, mascot = false, imposter = false, patient = false, swarm = false }) {
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null, teams = null, shadow = false, night = 0, double = false, hideSeek = false, caller = false, escort = null, mother = false, mascot = false, imposter = false, patient = false, swarm = false, depth = 0 }) {
     Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs, room, custom, themeId, seed });
     this.distort = 0;    // camcorder distortion, 0..1
     this.peekHud = 0;    // seconds the HUD stays visible after something changes
@@ -73,7 +74,7 @@ export class Game {
     this.classes = classes || { [this.me]: 'runner' }; // player id -> class
     this.isHost = !mp || mp.isHost;
     this.order = order || [this.me];
-    const level = this.level = generateLevel(seed, themeId, story ? { ...story.gen, lore: story.tapes.length } : tutorial ? TUTORIAL.gen : room ? ROOM.gen : hideSeek ? hideLevel() : night ? nightLevel(night) : customLevel(custom));
+    const level = this.level = generateLevel(seed, themeId, story ? { ...story.gen, lore: story.tapes.length } : tutorial ? TUTORIAL.gen : room ? ROOM.gen : hideSeek ? hideLevel() : night ? nightLevel(night) : depth && !room ? descentLevel(depth, customLevel(custom)) : customLevel(custom));
     const th = level.theme;
 
     const scene = this.scene = new THREE.Scene();
@@ -196,12 +197,17 @@ export class Game {
     const base = DIFFICULTY[difficulty] || DIFFICULTY.normal;
     this.diff = { ...base, speed: base.speed * (CUSTOM.speed[custom?.speed] || 1), battery: base.battery * (CUSTOM.battery[custom?.battery] || 1) };
     this.ns = new NightShift(this, room ? 0 : night); // the night shift: hold on until 6 a.m., each night worse
+    this.depth = room || night ? 0 : Math.max(0, depth | 0); // Endless descent: which floor (0 = an ordinary run)
+    if (this.depth) {
+      const r = descentRules(this.depth);
+      Object.assign(this.diff, { speed: this.diff.speed * r.speed, sight: this.diff.sight * r.sight, hunger: this.diff.hunger * r.hunger, battery: this.diff.battery * r.battery, grace: this.diff.grace + r.grace });
+    }
     if (this.ns.on) {
       const r = nightRules(night);
       Object.assign(this.diff, { speed: this.diff.speed * r.speed, sight: this.diff.sight * r.sight, hunger: this.diff.hunger * r.hunger, battery: this.diff.battery * r.battery, grace: this.diff.grace + r.grace });
     }
     // So runs don't all play the same: its mood tonight, and tonight's twist (runs.js; the same for everyone).
-    const plain = !story && !tutorial && !room && !night && !hideSeek;
+    const plain = !story && !tutorial && !room && !night && !hideSeek && !this.depth;
     this.run = pickRun(seed, plain && !hunter ? 'plain' : !story && !tutorial && !room && !hunter ? 'mood' : 'none');
     applyRun(this, this.run);
     this.mimic.diff = this.diff;

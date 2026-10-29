@@ -33,8 +33,8 @@ it coming.
 - More than the mimic: the skinwalker that wears a living friend, a blind listener, a stalker that only moves when
   nobody's looking, a shadow that dies in the light, your own double, a phone that rings with the voices of the taken,
   a huge singing Mother, a clown that looks just like the statues, a patient that gets up when you run, and the rats that give you away.
-- Modes: Normal, Imposter voices (one more of you than there should be), a traitor story, Hunt (one of you plays the mimic), Versus, Night Shift (last until 6 a.m.), Hide and
-  seek, Escort (one lantern for everyone).
+- Modes: Normal, Imposter voices (one more of you than there should be), a traitor story, Hunt (one of you plays the mimic), Versus, Night Shift (last until 6 a.m.), Endless
+  descent (floor after floor, each worse), Hide and seek, Escort (one lantern for everyone).
 - Two solo stories, voiced: *Ellie* (8 chapters) and *The Operator* (5 chapters).
 - 8 classes, all free from the start.
 - The kill-cam: see how it got you. Save the jumpscare as a video. Share the voice that fooled you.
