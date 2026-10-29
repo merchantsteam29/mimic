@@ -452,6 +452,21 @@ body.calm #flash.pop { animation: popCalm .5s ease-out; }
 body.input-touch #killcam span { display: none; }
 /* The snow station's cold (snow.js): frost closing in from the edges. */
 #frost { position: fixed; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at center, transparent 45%, rgba(200,220,240,.35) 75%, rgba(235,245,255,.85) 100%); mix-blend-mode: screen; }
+/* Settings: search, the More section. */
+.set-search { width: 100%; margin: 0 0 10px; padding: 8px 10px; background: rgba(0,0,0,.4); border: 1px solid var(--line); color: var(--ink); font: 15px Inter, sans-serif; }
+.more-toggle { display: block; margin: 10px auto 6px; }
+.set-group { margin: 14px 0 4px; font: 12px "Special Elite", monospace; letter-spacing: .14em; text-transform: uppercase; opacity: .6; }
+.preset-seg { flex-wrap: wrap; justify-content: center; margin: 6px 0 10px; }
+.preset-seg button { flex: 1 1 auto; }
+/* Text size (Settings): captions, tape subtitles, toasts, the coach. */
+body.cap-large #captions p { font-size: 19px; } body.cap-huge #captions p { font-size: 24px; }
+body.cap-large #lore { font-size: 1.22em; } body.cap-huge #lore { font-size: 1.5em; }
+body.cap-large #toast { font-size: 25px; } body.cap-huge #toast { font-size: 31px; }
+body.cap-large #coach, body.cap-large #spec { font-size: 1.2em; } body.cap-huge #coach, body.cap-huge #spec { font-size: 1.45em; }
+/* Colour-blind (Settings): the accent red becomes an orange anyone can see on black. */
+body.cb { --red: #ff9f1a; --red-glow: rgba(255, 159, 26, .55); }
+body.cb #cam .rec::first-letter, body.cb #cam .bat.low i, body.cb #killcam i { color: #ff9f1a; }
+body.cb #cam .bat.low i { background: #ff9f1a; }
 #impVote { position: fixed; left: 50%; top: 18%; transform: translateX(-50%); z-index: 6; padding: 12px 18px; background: rgba(5,5,5,.85); border: 1px solid var(--line); font: 16px "Special Elite", monospace; text-align: center; max-width: calc(100% - 32px); pointer-events: auto; }
 #impVote p { margin: 6px 0; }
 #impVote .dim { opacity: .65; font-size: 13px; }
@@ -469,6 +484,11 @@ button.feedback { font-size: 11px; opacity: .8; }
 /* The title's small buttons, on one row. */
 #title .small-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 14px auto 0; max-width: 420px; }
 #title .small-row button { flex: 1 1 auto; }
+#title .more-ways { margin: 16px 0 0; }
+.first-note { margin: -4px auto 12px; max-width: 360px; }
+.first-note b { color: var(--ink); }
+/* Phones held upright: the camcorder text would sit on the logo and the footer. */
+@media (max-width: 520px) { .title-cam .play, .title-cam .stamp { display: none; } }
 
 /* ---------- short screens (phones held sideways) ---------- */
 @media (max-height: 500px) {

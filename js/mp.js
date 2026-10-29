@@ -366,6 +366,14 @@ export class Session {
     this.onRoster(this.roster);
   }
 
+  // A creature preset: exactly these on, the rest off (one message).
+  setCreatures(list) {
+    if (!this.isHost) return;
+    for (const k of ['skinwalker', 'stalker', 'shadow', 'caller', 'mascot', 'patient', 'swarm', 'mother', 'double', 'listener']) this[k] = list.includes(k);
+    this.sendMode();
+    this.onRoster(this.roster);
+  }
+
   setSwarm(on) {
     if (!this.isHost) return;
     this.swarm = !!on;

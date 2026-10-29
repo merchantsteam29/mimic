@@ -446,6 +446,13 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   difficulty up to floor 12; the stamp says `FLOOR -d`; `mode` / `plain` runs get a mood, no twist. Alone, the end screen offers the next floor
   (`recordDepth`: deepest, localStorage `mimic.depth`) or floor 1 again. Online: `session.depth` (sent with `mode`, `start.depth`); the host's
   end screen calls `setDepth` (next floor if anyone got out, else 1).
+- **Menus (simplified)**: the title has three primary buttons (Play alone, Play with friends, Story), then More ways to play (Night Shift, Endless
+  descent) and small buttons; `#firstNote` shows until you have stats or did the tutorial. Lobby Creatures tab: `#creaturePresets` (classic /
+  few / chaos = `CREATURE_PRESETS` in main.js, or own = the `#creatureList` switches; `session.setCreatures(list)` sends one `mode`), driven by
+  the `CREATURES` table. Settings: essentials, then `#setMore` (More settings), and `#setSearch` (matches row text and `data-words`).
+- **Accessibility settings**: `capSize` (normal / large / huge: body `cap-large` / `cap-huge` scale #captions, #lore, #toast, #coach, #spec)
+  and `cb` (colour-blind: body `cb` swaps `--red` for orange; `PLAYER_COLORS` is swapped in place to an Okabe-Ito set; versus end colours).
+  No translations (the owner's choice: English is widely known).
 - **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
   on touch the objectives sit below the pause / jobs buttons.
 

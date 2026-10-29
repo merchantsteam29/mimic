@@ -55,7 +55,7 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 // Graphics start on Auto: phones and tablets begin at medium, and it steps down by itself when the game runs slowly
 // (`tier` is where Auto has settled on this device).
 const COARSE = matchMedia('(pointer: coarse)').matches;
-const DEFAULTS = { map: 'random', mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1, quality: 'auto', tier: COARSE ? 'medium' : 'high', captions: false, calm: false, pads: true, tags: false, diff: 'normal', voiceMode: 'clear', voiceVol: 1, look: { ...DEFAULT_LOOK } };
+const DEFAULTS = { map: 'random', mouse: 1, volume: 0.8, mic: 0.5, fov: 75, bright: 1, quality: 'auto', tier: COARSE ? 'medium' : 'high', captions: false, capSize: 'normal', cb: false, calm: false, pads: true, tags: false, diff: 'normal', voiceMode: 'clear', voiceVol: 1, look: { ...DEFAULT_LOOK } };
 let settings = { ...DEFAULTS };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('mimic.settings') || '{}')); } catch { /* private mode */ }
 const saveSettings = () => { try { localStorage.setItem('mimic.settings', JSON.stringify(settings)); } catch { /* ignore */ } };
@@ -132,6 +132,32 @@ applyVoiceChat(null); // (no session yet)
 // Sound captions.
 const syncCaptions = () => document.querySelectorAll('#setCaptions button').forEach((b) => b.classList.toggle('on', (b.dataset.c === 'on') === !!settings.captions));
 document.querySelectorAll('#setCaptions button').forEach((b) => { b.onclick = () => { settings.captions = b.dataset.c === 'on'; saveSettings(); syncCaptions(); }; });
+// Text size and colour-blind (body classes; player colours are swapped in place).
+const CB_COLORS = ['#e69f00', '#56b4e9', '#f0e442', '#cc79a7'], STD_COLORS = [...PLAYER_COLORS];
+const syncAccess = () => {
+  const size = ['large', 'huge'].includes(settings.capSize) ? settings.capSize : 'normal';
+  document.body.classList.toggle('cap-large', size === 'large');
+  document.body.classList.toggle('cap-huge', size === 'huge');
+  document.body.classList.toggle('cb', !!settings.cb);
+  PLAYER_COLORS.splice(0, PLAYER_COLORS.length, ...(settings.cb ? CB_COLORS : STD_COLORS));
+  document.querySelectorAll('#setCapSize button').forEach((b) => b.classList.toggle('on', b.dataset.c === size));
+  document.querySelectorAll('#setCb button').forEach((b) => b.classList.toggle('on', (b.dataset.c === 'on') === !!settings.cb));
+};
+document.querySelectorAll('#setCapSize button').forEach((b) => { b.onclick = () => { settings.capSize = b.dataset.c; saveSettings(); syncAccess(); }; });
+document.querySelectorAll('#setCb button').forEach((b) => { b.onclick = () => { settings.cb = b.dataset.c === 'on'; saveSettings(); syncAccess(); }; });
+syncAccess();
+// More settings (folded away), and the search: it shows only the rows that match (looking inside More too).
+const setMore = (open) => { $('setMore').hidden = !open; $('btnSetMore').textContent = open ? 'Fewer settings ▴' : 'More settings ▾'; $('btnSetMore').setAttribute('aria-expanded', String(open)); };
+$('btnSetMore').onclick = () => setMore($('setMore').hidden);
+$('setSearch').oninput = () => {
+  const q = $('setSearch').value.trim().toLowerCase(), panel = $('settings').querySelector('.panel');
+  const rows = [...panel.querySelectorAll('.row')];
+  let shown = 0;
+  for (const r of rows) { const hit = !q || `${r.textContent} ${r.dataset.words || ''}`.toLowerCase().includes(q); r.hidden = !hit; if (hit) shown++; }
+  for (const el of panel.querySelectorAll('.fine, .set-group, .meter')) el.hidden = !!q && el.id !== 'setNone';
+  if (q) { $('setMore').hidden = false; $('btnSetMore').hidden = true; } else { $('btnSetMore').hidden = false; setMore(false); $('qualityNow').hidden = false; }
+  $('setNone').hidden = !q || shown > 0;
+};
 syncCaptions();
 // Fewer flashes: no lightning, no strobing lights, gentler tearing and hit flashes.
 const syncCalm = () => {
@@ -469,6 +495,8 @@ let nightNo = 0; // Night Shift alone: the night the class screen starts (0 = an
 let depthNo = 0; // Endless descent alone: the floor the class screen starts (0 = not a descent)
 const pickClass = (night = 0, depth = 0) => { storyIdx = null; nightNo = night; depthNo = depth; renderClassPick(); $('mapSoloRow').hidden = false; show('classes'); };
 $('btnNights').onclick = () => voiceCheck(() => pickClass(1));
+// New players: point at Play alone (it opens with the tutorial) until they've played once.
+try { $('firstNote').hidden = !!(localStorage.getItem('mimic.stats') || localStorage.getItem('mimic.tutorial')); } catch { /* ignore */ }
 $('btnDescent').onclick = () => voiceCheck(() => pickClass(0, 1));
 $('btnPlay').onclick = () => voiceCheck(() => (tutorialSeen() ? pickClass() : show('first')));
 $('btnFirstTut').onclick = () => { markTutorial(); startTutorial(); };
@@ -681,7 +709,7 @@ function endRun(r) {
       $('endSub').textContent = `${r.hunter === session?.id ? 'You were' : `${r.hunterName} was`} the mimic. It took ${took} of ${others.length}.`;
     }
     if (r.versus) { // which team won the race
-      const T = [['Red', '#e05060'], ['Blue', '#60a0f0']], w = r.versus.winner, lever = r.versus.lever;
+      const T = [['Red', settings.cb ? '#e69f00' : '#e05060'], ['Blue', settings.cb ? '#56b4e9' : '#60a0f0']], w = r.versus.winner, lever = r.versus.lever;
       $('endTitle').textContent = w === null || w === undefined ? 'It wins.' : `${T[w][0]} team wins.`;
       $('endSub').textContent = (lever === null || lever === undefined ? 'Nobody got the power on.' : `The ${T[lever][0]} team got to the lever first.`)
         + ` Out: Red ${r.versus.out?.[0] ?? 0}, Blue ${r.versus.out?.[1] ?? 0}.`;
@@ -1013,6 +1041,12 @@ $('btnJoin').onclick = async () => {
 };
 // Quick Play: the public rooms open right now (how full, playing or in the lobby, the mode and the map), to join one,
 // or open one for strangers to find. The list refreshes itself every 20 s while it's on screen.
+// The lobby's creature switches: [session field, button, name, setter].
+const CREATURES = [['skinwalker', 'btnSkinwalker', 'Skinwalker', 'setSkinwalker'], ['stalker', 'btnStalker', 'Stalker', 'setStalker'], ['shadow', 'btnShadow', 'Shadow', 'setShadow'],
+  ['caller', 'btnCaller', 'Caller', 'setCaller'], ['mascot', 'btnMascot', 'Clown', 'setMascot'], ['patient', 'btnPatient', 'Patient', 'setPatient'], ['swarm', 'btnSwarm', 'Swarm', 'setSwarm'],
+  ['mother', 'btnMother', 'Mother', 'setMother'], ['double', 'btnDouble', 'Double', 'setDouble'], ['listener', 'btnListener', 'Listener', 'setListener']];
+const CREATURE_PRESETS = { classic: [], few: ['stalker', 'caller', 'patient'], chaos: CREATURES.map(([k]) => k) };
+let pickOwn = false; // the host chose "Pick your own" (show the list even when it matches a preset)
 const MODE_NAME = { normal: 'Normal', story: 'The Signal', hunt: 'Hunt', versus: 'Versus', nights: 'Night Shift', hide: 'Hide and seek', escort: 'Escort', imposter: 'Imposter voices', descent: 'Endless descent' };
 let quickFree = [], quickT = 0, quickBusy = false;
 const quickButtons = (on) => { for (const id of ['btnQuick', 'btnQuickOpen', 'btnQuickRefresh']) $(id).disabled = !on; };
@@ -1095,58 +1129,25 @@ function renderLobby() {
   if (ds) ds.textContent = session.depth > 1 ? `next up: floor ${session.depth}. Lose everyone and it's back to floor 1` : 'floor after floor, each one worse. How deep can you get?';
   const nb = document.querySelector('.mode-pick [data-mode="nights"] span');
   if (nb) nb.textContent = session.night > 1 ? `next up: night ${session.night}. Lose everyone and it's back to night 1` : 'no way out: hold on until 6 a.m. Every night you last, the next is worse';
-  // The skinwalker: a Normal-mode extra the host switches on.
-  const sw = $('btnSkinwalker'), swOn = session.skinwalker && session.mode === 'normal';
-  sw.classList.toggle('on', swOn);
-  sw.querySelector('b').textContent = `Skinwalker: ${swOn ? 'on' : 'off'}`;
-  sw.disabled = !session.isHost || session.mode !== 'normal';
-  sw.onclick = () => session.setSkinwalker(!session.skinwalker);
-  // The blind listener: the same kind of switch.
-  const ls = $('btnListener'), lsOn = session.listener && session.mode === 'normal';
-  ls.classList.toggle('on', lsOn);
-  ls.querySelector('b').textContent = `Listener: ${lsOn ? 'on' : 'off'}`;
-  ls.disabled = !session.isHost || session.mode !== 'normal';
-  ls.onclick = () => session.setListener(!session.listener);
-  const sk = $('btnStalker'), skOn = session.stalker && session.mode === 'normal';
-  sk.classList.toggle('on', skOn);
-  sk.querySelector('b').textContent = `Stalker: ${skOn ? 'on' : 'off'}`;
-  sk.disabled = !session.isHost || session.mode !== 'normal';
-  sk.onclick = () => session.setStalker(!session.stalker);
-  const sd = $('btnShadow'), sdOn = session.shadow && session.mode === 'normal';
-  sd.classList.toggle('on', sdOn);
-  sd.querySelector('b').textContent = `Shadow: ${sdOn ? 'on' : 'off'}`;
-  sd.disabled = !session.isHost || session.mode !== 'normal';
-  sd.onclick = () => session.setShadow(!session.shadow);
-  const db = $('btnDouble'), dbOn = session.double && session.mode === 'normal';
-  db.classList.toggle('on', dbOn);
-  db.querySelector('b').textContent = `Double: ${dbOn ? 'on' : 'off'}`;
-  db.disabled = !session.isHost || session.mode !== 'normal';
-  db.onclick = () => session.setDouble(!session.double);
-  const cl = $('btnCaller'), clOn = session.caller && session.mode === 'normal';
-  cl.classList.toggle('on', clOn);
-  cl.querySelector('b').textContent = `Caller: ${clOn ? 'on' : 'off'}`;
-  cl.disabled = !session.isHost || session.mode !== 'normal';
-  cl.onclick = () => session.setCaller(!session.caller);
-  const mo = $('btnMother'), moOn = session.mother && session.mode === 'normal';
-  mo.classList.toggle('on', moOn);
-  mo.querySelector('b').textContent = `Mother: ${moOn ? 'on' : 'off'}`;
-  mo.disabled = !session.isHost || session.mode !== 'normal';
-  mo.onclick = () => session.setMother(!session.mother);
-  const mc = $('btnMascot'), mcOn = session.mascot && session.mode === 'normal';
-  mc.classList.toggle('on', mcOn);
-  mc.querySelector('b').textContent = `Clown: ${mcOn ? 'on' : 'off'}`;
-  mc.disabled = !session.isHost || session.mode !== 'normal';
-  mc.onclick = () => session.setMascot(!session.mascot);
-  const pt = $('btnPatient'), ptOn = session.patient && session.mode === 'normal';
-  pt.classList.toggle('on', ptOn);
-  pt.querySelector('b').textContent = `Patient: ${ptOn ? 'on' : 'off'}`;
-  pt.disabled = !session.isHost || session.mode !== 'normal';
-  pt.onclick = () => session.setPatient(!session.patient);
-  const sm = $('btnSwarm'), smOn = session.swarm && session.mode === 'normal';
-  sm.classList.toggle('on', smOn);
-  sm.querySelector('b').textContent = `Swarm: ${smOn ? 'on' : 'off'}`;
-  sm.disabled = !session.isHost || session.mode !== 'normal';
-  sm.onclick = () => session.setSwarm(!session.swarm);
+  // The creatures (Normal-mode extras the host switches on): a preset, or pick your own.
+  const normal = session.mode === 'normal';
+  for (const [k, id, name, set] of CREATURES) {
+    const b = $(id), on = session[k] && normal;
+    b.classList.toggle('on', on);
+    b.querySelector('b').textContent = `${name}: ${on ? 'on' : 'off'}`;
+    b.disabled = !session.isHost || !normal;
+    b.onclick = () => session[set](!session[k]);
+  }
+  const onNow = CREATURES.filter(([k]) => session[k]).map(([k]) => k);
+  const preset = Object.keys(CREATURE_PRESETS).find((p) => CREATURE_PRESETS[p].length === onNow.length && CREATURE_PRESETS[p].every((k) => onNow.includes(k))) || 'own';
+  const shownPreset = pickOwn ? 'own' : preset;
+  document.querySelectorAll('#creaturePresets button').forEach((b) => {
+    b.classList.toggle('on', b.dataset.preset === shownPreset);
+    b.disabled = !session.isHost || !normal;
+    b.onclick = () => { pickOwn = b.dataset.preset === 'own'; if (!pickOwn) session.setCreatures(CREATURE_PRESETS[b.dataset.preset]); else renderLobby(); };
+  });
+  $('creatureList').hidden = shownPreset !== 'own';
+  $('creatureNow').textContent = !normal ? '' : onNow.length ? `Also in there: ${CREATURES.filter(([k]) => session[k]).map(([, , n]) => n.toLowerCase()).join(', ')}.` : 'Just the mimic.';
 }
 
 // The waiting room: a small house to walk around in with everyone while you wait.
