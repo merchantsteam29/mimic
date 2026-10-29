@@ -234,7 +234,7 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   darkness with two pale eyes; it lives where the lights are dead (`lit()`: `isLit` and no power cut) and won't step into a working light.
   It goes for the nearest living player standing in the dark (hiding doesn't help). A flashlight beam on it (`inBeam`) shoves it back and
   after 1.8 s burns it away (`shadowBurnt`, `sfx.hiss`). Gone for good after power-on. `hostCatch(id, 'sd')`, `snap.sd`.
-- **Two solo stories** (`STORIES` in story.js: `{ id, title, key, chapters, voice, blurb, lost }`): Ellie (`CHAPTERS`, 8) and **The Operator**
+- **Three solo stories** (The Babysitter below) (`STORIES` in story.js: `{ id, title, key, chapters, voice, blurb, lost }`): Ellie (`CHAPTERS`, 8) and **The Operator**
   (`OPERATOR`, 5: a 911 dispatcher; hospital, facility, school, hotel, mall). The story screen has a tab per story; progress is per
   story (`storyProgress(book)` / `finishChapter(i, book)`, localStorage `book.key`). A story's lures use `book.voice` (`ellie`, or
   `phone`: your voice down a telephone line).
@@ -458,6 +458,9 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   room in the bottom third (`cz >= N * 0.66`, no first-time moment). The storm incident is skipped (the ship's rain never stops). Code `B`.
 - `ship.js`: the roll (`sway()` after `updateCamera`: roll +-0.035 rad, x0.4 with Fewer flashes), a big wave every 40-70 s (`lurch`, a shove
   sideways, creaks), thunder and lightning (hemi), and the engine (pistons, `sfx.engineThump`; within 9 m `stepScale` 0.15 in the step noise).
+- **The Babysitter** (`BABYSITTER` in story.js, book `babysitter`, key `mimic.story.babysitter`): the third solo story, 5 chapters (house, house,
+  hotel, hospital, house again). Its lures use `playVoice(..., 'child')` (your voice made small). Recording parts Mrs. Hale / Mr. Hale / Kayla /
+  Lily / Sam in record/lines.js; `voices/babysitter/<ch>-<tape>-<line>`.
 - **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
   on touch the objectives sit below the pause / jobs buttons.
 

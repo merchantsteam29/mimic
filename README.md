@@ -21,6 +21,8 @@ The microphone only works on `localhost` or `https`, not on `file://`. Use headp
 **Ellie** (solo, 8 chapters): your sister went into the Holloway house to film it and never came out. Find her tapes.
 
 **The Operator** (solo, 5 chapters): you're a 911 dispatcher. The calls come from places that have been closed for years, in a voice you know.
+
+**The Babysitter** (solo, 5 chapters): a Saturday night job in a big house. The parents keep calling to say they're on their way home. The kids say they never left.
 Chapters unlock as you finish them (saved on your device).
 
 **The Signal** (online, pick Story in the lobby): half the time, one of you is secretly working for it. They can jam

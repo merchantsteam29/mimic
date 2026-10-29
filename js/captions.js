@@ -13,7 +13,7 @@ const SOUNDS = {
   knock: [0, () => 'Knocking'],
   whisper: [0, () => 'Whispering'],
   playVoice: [1, (b, e, style) => ({ scream: 'A scream', echo: 'Your own voice', distant: 'A voice, far off', ellie: 'A girl\'s voice',
-    stranger: 'A stranger\'s voice', radio: 'A voice on the radio', recorder: 'A voice on a tape recorder', phone: 'A voice down a phone line', laugh: 'Someone laughing', tape: null }[style] ?? (e ? 'Someone calls out' : 'A voice'))],
+    stranger: 'A stranger\'s voice', radio: 'A voice on the radio', recorder: 'A voice on a tape recorder', phone: 'A voice down a phone line', laugh: 'Someone laughing', child: 'A child\'s voice', tape: null }[style] ?? (e ? 'Someone calls out' : 'A voice'))],
   chorus: [1, () => 'Many voices at once'],
   rats: [0, (e) => e && 'Rats, scrabbling and squealing'],
   calliope: [0, (e, d, i) => !i && 'Fairground music starts'],

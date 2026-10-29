@@ -351,6 +351,7 @@ export class Sfx {
     } else if (style === 'phone') { // your own voice, down a telephone line
       rate = rand(0.98, 1.0); vol = 1.5; ws.curve = distortionCurve(8); hp.frequency.value = 320; lp.frequency.value = 3300; pk.frequency.value = 1200; pk.gain.value = 6; wet.gain.value = 0.15;
     } else if (style === 'ellie') { rate = 1.2; vol = 1.2; ws.curve = distortionCurve(2); lp.frequency.value = 6000; wet.gain.value = 0.4; }
+    else if (style === 'child') { rate = 1.3; vol = 1.15; ws.curve = distortionCurve(2); hp.frequency.value = 220; lp.frequency.value = 7000; wet.gain.value = 0.45; } // your voice, made small (The Babysitter)
     else if (style === 'laugh') { rate = 1.18; vol = 1.25; ws.curve = distortionCurve(6); hp.frequency.value = 260; lp.frequency.value = 5200; pk.frequency.value = 2400; pk.gain.value = 7; wet.gain.value = 0.6; }
     else if (style === 'sing') { rate = 0.74; vol = 1.1; ws.curve = distortionCurve(2); hp.frequency.value = 120; lp.frequency.value = 3200; wet.gain.value = 1; }
     else { rate = rand(0.955, 1.01); vol = 1.15; ws.curve = distortionCurve(3); }

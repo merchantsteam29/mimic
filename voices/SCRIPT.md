@@ -10,8 +10,13 @@ A phone voice memo in a quiet room is perfect: the game adds the tape crackle. L
 - **Dr. Okafor** (26 lines): The scientist who built the thing. Careful and clinical; by the end, tired and guilty. Also plays the copies of his own voice.
 - **Dana** (17 lines): A 911 dispatcher. Calm and professional, quietly scared. Also reads the dispatcher lines, and the copies of her own voice.
 - **Callers** (6 lines): Frightened adults on the phone: whispering, out of breath.
+- **Mrs. Hale** (13 lines): The mother in The Babysitter. Brisk and bright on the answering machine; underneath, frightened. Also plays the copies of her own voice.
+- **Mr. Hale** (5 lines): The father in The Babysitter. Whispering in the dark, then broken.
+- **Kayla** (6 lines): The last babysitter: a teenager, calling her mum, then weak and far away.
+- **Lily** (8 lines): A girl of about 8 in The Babysitter: cheerful, sing-song, a bit too calm. An adult doing a small voice is fine.
+- **Sam** (6 lines): A boy of about 6 in The Babysitter: very serious, flat. An adult doing a small voice is fine.
 - **Child** (7 lines): A child. An adult doing a small, soft voice is fine.
-- **Staff and strangers** (52 lines): Ordinary adults who were there before: nurses, guards, porters, a caretaker, a rescue team. Natural, tired, frightened.
+- **Staff and strangers** (58 lines): Ordinary adults who were there before: nurses, guards, porters, a caretaker, a rescue team. Natural, tired, frightened.
 
 ## Ellie
 
@@ -207,6 +212,105 @@ A phone voice memo in a quiet room is perfect: the game adds the tape crackle. L
 - `operator/4-2-2` *(exactly the same again, like a replay)* **Honey, it's me, I'm at the hotel, call me back.**
 - `operator/4-2-3` *(the same again, slower, flatter)* **Honey. It's me. I'm at the hotel. Call me back.**
 
+## Mrs. Hale
+
+### Answering machine, 11:58 p.m. (The Babysitter, Chapter 1: Home by Midnight)
+
+- `babysitter/1-1-1` **Hi, it's us. We're running a little late, sorry. The roads are awful.**
+- `babysitter/1-1-2` **Don't let them stay up. And don't let them talk you into hide and seek.**
+- `babysitter/1-1-3` *(a pause, then too brightly)* **We'll be home by midnight.**
+
+### Answering machine, 1:14 a.m. (The Babysitter, Chapter 1: Home by Midnight)
+
+- `babysitter/1-3-1` **Hi, it's us. We're running a little late, sorry. The roads are awful.**
+- `babysitter/1-3-2` *(exactly the same as before, word for word)* **Don't let them stay up.**
+- `babysitter/1-3-3` *(very close to the phone, no longer bright at all)* **Don't go down to the cellar.**
+
+### Baby monitor, the cellar, last Tuesday (The Babysitter, Chapter 2: Hide and Seek)
+
+- `babysitter/2-1-2` *(whispering)* **That's not funny, David.**
+
+### Room 214, a tape on the bed (The Babysitter, Chapter 3: Room 214)
+
+- `babysitter/3-2-1` **If anyone finds this: we never left the house. We went into the cellar and we never came back up.**
+- `babysitter/3-2-2` **Whatever's calling you in my voice has been practising. It's getting very good.**
+- `babysitter/3-2-3` **Lily, Sam, if it's you listening: don't open the door. Not even for me.**
+
+### Answering machine, this morning (The Babysitter, Chapter 5: The Babysitter)
+
+- `babysitter/5-1-1` **Hi, it's us. We're home. Thank you so much for tonight.**
+- `babysitter/5-1-2` *(warm, and wrong)* **Same time next Saturday? The children love you.**
+- `babysitter/5-1-3` *(whispering, the real one, frightened)* **Please don't come back.**
+
+## Mr. Hale
+
+### Baby monitor, the cellar, last Tuesday (The Babysitter, Chapter 2: Hide and Seek)
+
+- `babysitter/2-1-1` *(whispering)* **Stay behind me. There's something down here wearing your voice.**
+- `babysitter/2-1-3` *(whispering, terrified)* **I didn't say anything.**
+
+### Mr. Hale, a message he never sent (The Babysitter, Chapter 4: Night Feeds)
+
+- `babysitter/4-2-1` **We brought two children home from this hospital. We only ever had one.**
+- `babysitter/4-2-2` **I don't know which. They both know our names. They both know the songs.**
+- `babysitter/4-2-3` *(breaking)* **I love them both. Isn't that the worst part.**
+
+## Kayla
+
+### Kayla, the last babysitter, a voicemail to her mum (The Babysitter, Chapter 2: Hide and Seek)
+
+- `babysitter/2-3-1` **Mum, it's me. The Hales still aren't back and the kids keep saying they never went out.**
+- `babysitter/2-3-2` **They keep asking me to count. When I count, somebody counts with me.**
+- `babysitter/2-3-3` *(whispering)* **Can you come and get me? Don't call first. It answers the phone.**
+
+### Kayla, from the cellar (The Babysitter, Chapter 5: The Babysitter)
+
+- `babysitter/5-2-1` *(weak, far away)* **Hello? Is someone up there? It's Kayla. I was the babysitter before you.**
+- `babysitter/5-2-2` **The Hales are down here with me. Mrs. Hale and Mr. Hale. We're all right.**
+- `babysitter/5-2-3` **The kids aren't. The kids were never kids.**
+
+## Lily
+
+### Lily's toy tape recorder (The Babysitter, Chapter 1: Home by Midnight)
+
+- `babysitter/1-2-1` *(a little girl, whispering into the recorder)* **This is Lily. Mummy and Daddy are playing hide and seek.**
+- `babysitter/1-2-2` **They've been hiding since Tuesday. Sam says they're in the cellar.**
+- `babysitter/1-2-3` *(giggling)* **The babysitter has to count.**
+
+### Room 214, the same tape, the other side (The Babysitter, Chapter 3: Room 214)
+
+- `babysitter/3-3-1` *(cheerful)* **Mummy said not to open the door.**
+- `babysitter/3-3-2` **So we didn't. We let it in the other way.**
+
+### The nursery, the night bell (The Babysitter, Chapter 4: Night Feeds)
+
+- `babysitter/4-3-1` *(a sing-song)* **Mummy's gone and Daddy's gone and now the babysitter's home.**
+- `babysitter/4-3-3` *(close, whispering)* **We're learning your voice now.**
+
+### Lily and Sam, the toy recorder, last tape (The Babysitter, Chapter 5: The Babysitter)
+
+- `babysitter/5-3-1` **This is Lily. We like this babysitter best.**
+
+## Sam
+
+### Sam's walkie-talkie (The Babysitter, Chapter 2: Hide and Seek)
+
+- `babysitter/2-2-1` *(a small boy, very serious)* **Sam to Lily. Over.**
+- `babysitter/2-2-2` **Daddy says to stop playing. He says it in the wall. Over.**
+- `babysitter/2-2-3` *(after a long pause)* **Lily, why are you answering from down here? You're upstairs. Over.**
+
+### Room 214, the same tape, the other side (The Babysitter, Chapter 3: Room 214)
+
+- `babysitter/3-3-3` *(quietly)* **It says it's our babysitter now.**
+
+### The nursery, the night bell (The Babysitter, Chapter 4: Night Feeds)
+
+- `babysitter/4-3-2` *(singing along, flat)* **Count to ten and close your eyes and never leave us on our own.**
+
+### Lily and Sam, the toy recorder, last tape (The Babysitter, Chapter 5: The Babysitter)
+
+- `babysitter/5-3-2` **She talks a lot. We've got nearly all of her now.**
+
 ## Child
 
 ### Recording 0002 · Okafor's daughter (Ellie, Chapter 8: The First Room)
@@ -285,6 +389,18 @@ A phone voice memo in a quiet room is perfect: the game adds the tape crackle. L
 - `operator/5-1-1` **The switchboard rings and rings. When I pick up, I hear my wife calling me for dinner.**
 - `operator/5-1-2` **My wife died in 2019.**
 - `operator/5-1-3` **I keep picking up.**
+
+### Front desk, Saturday night (The Babysitter, Chapter 3: Room 214)
+
+- `babysitter/3-1-1` **Marlowe front desk. No, nobody named Hale is staying here.**
+- `babysitter/3-1-2` **There's a little girl on the house phone again, asking for her mummy. She sounds just like you, actually.**
+- `babysitter/3-1-3` **I keep putting her through to 214. Nobody's in 214.**
+
+### Night nurse, a dictated note (The Babysitter, Chapter 4: Night Feeds)
+
+- `babysitter/4-1-1` **Baby Hale, delivered 2:13 a.m. Healthy girl. She doesn't cry like a newborn. She cries like her mother.**
+- `babysitter/4-1-2` **When her mother speaks, the baby says it back. Not words. The sound of the words.**
+- `babysitter/4-1-3` **I've asked for a transfer to days.**
 
 ### Field team, recorder 2 (Victims' tapes, Found in any normal run)
 

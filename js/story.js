@@ -445,12 +445,181 @@ export const OPERATOR = [
   },
 ];
 
-// The two solo stories, and where each one's progress is saved (chapters finished, on this device).
+// The Babysitter: a night job in the Hales' big house. The parents keep calling to say they're on their way home. The
+// kids keep saying their parents never left. Its lures come in a child's voice (yours, made small).
+export const BABYSITTER = [
+  {
+    title: 'Home by Midnight', theme: 'house', seed: 9501,
+    gen: { size: 22, tasks: { fuses: true }, broken: 0.3 },
+    grace: 75, hunger: false,
+    intro: [
+      'The Hales pay double for Saturday nights. You found the job on a card in the post office window: "Babysitter wanted. Two children. Very easy."',
+      'Mrs. Hale meets you at the door with her coat already on. "Lily and Sam are asleep. We\'ll be home by midnight. Don\'t go down to the cellar."',
+      'At 1 a.m. the lights go out. Upstairs, a small voice says your name.',
+    ],
+    tapeLabel: 'Messages',
+    tapes: [
+      { who: 'Answering machine, 11:58 p.m.', lines: [
+        { by: 'Mrs. Hale', text: 'Hi, it\'s us. We\'re running a little late, sorry. The roads are awful.' },
+        { by: 'Mrs. Hale', text: 'Don\'t let them stay up. And don\'t let them talk you into hide and seek.' },
+        { by: 'Mrs. Hale', text: '(a pause, then too brightly) We\'ll be home by midnight.' },
+      ] },
+      { who: 'Lily\'s toy tape recorder', lines: [
+        { by: 'Lily', text: '(a little girl, whispering into the recorder) This is Lily. Mummy and Daddy are playing hide and seek.' },
+        { by: 'Lily', text: 'They\'ve been hiding since Tuesday. Sam says they\'re in the cellar.' },
+        { by: 'Lily', text: '(giggling) The babysitter has to count.' },
+      ] },
+      { who: 'Answering machine, 1:14 a.m.', lines: [
+        { by: 'Mrs. Hale', text: 'Hi, it\'s us. We\'re running a little late, sorry. The roads are awful.' },
+        { by: 'Mrs. Hale', text: '(exactly the same as before, word for word) Don\'t let them stay up.' },
+        { by: 'Mrs. Hale', text: '(very close to the phone, no longer bright at all) Don\'t go down to the cellar.' },
+      ] },
+    ],
+    ending: [
+      'The children\'s beds are empty, the sheets pulled up neat. On Lily\'s pillow: a drawing of four people holding hands in a dark room.',
+      'The phone rings. "Hi, it\'s us. We\'re home." Downstairs, the cellar door is open.',
+    ],
+  },
+  {
+    title: 'Hide and Seek', theme: 'house', seed: 9512,
+    gen: { size: 26, tasks: { gens: 2, tapes: 3 }, broken: 0.4 },
+    grace: 55, hunger: false,
+    intro: [
+      'The cellar goes further down than the house goes up. Old rooms, papered over. A generator thumping somewhere below.',
+      'Somewhere down here, two small voices are counting. They get to ten, and start again.',
+      'Find the kids. Don\'t let them find you first.',
+    ],
+    tapeLabel: 'Baby monitor recordings',
+    tapes: [
+      { who: 'Baby monitor, the cellar, last Tuesday', lines: [
+        { by: 'Mr. Hale', text: '(whispering) Stay behind me. There\'s something down here wearing your voice.' },
+        { by: 'Mrs. Hale', text: '(whispering) That\'s not funny, David.' },
+        { by: 'Mr. Hale', text: '(whispering, terrified) I didn\'t say anything.' },
+      ] },
+      { who: 'Sam\'s walkie-talkie', lines: [
+        { by: 'Sam', text: '(a small boy, very serious) Sam to Lily. Over.' },
+        { by: 'Sam', text: 'Daddy says to stop playing. He says it in the wall. Over.' },
+        { by: 'Sam', text: '(after a long pause) Lily, why are you answering from down here? You\'re upstairs. Over.' },
+      ] },
+      { who: 'Kayla, the last babysitter, a voicemail to her mum', lines: [
+        { by: 'Kayla', text: 'Mum, it\'s me. The Hales still aren\'t back and the kids keep saying they never went out.' },
+        { by: 'Kayla', text: 'They keep asking me to count. When I count, somebody counts with me.' },
+        { by: 'Kayla', text: '(whispering) Can you come and get me? Don\'t call first. It answers the phone.' },
+      ] },
+    ],
+    ending: [
+      'In the deepest room there\'s a babysitter\'s bag, a coat, a phone with a hundred missed calls from "Mum". The name on the bag is Kayla.',
+      'The hotel the Hales said they were at is printed on a matchbook on the floor. Somebody has circled the room number.',
+    ],
+  },
+  {
+    title: 'Room 214', theme: 'hotel', seed: 9523,
+    gen: { size: 26, tasks: { fuses: true, keycard: true }, broken: 0.4 },
+    grace: 45, hunger: true,
+    intro: [
+      'The Marlowe Hotel, where Mr. and Mrs. Hale said they were having dinner. The front desk says they never checked in.',
+      'They have a room booked anyway. Room 214. Booked every Saturday for a year, in a child\'s handwriting.',
+      'The phone in 214 is ringing. It\'s the Hales\' home number.',
+    ],
+    tapeLabel: 'Tapes',
+    tapes: [
+      { who: 'Front desk, Saturday night', lines: [
+        'Marlowe front desk. No, nobody named Hale is staying here.',
+        'There\'s a little girl on the house phone again, asking for her mummy. She sounds just like you, actually.',
+        'I keep putting her through to 214. Nobody\'s in 214.',
+      ] },
+      { who: 'Room 214, a tape on the bed', lines: [
+        { by: 'Mrs. Hale', text: 'If anyone finds this: we never left the house. We went into the cellar and we never came back up.' },
+        { by: 'Mrs. Hale', text: 'Whatever\'s calling you in my voice has been practising. It\'s getting very good.' },
+        { by: 'Mrs. Hale', text: 'Lily, Sam, if it\'s you listening: don\'t open the door. Not even for me.' },
+      ] },
+      { who: 'Room 214, the same tape, the other side', lines: [
+        { by: 'Lily', text: '(cheerful) Mummy said not to open the door.' },
+        { by: 'Lily', text: 'So we didn\'t. We let it in the other way.' },
+        { by: 'Sam', text: '(quietly) It says it\'s our babysitter now.' },
+      ] },
+    ],
+    ending: [
+      'On the dresser in 214 there\'s a hospital bracelet, a baby\'s, the plastic gone yellow. Name: HALE, LILY. St. Agnes Maternity.',
+      'The phone rings once. A child\'s voice: "You\'re getting warmer."',
+    ],
+  },
+  {
+    title: 'Night Feeds', theme: 'hospital', seed: 9534,
+    gen: { size: 24, tasks: { gens: 2 }, broken: 0.45 },
+    grace: 40, hunger: true,
+    intro: [
+      'St. Agnes. The maternity wing has been shut for years, but the night bell on the nursery still rings at 3 a.m.',
+      'The Hales\' children were born here. Eight years apart. On the same night.',
+      'Somewhere on the ward, a baby is crying in Lily\'s voice.',
+    ],
+    tapeLabel: 'Ward recordings',
+    tapes: [
+      { who: 'Night nurse, a dictated note', lines: [
+        'Baby Hale, delivered 2:13 a.m. Healthy girl. She doesn\'t cry like a newborn. She cries like her mother.',
+        'When her mother speaks, the baby says it back. Not words. The sound of the words.',
+        'I\'ve asked for a transfer to days.',
+      ] },
+      { who: 'Mr. Hale, a message he never sent', lines: [
+        { by: 'Mr. Hale', text: 'We brought two children home from this hospital. We only ever had one.' },
+        { by: 'Mr. Hale', text: 'I don\'t know which. They both know our names. They both know the songs.' },
+        { by: 'Mr. Hale', text: '(breaking) I love them both. Isn\'t that the worst part.' },
+      ] },
+      { who: 'The nursery, the night bell', lines: [
+        { by: 'Lily', text: '(a sing-song) Mummy\'s gone and Daddy\'s gone and now the babysitter\'s home.' },
+        { by: 'Sam', text: '(singing along, flat) Count to ten and close your eyes and never leave us on our own.' },
+        { by: 'Lily', text: '(close, whispering) We\'re learning your voice now.' },
+      ] },
+    ],
+    ending: [
+      'The nursery cribs have names taped to them: LILY. SAM. KAYLA. And one more, the tape still fresh. Yours.',
+      'Your phone rings. "Hi, it\'s us. We\'re home. Where are you? The kids are asking for you."',
+    ],
+  },
+  {
+    title: 'The Babysitter', theme: 'house', seed: 9501,
+    gen: { size: 22, tasks: { fuses: true, tapes: 3 }, broken: 0.5 },
+    grace: 35, hunger: true,
+    intro: [
+      'Back at the Hale house. Every light is on. The car is in the drive. Through the window you can see a family at the kitchen table: a mother, a father, two children.',
+      'And a babysitter, sitting with them, laughing. She looks like you.',
+      'Find the real ones. Then get out before morning, or they\'ll need a new babysitter.',
+    ],
+    tapeLabel: 'Tapes',
+    tapes: [
+      { who: 'Answering machine, this morning', lines: [
+        { by: 'Mrs. Hale', text: 'Hi, it\'s us. We\'re home. Thank you so much for tonight.' },
+        { by: 'Mrs. Hale', text: '(warm, and wrong) Same time next Saturday? The children love you.' },
+        { by: 'Mrs. Hale', text: '(whispering, the real one, frightened) Please don\'t come back.' },
+      ] },
+      { who: 'Kayla, from the cellar', lines: [
+        { by: 'Kayla', text: '(weak, far away) Hello? Is someone up there? It\'s Kayla. I was the babysitter before you.' },
+        { by: 'Kayla', text: 'The Hales are down here with me. Mrs. Hale and Mr. Hale. We\'re all right.' },
+        { by: 'Kayla', text: 'The kids aren\'t. The kids were never kids.' },
+      ] },
+      { who: 'Lily and Sam, the toy recorder, last tape', lines: [
+        { by: 'Lily', text: 'This is Lily. We like this babysitter best.' },
+        { by: 'Sam', text: 'She talks a lot. We\'ve got nearly all of her now.' },
+        { playerClip: true, text: '(your voice) "Hello? Is anyone there?"' },
+      ] },
+    ],
+    ending: [
+      'The cellar door opens onto a cold grey morning. Mr. Hale, Mrs. Hale and Kayla climb out behind you, blinking.',
+      'Upstairs, two small faces watch from the nursery window. They wave.',
+      'From inside the house, very faintly, you hear yourself say goodnight.',
+      { playerClip: true, text: 'It\'s your voice.' },
+    ],
+  },
+];
+
+// The solo stories, and where each one's progress is saved (chapters finished, on this device).
 export const STORIES = [
   { id: 'ellie', title: 'Ellie', key: 'mimic.story', chapters: CHAPTERS, voice: 'ellie',
     blurb: 'Your sister went into the Holloway house and never came out.', lost: 'Ellie is still in there somewhere.' },
   { id: 'operator', title: 'The Operator', key: 'mimic.story.operator', chapters: OPERATOR, voice: 'phone',
     blurb: 'You\'re a 911 dispatcher. The calls come from places that have been closed for years, in a voice you know.', lost: 'The line is still open.' },
+  { id: 'babysitter', title: 'The Babysitter', key: 'mimic.story.babysitter', chapters: BABYSITTER, voice: 'child',
+    blurb: 'A Saturday night job in a big house. The parents keep calling to say they\'re on their way home. The kids say they never left.', lost: 'The kids want you to count again.' },
 ];
 
 // Story progress: how many chapters of a story are finished (saved on this device only).

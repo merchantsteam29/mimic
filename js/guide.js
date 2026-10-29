@@ -107,8 +107,9 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'alpha1-2026-10-28l';
+export const RELEASE = 'alpha1-2026-10-28m';
 const NOTES = [
+  ['“Hi, it’s us. We’re running a little late, sorry.” The message is from last Tuesday. They called again tonight. Same words.', 'A third story: The Babysitter. A Saturday night job in a big house. The parents keep calling to say they’re on their way home. The kids say they never left. Five chapters, from the Hale house to the hotel to the old maternity ward, and back.'],
   ['Ship’s log. The passengers went below at midnight. The water went below at one. We still hear them in the cabins.', 'A new place: a liner in a storm. The whole ship rolls, the big waves throw you off your feet, the lower decks are flooded, and down in the engine room the noise is so loud nothing can hear your steps. Hide in a cabin wardrobe, or under a bunk.'],
   ['We tidied up in here. It didn’t like that.', 'Simpler menus: three ways in on the title screen, the rest under More ways to play. Hosts can pick creatures as a preset (just the mimic, a few more, everything) or pick their own. Settings has a search, and the rarely used ones are under More settings, with two new ones: bigger text for captions and subtitles, and a colour-blind mode.'],
   ['The stairs only go down. We counted the floors on the way. We stopped counting.', 'Endless descent (title screen, or a lobby Mode): every way out is the way down to another floor, a new place every time, and every floor is worse than the last. There’s nothing to win. Just how deep you got.'],

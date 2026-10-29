@@ -10,6 +10,11 @@ export const PARTS = [
   ['Dr. Okafor', 'The scientist who built the thing. Careful and clinical; by the end, tired and guilty. Also plays the copies of his own voice.', [/^(?!.*daughter).*Okafor/]],
   ['Dana', 'A 911 dispatcher. Calm and professional, quietly scared. Also reads the dispatcher lines, and the copies of her own voice.', [/^Dana\b/, /^Dispatcher/, /^Recording, unlabelled/]],
   ['Callers', 'Frightened adults on the phone: whispering, out of breath.', [/^Caller/, /^Guest/]],
+  ['Mrs. Hale', 'The mother in The Babysitter. Brisk and bright on the answering machine; underneath, frightened. Also plays the copies of her own voice.', [/^Mrs\. Hale/]],
+  ['Mr. Hale', 'The father in The Babysitter. Whispering in the dark, then broken.', [/^Mr\. Hale/]],
+  ['Kayla', 'The last babysitter: a teenager, calling her mum, then weak and far away.', [/^Kayla/]],
+  ['Lily', 'A girl of about 8 in The Babysitter: cheerful, sing-song, a bit too calm. An adult doing a small voice is fine.', [/^Lily/]],
+  ['Sam', 'A boy of about 6 in The Babysitter: very serious, flat. An adult doing a small voice is fine.', [/^Sam\b/]],
   ['Child', 'A child. An adult doing a small, soft voice is fine.', [/^Child/, /daughter/]],
   ['Staff and strangers', 'Ordinary adults who were there before: nurses, guards, porters, a caretaker, a rescue team. Natural, tired, frightened.', [/./]],
 ];
