@@ -1,5 +1,6 @@
 // Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house, a hospital, a mall, a school, a hotel, a church, an asylum,
-// the woods, a subway station, an abandoned fairground, an old mine, a research station in the snow, a ship in a storm or the sewers.
+// the woods, a subway station, an abandoned fairground, an old mine, a research station in the snow, a ship in a storm, the sewers
+// or a lighthouse island.
 // Also holds the collision, line-of-sight and path-finding the player and the mimic use.
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
@@ -141,6 +142,18 @@ export const THEMES = {
     fog: 0x030201, fogDensity: 0.1, reverb: [4.2, 0.65],
     props: ['minecart', 'crate', 'barrel', 'toolrack', 'rubble', 'minecart', 'tnt', 'crate'], hideProp: 'crawlspace', surface: 'stone',
   },
+  // Outdoors on a rocky island at night: hollows among the rocks joined by paths, the keeper's stone cottage to start in
+  // (walls and a roof), sea caves along the south shore (level.caves: a rock roof, the sea coming in ankle-deep). Built
+  // like the house (lanterns, wooden gates, a key). The lighthouse beam sweeps over all of it (island.js): while it's on
+  // you, it can see you. Hide under the upturned boats.
+  island: {
+    id: 'island', look: 'house', outdoor: true, island: true, kicker: 'Lighthouse island, off the north coast',
+    names: ['Kestrel Rock Light', 'Blackmoor Head (keeper missing since 1979)', 'Holloway Skerry', 'Ashgrove Point Lighthouse'],
+    size: 30, roomSize: [4, 8], tries: 140, minRooms: 8,
+    light: 0xffc078, lightIntensity: 5, corridorLights: false, flicker: 0.5, broken: 0.45,
+    fog: 0x05070a, fogDensity: 0.06, reverb: [1.6, 0.25],
+    props: ['rock', 'lobsterpot', 'nets', 'rock', 'barrel', 'crate', 'deadtree', 'lobsterpot'], hideProp: 'boat', surface: 'dirt',
+  },
   // The sewers: every passage is a channel of black water up to your waist (level.wet: you wade, slowly, and every
   // step splashes; it wades too). The rooms are dry chambers: pump rooms, junctions, overflow tanks, with ladders up
   // to manholes that let in a little light. Built like the facility (metal doors, keycards). Hide in the culverts:
@@ -190,6 +203,7 @@ const PROP_DEFS = {
   bunk: { w: 0.95, d: 1.95 }, restraint: { w: 0.8, d: 0.8 }, tub: { w: 0.9, d: 1.8 }, isolation: { w: 1.1, d: 1.0 },
   pew: { w: 1.9, d: 0.75 }, altar: { w: 1.6, d: 0.9 }, candelabra: { w: 0.6, d: 0.6 }, lectern: { w: 0.7, d: 0.6 }, statue: { w: 0.7, d: 0.7 },
   confessional: { w: 1.3, d: 1.0 },
+  boat: { w: 1.2, d: 2.4 }, lobsterpot: { w: 0.8, d: 0.6 }, nets: { w: 1.6, d: 0.4 },
   bigpipe: { w: 1.8, d: 0.6 }, valve: { w: 0.9, d: 0.6 }, ladder: { w: 0.7, d: 0.25 }, sludge: { w: 1.2, d: 1.0 }, culvert: { w: 1.3, d: 0.5 },
   deckchair: { w: 0.7, d: 1.5 }, diningtable: { w: 1.6, d: 1.0 }, lifebuoy: { w: 0.8, d: 0.2 }, rope: { w: 0.9, d: 0.9 }, piano: { w: 1.5, d: 0.7 },
   engine: { w: 1.8, d: 1.2 },
@@ -545,7 +559,7 @@ const center = (c) => (c + 0.5) * CELL;
 //   bed     under a bed: half the time it doesn't think to look; if it does, the heartbeat game
 //   vent    in the wall: it can't follow you in, but getting in and out is loud
 //   curtain behind a curtain: quick, but your feet show: if it comes close, it has you
-export const HIDE_KIND = { bed: 'bed', bunk: 'bed', curtain: 'curtain', vent: 'vent', crawlspace: 'vent', culvert: 'vent' };
+export const HIDE_KIND = { bed: 'bed', bunk: 'bed', curtain: 'curtain', vent: 'vent', crawlspace: 'vent', culvert: 'vent', boat: 'bed' };
 
 // How far a footstep carries on each floor (x the usual step noise).
 export const STEP_CARRY = { carpet: 0.7, wood: 1, hard: 1, stone: 1.1, dirt: 1, water: 1.6 };
@@ -554,6 +568,8 @@ export class Level {
   constructor(data) {
     Object.assign(this, data);
     this.yardSet = new Set(this.yards || []);
+    // The island's sea caves: the rooms along the south shore (not the first or the exit room).
+    this.caveSet = new Set(this.theme.island ? this.rooms.filter((r) => r.id !== this.spawnRoom && r.id !== this.exitRoom && r.cz >= this.N * 0.68).map((r) => r.id) : []);
     // The ship's engine: the first crate in the biggest room (not the first or the exit room) becomes the engine.
     if (this.theme.ship) {
       const big = this.rooms.filter((r) => r.id !== this.spawnRoom && r.id !== this.exitRoom).sort((a, b) => b.w * b.h - a.w * a.h);
@@ -628,9 +644,13 @@ export class Level {
     const th = this.theme;
     if (th.snow) return this.outside(x, z) ? 'snow' : th.surface;
     if (th.sewer && this.wet(x, z)) return 'water';
+    if (th.island && this.caveSet.has(this.roomId[this.cellOf(z) * this.N + this.cellOf(x)])) return 'stone';
     if (th.outdoor) return this.roomId[this.cellOf(z) * this.N + this.cellOf(x)] === this.spawnRoom ? 'wood' : 'dirt';
     return th.surface;
   }
+  // Under a roof, outdoors: the first room (the cabin / the cottage) or one of the island's caves.
+  roofed(x, z) { const id = this.roomId[this.cellOf(z) * this.N + this.cellOf(x)]; return id === this.spawnRoom || this.caveSet.has(id); }
+
   // In the water (the sewers' channels: every passage, none of the rooms).
   wet(x, z) { if (!this.theme.sewer) return false; const cx = this.cellOf(x), cz = this.cellOf(z); return this.get(cx, cz) === FLOOR && this.roomId[cz * this.N + cx] < 0; }
 
@@ -933,6 +953,20 @@ function buildProp(type, M) {
       g.add(box(1.0, 0.03, 0.03, M.brass, 0, 1.78, 0));
       for (let i = 0; i < 3; i++) if (r() < 0.75) g.add(box(0.5 + r() * 0.3, 0.3, 0.42, M.clothes[Math.floor(r() * M.clothes.length)], (r() - 0.5) * 0.3, 0.36 + i * 0.32, 0));
       for (const x of [-0.42, 0.42]) for (const z of [-0.22, 0.22]) g.add(cyl(0.05, 0.05, 0.04, M.black, x, 0.05, z, 8));
+      break;
+    case 'boat': { // a rowing boat turned upside down on the rocks. You can get under it
+      const hull = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 2.3, 12, 1, true, 0, Math.PI), M.boatWood);
+      hull.rotation.z = Math.PI / 2; hull.rotation.y = Math.PI / 2; hull.position.y = 0.02; g.add(shadowed(hull));
+      g.add(box(0.06, 0.06, 2.4, M.darkWood, 0, 0.6, 0));
+      break;
+    }
+    case 'lobsterpot': // creels stacked up, rope and floats
+      for (let i = 0; i < 2; i++) g.add(box(0.7, 0.4, 0.5, M.netMat, 0, 0.2 + i * 0.4, 0));
+      g.add(cyl(0.1, 0.1, 0.2, M.prizes?.[0] || M.buoy, 0.3, 0.9, 0.1, 10));
+      break;
+    case 'nets': // fishing nets hung out to dry between two posts, torn
+      for (const x of [-0.75, 0.75]) g.add(cyl(0.05, 0.06, 2, M.darkWood, x, 1, 0, 6));
+      { const n = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.3), M.netMat); n.position.set(0, 1.2, 0); g.add(n); }
       break;
     case 'bigpipe': // a great iron pipe along the wall, sweating, a joint leaking
       { const p = cyl(0.35, 0.35, 1.8, M.rust, 0, 0.5, -0.05, 14); p.rotation.z = Math.PI / 2; g.add(p); }
@@ -1341,13 +1375,13 @@ function buildWoods(level, wallCells, tex, mat, group) { // (also the fairground
   const logs = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, WALL_H, CELL), mat(tex.cabin, { color: 0x9a8a78 }), Math.max(1, cabin.length));
   cabin.forEach(([x, z], i) => logs.setMatrixAt(i, m4.makeTranslation(center(x), WALL_H / 2, center(z))));
   logs.count = cabin.length;
-  const fair = level.theme.fair, H = fair ? 4.2 : 8; // the fairground: the striped canvas of tents and stalls, not trees
-  const thicket = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, H, CELL), mat(tex.wall, { color: fair ? 0xb0a8a0 : 0x6a7060 }), Math.max(1, woods.length));
+  const fair = level.theme.fair, isle = level.theme.island, H = fair ? 4.2 : isle ? 5.5 : 8; // the fairground: canvas; the island: rock
+  const thicket = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, H, CELL), mat(tex.wall, { color: fair ? 0xb0a8a0 : isle ? 0x9a948a : 0x6a7060 }), Math.max(1, woods.length));
   woods.forEach(([x, z], i) => thicket.setMatrixAt(i, m4.makeTranslation(center(x), H / 2, center(z))));
   thicket.count = woods.length;
   logs.receiveShadow = thicket.receiveShadow = true;
   group.add(logs, thicket);
-  if (fair) return;
+  if (fair || isle) return;
   // Trunks along the edge of every clearing and path.
   const spots = [];
   for (const [x, z] of woods) for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -1487,6 +1521,8 @@ export function buildLevelScene(level) {
     radioBox: new THREE.MeshStandardMaterial({ color: 0x3a4a3a, roughness: 0.6, metalness: 0.3 }),
     buoy: new THREE.MeshStandardMaterial({ color: 0xc8b8a0, roughness: 0.7 }),
     sludgeMat: new THREE.MeshStandardMaterial({ color: 0x2a2818, roughness: 0.6, metalness: 0.2 }),
+    boatWood: new THREE.MeshStandardMaterial({ color: 0x3a4a52, roughness: 0.85, side: THREE.DoubleSide }),
+    netMat: new THREE.MeshStandardMaterial({ color: 0x6a6448, roughness: 1, transparent: true, opacity: 0.75, side: THREE.DoubleSide }),
     ropeMat: new THREE.MeshStandardMaterial({ color: 0x7a6a4a, roughness: 1 }),
     heatGlow: new THREE.MeshStandardMaterial({ color: 0x401008, emissive: 0xff4010, emissiveIntensity: 0.8 }),
     snowDrift: new THREE.MeshStandardMaterial({ color: 0xdfe6ee, roughness: 0.95 }),
@@ -1535,6 +1571,12 @@ export function buildLevelScene(level) {
     const roof = new THREE.Mesh(new THREE.PlaneGeometry(cw + CELL * 2, cd + CELL * 2), mat(tex.cabin, { color: 0x6a5a48 }));
     roof.rotation.x = Math.PI / 2; roof.position.set(cab.x * CELL + cw / 2, WALL_H, cab.z * CELL + cd / 2);
     group.add(roof);
+    for (const id of level.caveSet) { // the island's sea caves: a rock roof
+      const c = level.rooms[id], w = c.w * CELL, d = c.h * CELL;
+      const top = new THREE.Mesh(new THREE.PlaneGeometry(w + CELL * 2, d + CELL * 2), mat(tex.wall, { color: 0x6a645a }));
+      top.rotation.x = Math.PI / 2; top.position.set(c.x * CELL + w / 2, WALL_H, c.z * CELL + d / 2);
+      group.add(top);
+    }
   }
 
   // Walls: a box per wall cell that touches open space.

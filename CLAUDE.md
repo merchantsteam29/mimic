@@ -465,6 +465,13 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   `buildSewer` puts water at `WATER_Y` (0.62) over them and a stone lip where a channel meets a room. Wading: `landmarks.slow` 0.6 and
   `splash` (ripples on the `channel` pseudo-landmark), `surfaceAt` 'water' (STEP_CARRY 1.6, a splash in `sfx.footstep`), the mimic at 0.8x.
   Props bigpipe / valve / ladder (a manhole above) / sludge, `culvert` to hide in (vent kind). The swarm is always on alone. Code `D`.
+- **Lighthouse island** theme (`island`, look `house`, `outdoor: true`, `island: true`): rock walls (`mineWall`, 5.5 m, no trunks), the keeper's
+  cottage (`rooms[0]`, `tex.cabin` = `cottageStone`), sea caves (`level.caveSet`: rooms with `cz >= N * 0.68`; a rock roof, Landmarks floods them,
+  `surfaceAt` stone; `Level.roofed(x, z)` = cottage or cave). Props rock / lobsterpot / nets / barrel / crate / deadtree, `boat` to hide under
+  (bed kind). Code `L`.
+- `island.js`: the lighthouse just off the north shore (a tower, a lamp that ignores fog, a wide additive cone and a SpotLight), turning once
+  every 14 s from `g.t`. `lit(x, z)` (not roofed, within 0.11 rad of the beam): `mimic.hooks.beamOn` lets it see you from 35 m. The foghorn
+  (every 60-100 s, `sfx.foghorn`) sets `stepScale` 0.3 for 4 s.
 - **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
   on touch the objectives sit below the pause / jobs buttons.
 

@@ -10,7 +10,7 @@ const DISTANT = {
   facility: ['clank', 'vent', 'pipes', 'slam'], house: ['creak', 'creak', 'pipes', 'slam'], hospital: ['squeak', 'clank', 'vent', 'slam'],
   mall: ['cart', 'clank', 'slam'], school: ['locker', 'locker', 'bell', 'creak'], hotel: ['ding', 'creak', 'pipes', 'slam'],
   church: ['wings', 'creak', 'gust'], asylum: ['whimper', 'clank', 'pipes', 'slam'], forest: ['owl', 'gust', 'creak'],
-  subway: ['screech', 'vent', 'clank', 'pipes', 'screech'], fair: ['creak', 'gust', 'clank', 'creak'], mine: ['creak', 'clank', 'creak', 'pipes'], ship: ['creak', 'clank', 'slam', 'creak', 'pipes'], sewer: ['pipes', 'clank', 'gust', 'pipes', 'slam'], snow: ['gust', 'clank', 'creak', 'gust'],
+  subway: ['screech', 'vent', 'clank', 'pipes', 'screech'], fair: ['creak', 'gust', 'clank', 'creak'], mine: ['creak', 'clank', 'creak', 'pipes'], ship: ['creak', 'clank', 'slam', 'creak', 'pipes'], sewer: ['pipes', 'clank', 'gust', 'pipes', 'slam'], island: ['gust', 'creak', 'gust', 'clank'], snow: ['gust', 'clank', 'creak', 'gust'],
 };
 
 function distortionCurve(k) {
@@ -597,6 +597,17 @@ export class Sfx {
     this._tone(d, { type: 'sine', freq: 1000, dur: seconds, peak: 0.04, attack: 0.01 });
   }
 
+  // The foghorn (island.js): low and long, from out at sea.
+  foghorn(emitter) {
+    const d = emitter ? emitter.input : this.master, t = this.now;
+    for (const [f, v] of [[82, 0.22], [123, 0.12]]) {
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain(); o.type = 'sawtooth'; o.frequency.value = f;
+      const lp = this.ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 500;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.6); g.gain.setValueAtTime(v, t + 3); g.gain.linearRampToValueAtTime(0, t + 4);
+      o.connect(lp).connect(g).connect(d); g.connect(this.send); o.start(t); o.stop(t + 4.1);
+    }
+  }
+
   // The ship's engine (ship.js): a deep thump, and the hiss of steam after it.
   engineThump(emitter) {
     const d = emitter ? emitter.input : this.master, t = this.now;
@@ -722,6 +733,14 @@ export class Sfx {
         const g = ctx.createGain(); g.gain.value = [0.012, 0.01, 0.008, 0.005][i];
         o.connect(lp).connect(g).connect(bus); g.connect(this.send); o.start(); nodes.push(o);
       });
+    } else if (theme === 'island') {
+      // The sea on the rocks: long swells breaking, and the wind.
+      const src = ctx.createBufferSource(); src.buffer = this.brown; src.loop = true;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 600;
+      const wg = ctx.createGain(); wg.gain.value = 0.06;
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.09; const lg = ctx.createGain(); lg.gain.value = 0.06;
+      lfo.connect(lg).connect(wg.gain); lfo.start(); nodes.push(lfo);
+      src.connect(lp).connect(wg).connect(bus); src.start(); nodes.push(src);
     } else if (theme === 'sewer') {
       // Water running through the channels, and somewhere a bigger flow, roaring far off.
       const src = ctx.createBufferSource(); src.buffer = this.white; src.loop = true;

@@ -47,6 +47,8 @@ const SECTIONS = [
       survive: 'Half the time it doesn\'t think to look. If it does, the heartbeat.' },
     { name: 'Vents', file: 'Hiding 03', what: 'Low grates in the walls of the bigger buildings.', tells: 'They clang when you get in and out, and it hears that.',
       survive: 'It can\'t follow you in. It will wait outside the grate for a while.' },
+    { name: 'Upturned boats', file: 'Hiding 09', what: 'On the lighthouse island. Rowing boats turned over on the rocks.', tells: 'Like under a bed: you see the ground, and its feet.',
+      survive: 'Half the time it doesn’t think to look. If it does, the heartbeat.' },
     { name: 'Culverts', file: 'Hiding 08', what: 'In the sewers. Round pipe mouths in the wall, the bars bent apart.', tells: 'Like a vent: it can\'t follow you in.',
       survive: 'Getting in and out makes a noise, and it hears that.' },
     { name: 'Crawl spaces', file: 'Hiding 07', what: 'In the mine. Low holes dug into the rock, propped up with timber.', tells: 'Like a vent: it can\'t follow you in.',
@@ -109,8 +111,9 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'beta1-2026-10-28b';
+export const RELEASE = 'beta1-2026-10-28c';
 const NOTES = [
+  ['The keeper’s last log: the light keeps turning. I stopped turning it in March.', 'A new place: a lighthouse island. Outdoors among the rocks, the keeper’s cottage to start in, sea caves along the shore with the tide coming in. The beam sweeps over the whole island: while it’s on you, it can see you from a long way off. Hide under the upturned boats.'],
   ['The water down there is warm. It shouldn’t be warm. And it carries every sound you make.', 'A new place: the sewers. Every passage is a channel of black water up to your waist: you wade slowly, every step splashes, and it wades too. The chambers are dry. Hide in the culverts, where it can’t follow. The rats live down here.'],
   ['This is the last rough cut. After this one, the tape goes out to everybody. It’s been listening to all of you.', 'Mimic is in beta: nearly finished. Fourteen places, three stories, more things in the dark than we can count, and every mode we could think of. From here on it’s fixing and polishing, so if anything breaks, skips, or doesn’t feel right, press Report a bug and tell us.'],
   ['“Hi, it’s us. We’re running a little late, sorry.” The message is from last Tuesday. They called again tonight. Same words.', 'A third story: The Babysitter. A Saturday night job in a big house. The parents keep calling to say they’re on their way home. The kids say they never left. Five chapters, from the Hale house to the hotel to the old maternity ward, and back.'],

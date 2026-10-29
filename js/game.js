@@ -46,6 +46,7 @@ import { Patient } from './patient.js';
 import { Snow } from './snow.js';
 import { Swarm } from './swarm.js';
 import { Ship } from './ship.js';
+import { Island } from './island.js';
 import { Escort } from './escort.js';
 import { HideSeek, hideLevel } from './hideseek.js';
 import { Escape } from './escape.js';
@@ -169,6 +170,7 @@ export class Game {
       onSpotted: (id) => this.sendTo(id, { t: 'sting' }),
       onSniff: (id) => { this.sniffing = id; this.sendTo(id, { t: 'sniff' }); },
       isLit: (x, z) => this.world.fixtures.some((L) => L.level > 0.5 && (!L.broken || this.power) && !L.dead && Math.hypot(L.x - x, L.z - z) < 3.2) || !!this.lan?.near(x, z),
+      beamOn: (x, z) => !!this.isle?.lit(x, z), // the lighthouse beam is on you: it can see you from far off
       openDoor: (d) => this.broadcast({ t: 'doorSet', i: d.i, open: true, by: 'm' }),
       creakDoor: (d, fast) => this.broadcast({ t: 'creak', i: d.i, fast: fast ? 1 : 0 }),
       bangDoor: (d) => this.broadcast({ t: 'doorBang', i: d.i }),
@@ -187,6 +189,7 @@ export class Game {
     this.fair = new Fair(this);                        // the fairground: the wheel, the ghost train, the music
     this.snow = new Snow(this);                        // the snow station: the blizzard, the cold, the radio
     this.ship = new Ship(this);                        // the ship: the roll, the storm, the engine
+    this.isle = new Island(this);                      // the island: the lighthouse beam, the foghorn
     // The rats: online a lobby toggle; alone, they live in the mine and the subway.
     this.swarm = new Swarm(this, !hunter && !room && (mp ? swarm : ['mine', 'subway', 'sewer'].includes(themeId) && !story && !tutorial));
     // The clown: online a lobby toggle; alone, it lives in the fairground.
@@ -404,6 +407,7 @@ export class Game {
     this.fair.dispose();
     this.snow.dispose();
     this.ship.dispose();
+    this.isle.dispose();
     this.swarm.dispose();
     this.kc.dispose();
     this.trailer.dispose();
@@ -513,6 +517,7 @@ export class Game {
     this.fair.update(dt);
     this.snow.update(dt);
     this.ship.update(dt);
+    this.isle.update(dt);
     this.swarm.update(dt);
     this.mc.update(dt);
     this.pt.update(dt);

@@ -304,6 +304,7 @@ export class Mimic {
     if (this.graceT > 0) return false;
     let range = (P.flashOn ? 22 : 12) * this.diff.sight;
     if (P.crouch) range *= 0.75;
+    if (this.hooks.beamOn?.(P.x, P.z)) range = Math.max(range, 35); // (the lighthouse beam)
     if (this.enraged > 0) range = 40;
     if (d > range) return false;
     if (!this.level.los(this.x, this.z, P.x, P.z)) return false;

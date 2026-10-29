@@ -272,6 +272,17 @@ function hotelFloor() {
   return toTexture(c);
 }
 
+// ---------- island ----------
+function cottageStone() {
+  const [c, g] = canvas(256, 384); // whitewashed rubble stone, the lime flaking, salt stains
+  g.fillStyle = '#b8b2a4'; g.fillRect(0, 0, 256, 384);
+  for (let i = 0; i < 90; i++) { const v = Math.random() * 30; g.fillStyle = `rgba(${120 + v},${116 + v},${106 + v},.8)`; g.beginPath(); g.ellipse(Math.random() * 256, Math.random() * 384, 10 + Math.random() * 16, 7 + Math.random() * 10, Math.random(), 0, 7); g.fill(); g.strokeStyle = 'rgba(60,56,48,.5)'; g.stroke(); }
+  streaks(g, 256, 384, 10, 'rgba(70,64,50,.3)');
+  blotches(g, 256, 384, 8, 0.35);
+  grain(g, 256, 384, 20);
+  return toTexture(c);
+}
+
 // ---------- sewers ----------
 function sewerWall() {
   const [c, g] = canvas(256, 384); // Victorian brick, black with damp up to the waterline, slime streaks below
@@ -852,16 +863,16 @@ export function skinNormal() {
 }
 
 export function makeTextures(theme) {
-  const facility = theme === 'facility', hospital = theme === 'hospital', mall = theme === 'mall', school = theme === 'school', hotel = theme === 'hotel', church = theme === 'church', asylum = theme === 'asylum', forest = theme === 'forest', subway = theme === 'subway', fair = theme === 'fair', mine = theme === 'mine', snow = theme === 'snow', ship = theme === 'ship', sewer = theme === 'sewer';
+  const facility = theme === 'facility', hospital = theme === 'hospital', mall = theme === 'mall', school = theme === 'school', hotel = theme === 'hotel', church = theme === 'church', asylum = theme === 'asylum', forest = theme === 'forest', subway = theme === 'subway', fair = theme === 'fair', mine = theme === 'mine', snow = theme === 'snow', ship = theme === 'ship', sewer = theme === 'sewer', island = theme === 'island';
   const pair = (name) => [photo(`${name}_color`), photo(`${name}_normal`, false)];
-  const [wall, wallN] = facility ? pair('concreteWall') : sewer ? [sewerWall(), photo('concreteWall_normal', false)] : ship ? [shipWall(), photo('plaster_normal', false)] : snow ? [snowWall(), photo('plaster_normal', false)] : mine ? [mineWall(), photo('concreteWall_normal', false)] : [hospital ? hospitalWall() : mall ? mallWall() : school ? schoolWall() : hotel ? hotelWall() : church ? churchWall() : asylum ? asylumWall() : forest ? forestWall() : subway ? subwayWall() : fair ? fairWall() : houseWall(), photo('plaster_normal', false)];
+  const [wall, wallN] = facility ? pair('concreteWall') : island ? [mineWall(), photo('concreteWall_normal', false)] : sewer ? [sewerWall(), photo('concreteWall_normal', false)] : ship ? [shipWall(), photo('plaster_normal', false)] : snow ? [snowWall(), photo('plaster_normal', false)] : mine ? [mineWall(), photo('concreteWall_normal', false)] : [hospital ? hospitalWall() : mall ? mallWall() : school ? schoolWall() : hotel ? hotelWall() : church ? churchWall() : asylum ? asylumWall() : forest ? forestWall() : subway ? subwayWall() : fair ? fairWall() : houseWall(), photo('plaster_normal', false)];
   const [floor, floorN] = hospital || mall || school || asylum || subway ? [hospital ? hospitalFloor() : mall ? mallFloor() : asylum ? asylumFloor() : subway ? subwayFloor() : schoolFloor(), photo('concreteFloor_normal', false)]
-    : hotel ? [hotelFloor(), photo('plaster_normal', false)] : forest || fair || mine || snow ? [fair ? fairFloor() : mine ? mineFloor() : snow ? snowFloor() : forestFloor(), photo('concreteFloor_normal', false)] : church ? [churchFloor(), photo('concreteFloor_normal', false)] : pair(facility || sewer ? 'concreteFloor' : 'woodFloor');
+    : hotel ? [hotelFloor(), photo('plaster_normal', false)] : forest || fair || mine || snow || island ? [fair ? fairFloor() : mine ? mineFloor() : snow ? snowFloor() : forestFloor(), photo('concreteFloor_normal', false)] : church ? [churchFloor(), photo('concreteFloor_normal', false)] : pair(facility || sewer ? 'concreteFloor' : 'woodFloor');
   const [ceiling, ceilingN] = sewer ? [sewerWall(), photo('concreteWall_normal', false)] : mine ? [mineWall(), photo('concreteWall_normal', false)] : pair(subway ? 'concreteWall' : facility || hospital || mall || school || asylum || snow ? 'officeCeiling' : 'plaster');
   const [woodC, woodN] = pair('wood');
   const [metalC, metalN] = pair('paintedMetal');
   wall.repeat.set(1, 1.5); wallN.repeat.set(1, 1.5); // one 2m x 3m wall face
-  const pad = asylum ? padded() : null, logs = forest ? cabinLogs() : fair ? boothPlanks() : null;
+  const pad = asylum ? padded() : null, logs = forest ? cabinLogs() : fair ? boothPlanks() : island ? cottageStone() : null;
   return {
     padded: pad, cabin: logs, stripes: fair ? wall : null, snow: snow ? snowGround() : null,
     gravel: subway ? gravel() : null, lineMap: subway ? lineMap() : null, booth: subway ? label('TICKETS', '#141414', '#d8c070', 256, 64, 'bold 40px Inter, sans-serif') : null,

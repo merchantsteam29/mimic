@@ -112,6 +112,9 @@ Guess wrong, and it gets hungrier.
 - **The fairground:** outdoors, lots between the striped canvas of the stalls, a ticket office to start in, photo booths to hide in.
   The Ferris wheel turns over everything, the ghost train still goes round (and the mimic goes to see), there's a hall of mirrors,
   and when the music comes back on it covers your footsteps.
+- **The lighthouse island:** outdoors among the rocks, the keeper's cottage to start in, sea caves with the tide coming in. The
+  lighthouse beam sweeps the island: while it's on you, it can see you from 35 m. A foghorn now and then covers your steps.
+  Upturned boats to hide under.
 - **The sewers:** every passage is a channel of black water up to your waist (slow, splashing; it wades too), with dry chambers,
   ladders up to manholes, and culverts to hide in. The rats are always down here.
 - **The ship:** a liner in a storm. It rolls, big waves throw you sideways, the lower decks are flooded (slow, splashing), and in the
