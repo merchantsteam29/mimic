@@ -178,7 +178,7 @@ const syncTags = () => document.querySelectorAll('#setTags button').forEach((b) 
 document.querySelectorAll('#setTags button').forEach((b) => { b.onclick = () => { settings.tags = b.dataset.c === 'on'; saveSettings(); syncTags(); }; });
 syncTags();
 
-// Feedback (alpha): opens the Google Form in a new tab. The game version, device and what you were doing are copied to
+// Feedback (beta): opens the Google Form in a new tab. The game version, device and what you were doing are copied to
 // the clipboard first, so a bug report can include them with one paste.
 const FEEDBACK_FORM = 'https://forms.gle/CG3PAo4xpdrp7y6u6';
 function sendFeedback() {
@@ -261,10 +261,10 @@ initTitle({
   },
 });
 
-// Alpha: say so, and which build this is (bug reports should say it too).
+// Beta: say so, and which build this is (bug reports should say it too).
 {
-  const [, n, build] = RELEASE.match(/^alpha(\d+)-(.+)$/) || [];
-  $('buildTag').textContent = n ? `Alpha ${n} · build ${build}` : `Build ${RELEASE}`;
+  const [, stage, n, build] = RELEASE.match(/^(alpha|beta)(\d+)-(.+)$/) || [];
+  $('buildTag').textContent = stage ? `${stage === 'beta' ? 'Beta' : 'Alpha'} ${n} · build ${build}` : `Build ${RELEASE}`;
 }
 
 // Install as an app (Chrome / Edge / Android). iPhone: Share > Add to Home Screen.

@@ -107,8 +107,9 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'alpha1-2026-10-28m';
+export const RELEASE = 'beta1-2026-10-28';
 const NOTES = [
+  ['This is the last rough cut. After this one, the tape goes out to everybody. It’s been listening to all of you.', 'Mimic is in beta: nearly finished. Fourteen places, three stories, more things in the dark than we can count, and every mode we could think of. From here on it’s fixing and polishing, so if anything breaks, skips, or doesn’t feel right, press Report a bug and tell us.'],
   ['“Hi, it’s us. We’re running a little late, sorry.” The message is from last Tuesday. They called again tonight. Same words.', 'A third story: The Babysitter. A Saturday night job in a big house. The parents keep calling to say they’re on their way home. The kids say they never left. Five chapters, from the Hale house to the hotel to the old maternity ward, and back.'],
   ['Ship’s log. The passengers went below at midnight. The water went below at one. We still hear them in the cabins.', 'A new place: a liner in a storm. The whole ship rolls, the big waves throw you off your feet, the lower decks are flooded, and down in the engine room the noise is so loud nothing can hear your steps. Hide in a cabin wardrobe, or under a bunk.'],
   ['We tidied up in here. It didn’t like that.', 'Simpler menus: three ways in on the title screen, the rest under More ways to play. Hosts can pick creatures as a preset (just the mimic, a few more, everything) or pick their own. Settings has a search, and the rarely used ones are under More settings, with two new ones: bigger text for captions and subtitles, and a colour-blind mode.'],

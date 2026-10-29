@@ -1,2 +1,2 @@
 // Written by tools/stamp.mjs. Must match window.MIMIC_VERSION in index.html.
-export const VERSION = '20261028204155';
+export const VERSION = '20261028205919';

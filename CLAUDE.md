@@ -354,7 +354,7 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   for a second. The host relays parts (paced too) and only accepts keys that start with the sender's id; `receiveClip` assembles them.
   PeerJS delivers binary as a Uint8Array (`bytesOf`; until alpha1-2026-10-27b every clip from another player was dropped). The host's
   `catchUp` sends newcomers the newest 12 clips of each player; each browser keeps 30 per player (`addClip`). On joining you share your last 20.
-- **Alpha**: the title has an ALPHA stamp (`.alpha-stamp`) and `#buildTag` (from `RELEASE` in guide.js); bug reports copy `RELEASE` too.
+- **Beta** (since beta1-2026-10-28; was alpha): the title has a BETA stamp (`.alpha-stamp`, the class name kept) and `#buildTag` ("Beta 1 · build ...", parsed from `RELEASE` in guide.js: `alpha|beta<n>-<build>`); bug reports copy `RELEASE` too.
 - Menus: the lobby's Start / Walk around / Leave sit in a sticky `.lobby-bar`; the map picker is on the lobby's Mode tab; the "before you go
   in" screen shows once per device (localStorage `mimic.ready`; brightness is in Settings).
 - **Subway** theme (`subway`, look `facility`, `tunnel: true`): `tryGenerate` lays `tunnel` {z, h: 4} straight across the map (a
