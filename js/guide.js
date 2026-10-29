@@ -33,6 +33,9 @@ const SECTIONS = [
     { name: 'The patient', file: 'Subject 11', what: 'In the hospital and the asylum, always. Online, anywhere, if the host lets it in. A thin body in a gown, its head wrapped in bandages, lying on a bed, a gurney, a bench. Some of the others lying about really are dead.',
       tells: 'It sits up after you pass and turns its head to watch you go. A moan, a creak of springs: it\'s getting up.',
       survive: 'Don\'t run near the bodies. If it\'s up, stop running, get out of its sight, or hide: it gives up and goes back to bed.' },
+    { name: 'The swarm', file: 'Subject 12', what: 'In the mine and the subway, always. Online, anywhere, if the host lets them in. Rats, dozens of them. They come when it\'s near.',
+      tells: 'Scrabbling in the dark, getting louder. Squealing.',
+      survive: 'They don\'t bite. They give you away: whoever they run past, it knows exactly where. Step into a room, or hide, and let them go by.' },
     { name: 'The trains', file: 'Subject 09', what: 'Only in the subway. They still run. Nobody\'s driving them and they don\'t stop.',
       tells: 'A rumble that keeps growing, the horn, a light in the tunnel mouth. Then it\'s there.',
       survive: 'Get off the track and onto a platform. While one goes by nothing can hear you, not even it. If it\'s standing on the track, the train knocks it flat.' },
@@ -104,8 +107,9 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'alpha1-2026-10-28h';
+export const RELEASE = 'alpha1-2026-10-28i';
 const NOTES = [
+  ['You hear them before you see them. Then you see them. Then it hears you.', 'The swarm: when it gets near you, rats pour down the corridor right past you, squealing, and it hears exactly where you are. They don’t bite. Step into a room or hide and let them go by. Always in the mine and the subway; online, the host can let them in anywhere.'],
   ['Day 41. The radio picked something up again last night. It was my voice. I was asleep.', 'A new place: a research station in the snow. Huts joined by tunnels, and between them open yards in a blizzard: stay out there too long and you freeze, slow down, and your teeth chatter loud enough for it to hear. One hut has the radio set. Don\u2019t listen to it.'],
   ['There were four of us when we went down the shaft. There are still four of us. One of them has been very quiet.', 'A new place: an old mine, pitch black, timber holding up the roof, crawl spaces to hide in, and every voice coming back off the rock from somewhere else. A new creature: the patient, a body on a bed that sits up when you pass and gets up if you run (always in the hospital and the asylum; online, the host can let it in anywhere). And a new mode, Imposter voices: there\'s one more of you than there should be. Look at who you think it is, accuse, and vote.'],
   ["Those weren't its footsteps. They were mine. It walks like me now. It stops where I stop.", 'It watches how you move. After a while it walks like you when it isn\'t chasing: your pace, your stops, your footsteps, and if you creep, it creeps without a sound. And it practises: its first tries at your voice come out wrong, lower and catching like old tape. The longer the night goes, the better it gets.'],

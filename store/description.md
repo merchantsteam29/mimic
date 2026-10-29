@@ -32,7 +32,7 @@ it coming.
   hotel, a church, an asylum, the woods, a subway station where the trains still run, an abandoned fairground, an old mine, and a research station in a blizzard.
 - More than the mimic: the skinwalker that wears a living friend, a blind listener, a stalker that only moves when
   nobody's looking, a shadow that dies in the light, your own double, a phone that rings with the voices of the taken,
-  a huge singing Mother, a clown that looks just like the statues, and a patient that gets up when you run.
+  a huge singing Mother, a clown that looks just like the statues, a patient that gets up when you run, and the rats that give you away.
 - Modes: Normal, Imposter voices (one more of you than there should be), a traitor story, Hunt (one of you plays the mimic), Versus, Night Shift (last until 6 a.m.), Hide and
   seek, Escort (one lantern for everyone).
 - Two solo stories, voiced: *Ellie* (8 chapters) and *The Operator* (5 chapters).

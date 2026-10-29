@@ -437,6 +437,10 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - `snow.js`: the blizzard (Points around the camera, fog x1.7 and `sfx.wind()` louder as you go outside), the **cold** (0..1: +1/25 s outside,
   warms inside; `slow` (to 0.7x) and `numb` (no sprint) in game-player, `#frost` overlay; over 0.5, `sfx.chatter()` + `noise` 5-10), and the
   radio set (within 7 m, every 35-70 s: static, then a clip as `playVoice(..., 'radio')`).
+- `swarm.js`: **the swarm** (`game.swarm`; alone always in the mine and subway; online the lobby toggle `setSwarm`, `start.sm`). Host: when the
+  mimic is within 16 m of someone (every 35-50 s at most), a route from out of their sight, past them, and away (`findPath` twice) goes out
+  as `swarm` {p}; every browser runs 40 instanced rats along it (fixed lag / side / speed per rat). Host: anyone not hiding within 2.2 m of
+  a rat -> `mimic.hear(x, z, 40)` + `ls.hear`. `sfx.rats`. No catches.
 - **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
   on touch the objectives sit below the pause / jobs buttons.
 

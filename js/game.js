@@ -44,6 +44,7 @@ import { Gait } from './gait.js';
 import { Imposter } from './imposter.js';
 import { Patient } from './patient.js';
 import { Snow } from './snow.js';
+import { Swarm } from './swarm.js';
 import { Escort } from './escort.js';
 import { HideSeek, hideLevel } from './hideseek.js';
 import { Escape } from './escape.js';
@@ -63,7 +64,7 @@ import { DeathPart } from './game-death.js';
 
 export { CUSTOM, ROOM } from './game-shared.js';
 export class Game {
-  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null, teams = null, shadow = false, night = 0, double = false, hideSeek = false, caller = false, escort = null, mother = false, mascot = false, imposter = false, patient = false }) {
+  constructor({ renderer, sfx, voice, settings, hud, themeId, seed, onEnd, noLock = false, mp = null, order = null, classes = null, story = null, mode = 'normal', traitorId = null, vhs = null, skinwalker = false, hunter = null, tutorial = false, listener = false, room = false, difficulty = 'normal', stalker = false, custom = null, teams = null, shadow = false, night = 0, double = false, hideSeek = false, caller = false, escort = null, mother = false, mascot = false, imposter = false, patient = false, swarm = false }) {
     Object.assign(this, { renderer, sfx, voice, settings, hud, onEnd, noLock, mp, story, vhs, room, custom, themeId, seed });
     this.distort = 0;    // camcorder distortion, 0..1
     this.peekHud = 0;    // seconds the HUD stays visible after something changes
@@ -183,6 +184,8 @@ export class Game {
     this.tr = new Subway(this);                        // the subway: trains that don't stop
     this.fair = new Fair(this);                        // the fairground: the wheel, the ghost train, the music
     this.snow = new Snow(this);                        // the snow station: the blizzard, the cold, the radio
+    // The rats: online a lobby toggle; alone, they live in the mine and the subway.
+    this.swarm = new Swarm(this, !hunter && !room && (mp ? swarm : ['mine', 'subway'].includes(themeId) && !story && !tutorial));
     // The clown: online a lobby toggle; alone, it lives in the fairground.
     this.mc = new Mascot(this, !hunter && (mp ? mascot : themeId === 'fair' && !story && !tutorial && !room));
     // The patient: online a lobby toggle; alone, it lives in the hospital and the asylum.
@@ -392,6 +395,7 @@ export class Game {
     this.tr.dispose();
     this.fair.dispose();
     this.snow.dispose();
+    this.swarm.dispose();
     this.kc.dispose();
     this.trailer.dispose();
     this.mc.dispose();
@@ -499,6 +503,7 @@ export class Game {
     this.tr.update(dt);
     this.fair.update(dt);
     this.snow.update(dt);
+    this.swarm.update(dt);
     this.mc.update(dt);
     this.pt.update(dt);
     this.lan.update(dt);

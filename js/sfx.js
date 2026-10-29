@@ -612,6 +612,18 @@ export class Sfx {
     };
   }
 
+  // The swarm (swarm.js): claws scrabbling and squealing, v (0..1) how many.
+  rats(emitter, v = 1) {
+    const t = this.now, d = emitter ? emitter.input : this.master;
+    for (let i = 0; i < 3 + v * 5; i++) this._noise(d, { t: t + Math.random() * 0.25, dur: 0.012, freq: 3500 + Math.random() * 3000, q: 4, peak: 0.07 * v });
+    if (Math.random() < 0.45) {
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain(), at = t + Math.random() * 0.15, f = 2600 + Math.random() * 1600;
+      o.frequency.setValueAtTime(f, at); o.frequency.linearRampToValueAtTime(f * 1.3, at + 0.05); o.frequency.linearRampToValueAtTime(f * 0.9, at + 0.11);
+      g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(0.05 * (0.5 + v), at + 0.01); g.gain.exponentialRampToValueAtTime(0.0005, at + 0.12);
+      o.connect(g).connect(d); o.start(at); o.stop(at + 0.13);
+    }
+  }
+
   // Your teeth chattering (snow.js): quick dry clicks.
   chatter() {
     const t = this.now;

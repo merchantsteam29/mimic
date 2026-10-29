@@ -106,7 +106,7 @@ export const NetPart = {
 
   // Everyone: what happened.
   onNet(m) {
-    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m) || this.radio.onNet(m) || this.rec.onNet(m) || this.thr.onNet(m) || this.sig.onNet(m) || this.revival.onNet(m) || this.sd.onNet(m) || this.db.onNet(m) || this.esc.onNet(m) || this.cl.onNet(m) || this.lan.onNet(m) || this.mo.onNet(m) || this.tr.onNet(m) || this.fair.onNet(m) || this.mc.onNet(m) || this.pt.onNet(m)) return;
+    if (this.obj.onNet(m) || this.ab.onNet(m) || this.traitor.onNet(m) || this.sw.onNet(m) || this.hunt.onNet(m) || this.chat.onNet(m) || this.haunt.onNet(m) || this.inc.onNet(m) || this.radio.onNet(m) || this.rec.onNet(m) || this.thr.onNet(m) || this.sig.onNet(m) || this.revival.onNet(m) || this.sd.onNet(m) || this.db.onNet(m) || this.esc.onNet(m) || this.cl.onNet(m) || this.lan.onNet(m) || this.mo.onNet(m) || this.tr.onNet(m) || this.fair.onNet(m) || this.mc.onNet(m) || this.pt.onNet(m) || this.swarm.onNet(m)) return;
     switch (m.t) {
       case 'doorSet': {
         const d = this.level.idoors[m.i | 0];
