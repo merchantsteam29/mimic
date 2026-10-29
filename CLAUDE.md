@@ -461,6 +461,10 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - **The Babysitter** (`BABYSITTER` in story.js, book `babysitter`, key `mimic.story.babysitter`): the third solo story, 5 chapters (house, house,
   hotel, hospital, house again). Its lures use `playVoice(..., 'child')` (your voice made small). Recording parts Mrs. Hale / Mr. Hale / Kayla /
   Lily / Sam in record/lines.js; `voices/babysitter/<ch>-<tape>-<line>`.
+- **Sewers** theme (`sewer`, look `facility`, `sewer: true`, no vents): `Level.wet(x, z)` = a corridor cell (every passage is a water channel);
+  `buildSewer` puts water at `WATER_Y` (0.62) over them and a stone lip where a channel meets a room. Wading: `landmarks.slow` 0.6 and
+  `splash` (ripples on the `channel` pseudo-landmark), `surfaceAt` 'water' (STEP_CARRY 1.6, a splash in `sfx.footstep`), the mimic at 0.8x.
+  Props bigpipe / valve / ladder (a manhole above) / sludge, `culvert` to hide in (vent kind). The swarm is always on alone. Code `D`.
 - **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
   on touch the objectives sit below the pause / jobs buttons.
 

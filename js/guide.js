@@ -47,6 +47,8 @@ const SECTIONS = [
       survive: 'Half the time it doesn\'t think to look. If it does, the heartbeat.' },
     { name: 'Vents', file: 'Hiding 03', what: 'Low grates in the walls of the bigger buildings.', tells: 'They clang when you get in and out, and it hears that.',
       survive: 'It can\'t follow you in. It will wait outside the grate for a while.' },
+    { name: 'Culverts', file: 'Hiding 08', what: 'In the sewers. Round pipe mouths in the wall, the bars bent apart.', tells: 'Like a vent: it can\'t follow you in.',
+      survive: 'Getting in and out makes a noise, and it hears that.' },
     { name: 'Crawl spaces', file: 'Hiding 07', what: 'In the mine. Low holes dug into the rock, propped up with timber.', tells: 'Like a vent: it can\'t follow you in.',
       survive: 'It will wait outside for a while. Getting in and out knocks rock loose, and it hears that.' },
     { name: 'Photo booths', file: 'Hiding 06', what: 'In the fairground. A booth with a curtain across the front.', tells: 'The heartbeat, like a locker.',
@@ -107,8 +109,9 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'beta1-2026-10-28';
+export const RELEASE = 'beta1-2026-10-28b';
 const NOTES = [
+  ['The water down there is warm. It shouldn’t be warm. And it carries every sound you make.', 'A new place: the sewers. Every passage is a channel of black water up to your waist: you wade slowly, every step splashes, and it wades too. The chambers are dry. Hide in the culverts, where it can’t follow. The rats live down here.'],
   ['This is the last rough cut. After this one, the tape goes out to everybody. It’s been listening to all of you.', 'Mimic is in beta: nearly finished. Fourteen places, three stories, more things in the dark than we can count, and every mode we could think of. From here on it’s fixing and polishing, so if anything breaks, skips, or doesn’t feel right, press Report a bug and tell us.'],
   ['“Hi, it’s us. We’re running a little late, sorry.” The message is from last Tuesday. They called again tonight. Same words.', 'A third story: The Babysitter. A Saturday night job in a big house. The parents keep calling to say they’re on their way home. The kids say they never left. Five chapters, from the Hale house to the hotel to the old maternity ward, and back.'],
   ['Ship’s log. The passengers went below at midnight. The water went below at one. We still hear them in the cabins.', 'A new place: a liner in a storm. The whole ship rolls, the big waves throw you off your feet, the lower decks are flooded, and down in the engine room the noise is so loud nothing can hear your steps. Hide in a cabin wardrobe, or under a bunk.'],

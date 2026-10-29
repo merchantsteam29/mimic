@@ -1,4 +1,4 @@
-// The swarm. Alone it lives in the mine and the subway; online it's a lobby toggle (Normal mode) and goes anywhere.
+// The swarm. Alone it lives in the mine, the subway and the sewers; online it's a lobby toggle (Normal mode) and goes anywhere.
 // When the mimic gets near one of you (16 m), rats pour out of the dark, run the length of the corridor right past
 // you and away again. They don't hurt. They squeal: anyone they run past (within 2.2 m, not hiding) is given away,
 // and the mimic hears exactly where. Step into a room or a hiding spot and they go by. Once every 35-50 s at most.

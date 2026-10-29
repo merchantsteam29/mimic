@@ -1,5 +1,5 @@
 // Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house, a hospital, a mall, a school, a hotel, a church, an asylum,
-// the woods, a subway station, an abandoned fairground, an old mine, a research station in the snow or a ship in a storm.
+// the woods, a subway station, an abandoned fairground, an old mine, a research station in the snow, a ship in a storm or the sewers.
 // Also holds the collision, line-of-sight and path-finding the player and the mimic use.
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
@@ -141,6 +141,18 @@ export const THEMES = {
     fog: 0x030201, fogDensity: 0.1, reverb: [4.2, 0.65],
     props: ['minecart', 'crate', 'barrel', 'toolrack', 'rubble', 'minecart', 'tnt', 'crate'], hideProp: 'crawlspace', surface: 'stone',
   },
+  // The sewers: every passage is a channel of black water up to your waist (level.wet: you wade, slowly, and every
+  // step splashes; it wades too). The rooms are dry chambers: pump rooms, junctions, overflow tanks, with ladders up
+  // to manholes that let in a little light. Built like the facility (metal doors, keycards). Hide in the culverts:
+  // round pipe mouths in the wall, too narrow for it (they work like vents). The rats live down here.
+  sewer: {
+    id: 'sewer', look: 'facility', sewer: true, kicker: 'Storm drains under the city',
+    names: ['Holloway Main Drain · Section 9', 'Kestrel Street Outfall', 'The Victoria Interceptor (1888)', 'Ashgrove Overflow Chamber'],
+    size: 30, roomSize: [3, 6], tries: 150, minRooms: 9,
+    light: 0xd8e0b0, lightIntensity: 6, corridorLights: true, flicker: 0.6, broken: 0.45,
+    fog: 0x030403, fogDensity: 0.085, reverb: [3.4, 0.6],
+    props: ['bigpipe', 'valve', 'ladder', 'sludge', 'crate', 'bigpipe', 'barrel', 'ladder'], hideProp: 'culvert', surface: 'stone',
+  },
   // A liner in a storm: cabins off long passages, the dining saloon, the lower decks flooded (landmarks.js), the engine
   // room (the biggest room gets the engine: ship.js). Built like the house (hanging lamps, wooden doors, a key). The whole
   // ship rolls, the storm never lets up. Hide in the cabin wardrobes, or under the bunks.
@@ -178,6 +190,7 @@ const PROP_DEFS = {
   bunk: { w: 0.95, d: 1.95 }, restraint: { w: 0.8, d: 0.8 }, tub: { w: 0.9, d: 1.8 }, isolation: { w: 1.1, d: 1.0 },
   pew: { w: 1.9, d: 0.75 }, altar: { w: 1.6, d: 0.9 }, candelabra: { w: 0.6, d: 0.6 }, lectern: { w: 0.7, d: 0.6 }, statue: { w: 0.7, d: 0.7 },
   confessional: { w: 1.3, d: 1.0 },
+  bigpipe: { w: 1.8, d: 0.6 }, valve: { w: 0.9, d: 0.6 }, ladder: { w: 0.7, d: 0.25 }, sludge: { w: 1.2, d: 1.0 }, culvert: { w: 1.3, d: 0.5 },
   deckchair: { w: 0.7, d: 1.5 }, diningtable: { w: 1.6, d: 1.0 }, lifebuoy: { w: 0.8, d: 0.2 }, rope: { w: 0.9, d: 0.9 }, piano: { w: 1.5, d: 0.7 },
   engine: { w: 1.8, d: 1.2 },
   console: { w: 1.4, d: 0.7 }, radioset: { w: 1.4, d: 0.7 }, heater: { w: 0.6, d: 0.4 }, skis: { w: 1.2, d: 0.3 },
@@ -532,10 +545,10 @@ const center = (c) => (c + 0.5) * CELL;
 //   bed     under a bed: half the time it doesn't think to look; if it does, the heartbeat game
 //   vent    in the wall: it can't follow you in, but getting in and out is loud
 //   curtain behind a curtain: quick, but your feet show: if it comes close, it has you
-export const HIDE_KIND = { bed: 'bed', bunk: 'bed', curtain: 'curtain', vent: 'vent', crawlspace: 'vent' };
+export const HIDE_KIND = { bed: 'bed', bunk: 'bed', curtain: 'curtain', vent: 'vent', crawlspace: 'vent', culvert: 'vent' };
 
 // How far a footstep carries on each floor (x the usual step noise).
-export const STEP_CARRY = { carpet: 0.7, wood: 1, hard: 1, stone: 1.1, dirt: 1 };
+export const STEP_CARRY = { carpet: 0.7, wood: 1, hard: 1, stone: 1.1, dirt: 1, water: 1.6 };
 
 export class Level {
   constructor(data) {
@@ -551,7 +564,7 @@ export class Level {
     if (this.theme.snow) { const r = this.props.find((p) => p.type === 'console'); if (r) r.type = 'radioset'; }
     this.exitOpen = false;
     // Vents (facility-built places): a few low grates in room walls, from the seed. Added after the layout, so maps don't change.
-    if (this.theme.look === 'facility' && !this.theme.mine) { // (the mine has crawl spaces instead)
+    if (this.theme.look === 'facility' && !this.theme.mine && !this.theme.sewer) { // (the mine has crawl spaces, the sewers culverts)
       const rand = mulberry32(this.seed ^ 0x7e47), N = this.N, cells = [];
       const taken = new Set(this.props.map((q) => q.cz * N + q.cx));
       for (let z = 1; z < N - 1; z++) for (let x = 1; x < N - 1; x++) {
@@ -614,9 +627,13 @@ export class Level {
   surfaceAt(x, z) {
     const th = this.theme;
     if (th.snow) return this.outside(x, z) ? 'snow' : th.surface;
+    if (th.sewer && this.wet(x, z)) return 'water';
     if (th.outdoor) return this.roomId[this.cellOf(z) * this.N + this.cellOf(x)] === this.spawnRoom ? 'wood' : 'dirt';
     return th.surface;
   }
+  // In the water (the sewers' channels: every passage, none of the rooms).
+  wet(x, z) { if (!this.theme.sewer) return false; const cx = this.cellOf(x), cz = this.cellOf(z); return this.get(cx, cz) === FLOOR && this.roomId[cz * this.N + cx] < 0; }
+
   // Out in the open (a snow station's yard): no roof, the blizzard, the cold.
   outside(x, z) { return this.yardSet.size > 0 && this.yardSet.has(this.roomId[this.cellOf(z) * this.N + this.cellOf(x)]); }
 
@@ -917,6 +934,33 @@ function buildProp(type, M) {
       for (let i = 0; i < 3; i++) if (r() < 0.75) g.add(box(0.5 + r() * 0.3, 0.3, 0.42, M.clothes[Math.floor(r() * M.clothes.length)], (r() - 0.5) * 0.3, 0.36 + i * 0.32, 0));
       for (const x of [-0.42, 0.42]) for (const z of [-0.22, 0.22]) g.add(cyl(0.05, 0.05, 0.04, M.black, x, 0.05, z, 8));
       break;
+    case 'bigpipe': // a great iron pipe along the wall, sweating, a joint leaking
+      { const p = cyl(0.35, 0.35, 1.8, M.rust, 0, 0.5, -0.05, 14); p.rotation.z = Math.PI / 2; g.add(p); }
+      for (const x of [-0.7, 0.7]) { const c = cyl(0.39, 0.39, 0.1, M.metal, x, 0.5, -0.05, 14); c.rotation.z = Math.PI / 2; g.add(c); }
+      break;
+    case 'valve': // a sluice valve: a wheel on a stand
+      g.add(box(0.5, 0.9, 0.4, M.metal, 0, 0.45, -0.05), cyl(0.06, 0.06, 0.3, M.metal, 0, 1.0, -0.05, 8));
+      { const w = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.03, 6, 16), M.rust); w.position.set(0, 1.15, 0.05); g.add(shadowed(w)); }
+      break;
+    case 'ladder': { // rungs up the wall to a manhole, and a little grey light coming down
+      for (const x of [-0.25, 0.25]) g.add(box(0.05, WALL_H, 0.05, M.metal, x, WALL_H / 2, -0.05));
+      for (let y = 0.3; y < WALL_H; y += 0.3) g.add(box(0.5, 0.03, 0.03, M.metal, 0, y, -0.05));
+      const hole = new THREE.Mesh(new THREE.CircleGeometry(0.38, 16), new THREE.MeshBasicMaterial({ color: 0x3a4248 })); // the manhole, a little grey night above
+      hole.rotation.x = Math.PI / 2; hole.position.set(0, WALL_H - 0.01, 0.25);
+      g.add(hole);
+      break;
+    }
+    case 'sludge': // a heap of silt and rubbish washed up in the corner
+      { const s = new THREE.Mesh(new THREE.SphereGeometry(0.7, 10, 6), M.sludgeMat); s.scale.set(1, 0.35, 0.8); s.position.y = 0; g.add(shadowed(s)); }
+      for (let i = 0; i < 4; i++) { const b = box(0.15 + r() * 0.2, 0.05, 0.1 + r() * 0.2, M.paper, (r() - 0.5) * 0.8, 0.22, (r() - 0.5) * 0.5); b.rotation.y = r() * 3; g.add(b); }
+      break;
+    case 'culvert': { // a round pipe mouth in the wall, big enough to crawl into. You can hide in it
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.08, 8, 18), M.rust); ring.position.set(0, 0.5, -0.18); g.add(shadowed(ring));
+      const dark = new THREE.Mesh(new THREE.CircleGeometry(0.42, 18), new THREE.MeshBasicMaterial({ color: 0x010101 })); dark.position.set(0, 0.5, -0.2); g.add(dark);
+      for (let i = 0; i < 5; i++) g.add(box(0.03, 0.8, 0.03, M.metal, -0.3 + i * 0.15, 0.5, -0.12)); // the bars, bent apart
+      g.children[g.children.length - 3].rotation.z = 0.5; g.children[g.children.length - 2].rotation.z = -0.4;
+      break;
+    }
     case 'deckchair': { // a wooden deck chair, folded half shut, a blanket left on it
       const back = box(0.6, 0.05, 0.8, M.wood, 0, 0.55, -0.35); back.rotation.x = -0.9; g.add(back);
       g.add(box(0.6, 0.05, 0.9, M.wood, 0, 0.35, 0.25), box(0.04, 0.35, 0.04, M.darkWood, -0.28, 0.17, 0.6), box(0.04, 0.35, 0.04, M.darkWood, 0.28, 0.17, 0.6));
@@ -1344,6 +1388,31 @@ function buildTrack(level, tex, M, group) {
   }
 }
 
+// The sewers: black water up to the waist along every passage.
+export const WATER_Y = 0.62;
+function buildSewer(level, group) {
+  const N = level.N, cells = [];
+  for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) if (level.get(x, z) === FLOOR && level.roomId[z * N + x] < 0) cells.push([x, z]);
+  const water = new THREE.InstancedMesh(new THREE.PlaneGeometry(CELL, CELL), new THREE.MeshStandardMaterial({ color: 0x2a3220, roughness: 0.22, metalness: 0.35, transparent: true, opacity: 0.88 }), Math.max(1, cells.length));
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2), one = new THREE.Vector3(1, 1, 1), p = new THREE.Vector3();
+  cells.forEach(([x, z], i) => water.setMatrixAt(i, m4.compose(p.set(center(x), WATER_Y, center(z)), q, one)));
+  water.count = cells.length;
+  water.receiveShadow = true;
+  group.add(water);
+  // A stone lip where a channel meets a dry room, so the water has an edge.
+  const lips = [];
+  for (const [x, z] of cells) for (const [dx, dz] of DIRS) {
+    if (level.get(x + dx, z + dz) !== FLOOR || level.roomId[(z + dz) * N + (x + dx)] < 0) continue;
+    lips.push([center(x) + dx * (CELL / 2), center(z) + dz * (CELL / 2), dx !== 0]);
+  }
+  const lip = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, WATER_Y + 0.1, 0.24), new THREE.MeshStandardMaterial({ color: 0x4a443a, roughness: 0.9 }), Math.max(1, lips.length));
+  const qy = new THREE.Quaternion();
+  lips.forEach(([x, z, alongZ], i) => { qy.setFromAxisAngle(new THREE.Vector3(0, 1, 0), alongZ ? Math.PI / 2 : 0); lip.setMatrixAt(i, m4.compose(p.set(x, (WATER_Y + 0.1) / 2, z), qy, one)); });
+  lip.count = lips.length;
+  lip.castShadow = lip.receiveShadow = true;
+  group.add(lip);
+}
+
 // The mine: timber frames propping up the tunnels every few metres, and rails down the straight runs.
 function buildMine(level, M, group) {
   const N = level.N, frames = [], rails = [];
@@ -1417,6 +1486,7 @@ export function buildLevelScene(level) {
     tntRed: new THREE.MeshStandardMaterial({ color: 0x7a1a12, roughness: 0.7 }),
     radioBox: new THREE.MeshStandardMaterial({ color: 0x3a4a3a, roughness: 0.6, metalness: 0.3 }),
     buoy: new THREE.MeshStandardMaterial({ color: 0xc8b8a0, roughness: 0.7 }),
+    sludgeMat: new THREE.MeshStandardMaterial({ color: 0x2a2818, roughness: 0.6, metalness: 0.2 }),
     ropeMat: new THREE.MeshStandardMaterial({ color: 0x7a6a4a, roughness: 1 }),
     heatGlow: new THREE.MeshStandardMaterial({ color: 0x401008, emissive: 0xff4010, emissiveIntensity: 0.8 }),
     snowDrift: new THREE.MeshStandardMaterial({ color: 0xdfe6ee, roughness: 0.95 }),
@@ -1482,6 +1552,7 @@ export function buildLevelScene(level) {
   } else buildWoods(level, wallCells, tex, mat, group);
   if (level.tunnel) buildTrack(level, tex, M, group);
   if (th.mine) buildMine(level, M, group);
+  if (th.sewer) buildSewer(level, group);
 
   // Furniture.
   for (const p of level.props) {

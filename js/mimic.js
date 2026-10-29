@@ -516,7 +516,7 @@ export class Mimic {
     if (dist < 0.2) { this.path.shift(); return !this.path.length; }
     const pace = this.gaitStep(dt);
     if (!pace) { this.speed = 0; return false; } // stopped dead, the way you do
-    const step = Math.min(dist, speed * pace * this.diff.speed * dt);
+    const step = Math.min(dist, speed * pace * this.diff.speed * dt * (this.level.wet(this.x, this.z) ? 0.8 : 1)); // (it wades too)
     const p = { x: this.x + (dx / dist) * step, z: this.z + (dz / dist) * step };
     lv.collide(p, RADIUS);
     const moved = Math.hypot(p.x - this.x, p.z - this.z);

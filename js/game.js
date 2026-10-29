@@ -188,7 +188,7 @@ export class Game {
     this.snow = new Snow(this);                        // the snow station: the blizzard, the cold, the radio
     this.ship = new Ship(this);                        // the ship: the roll, the storm, the engine
     // The rats: online a lobby toggle; alone, they live in the mine and the subway.
-    this.swarm = new Swarm(this, !hunter && !room && (mp ? swarm : ['mine', 'subway'].includes(themeId) && !story && !tutorial));
+    this.swarm = new Swarm(this, !hunter && !room && (mp ? swarm : ['mine', 'subway', 'sewer'].includes(themeId) && !story && !tutorial));
     // The clown: online a lobby toggle; alone, it lives in the fairground.
     this.mc = new Mascot(this, !hunter && (mp ? mascot : themeId === 'fair' && !story && !tutorial && !room));
     // The patient: online a lobby toggle; alone, it lives in the hospital and the asylum.

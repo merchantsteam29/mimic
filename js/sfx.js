@@ -10,7 +10,7 @@ const DISTANT = {
   facility: ['clank', 'vent', 'pipes', 'slam'], house: ['creak', 'creak', 'pipes', 'slam'], hospital: ['squeak', 'clank', 'vent', 'slam'],
   mall: ['cart', 'clank', 'slam'], school: ['locker', 'locker', 'bell', 'creak'], hotel: ['ding', 'creak', 'pipes', 'slam'],
   church: ['wings', 'creak', 'gust'], asylum: ['whimper', 'clank', 'pipes', 'slam'], forest: ['owl', 'gust', 'creak'],
-  subway: ['screech', 'vent', 'clank', 'pipes', 'screech'], fair: ['creak', 'gust', 'clank', 'creak'], mine: ['creak', 'clank', 'creak', 'pipes'], ship: ['creak', 'clank', 'slam', 'creak', 'pipes'], snow: ['gust', 'clank', 'creak', 'gust'],
+  subway: ['screech', 'vent', 'clank', 'pipes', 'screech'], fair: ['creak', 'gust', 'clank', 'creak'], mine: ['creak', 'clank', 'creak', 'pipes'], ship: ['creak', 'clank', 'slam', 'creak', 'pipes'], sewer: ['pipes', 'clank', 'gust', 'pipes', 'slam'], snow: ['gust', 'clank', 'creak', 'gust'],
 };
 
 function distortionCurve(k) {
@@ -172,6 +172,7 @@ export class Sfx {
       if (Math.random() < 0.07) this._noise(dest, { t: t + 0.05, dur: 0.03, type: 'highpass', freq: 2500, q: 0.7, peak: 0.25 * vol }); // a twig
       return;
     }
+    if (!heavy && surface === 'water') { this.splash(emitter, 0.6 * vol); return; } // wading
     if (!heavy && surface === 'snow') { // crunching through fresh snow
       const t = this.now;
       this._noise(dest, { t, dur: 0.16, type: 'lowpass', freq: 1400, q: 0.7, peak: 0.22 * vol, attack: 0.02 });
@@ -721,6 +722,18 @@ export class Sfx {
         const g = ctx.createGain(); g.gain.value = [0.012, 0.01, 0.008, 0.005][i];
         o.connect(lp).connect(g).connect(bus); g.connect(this.send); o.start(); nodes.push(o);
       });
+    } else if (theme === 'sewer') {
+      // Water running through the channels, and somewhere a bigger flow, roaring far off.
+      const src = ctx.createBufferSource(); src.buffer = this.white; src.loop = true;
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 0.7;
+      const wg = ctx.createGain(); wg.gain.value = 0.025;
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.3; const lg = ctx.createGain(); lg.gain.value = 0.01;
+      lfo.connect(lg).connect(wg.gain); lfo.start(); nodes.push(lfo);
+      src.connect(bp).connect(wg).connect(bus); src.start(); nodes.push(src);
+      const far = ctx.createBufferSource(); far.buffer = this.brown; far.loop = true;
+      const flp = ctx.createBiquadFilter(); flp.type = 'lowpass'; flp.frequency.value = 220;
+      const fg = ctx.createGain(); fg.gain.value = 0.06;
+      far.connect(flp).connect(fg).connect(bus); far.start(); nodes.push(far);
     } else if (theme === 'ship') {
       // The sea against the hull, swelling and falling, and the timbers straining.
       const src = ctx.createBufferSource(); src.buffer = this.brown; src.loop = true;

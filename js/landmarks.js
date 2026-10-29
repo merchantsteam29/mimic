@@ -7,7 +7,7 @@
 //   shrine   - a ring of candles on the floor around a chalk circle. The first time, they go out one by one,
 //              and something whispers behind you.
 import * as THREE from 'three';
-import { mulberry32, CELL, FLOOR, WALL_H } from './level.js';
+import { mulberry32, CELL, FLOOR, WALL_H, WATER_Y } from './level.js';
 
 const KINDS = ['flood', 'collapse', 'shrine'];
 
@@ -115,10 +115,11 @@ export class Landmarks {
   at(x, z) { return this.list.find((L) => x > L.x0 && x < L.x1 && z > L.z0 && z < L.z1); }
 
   // Wading slows you down.
-  slow(x, z) { return this.at(x, z)?.kind === 'flood' ? 0.68 : 1; }
+  slow(x, z) { return this.at(x, z)?.kind === 'flood' ? 0.68 : this.g.level.wet(x, z) ? 0.6 : 1; } // (the sewers' channels are deeper)
 
   // A footstep here: true if it splashed (louder).
   splash(x, z) {
+    if (this.g.level.wet(x, z)) { this.g.sfx.splash?.(null, 0.9); this.ring(this.channel ||= this.addChannel(), x, z, WATER_Y + 0.01); return true; }
     const L = this.at(x, z);
     if (L?.kind !== 'flood') return false;
     this.g.sfx.splash?.(null, 0.7);
@@ -126,10 +127,13 @@ export class Landmarks {
     return true;
   }
 
-  ring(L, x, z) {
+  // The sewers' channels, for their ripples (never matches at(): an empty box).
+  addChannel() { const C = { kind: 'channel', seen: true, rings: [], x0: 1, x1: 0, z0: 1, z1: 0 }; this.list.push(C); return C; }
+
+  ring(L, x, z, y = 0.1) {
     const m = new THREE.Mesh(new THREE.RingGeometry(0.05, 0.09, 24), new THREE.MeshBasicMaterial({ color: 0x8a948e, transparent: true, opacity: 0.5, depthWrite: false }));
     m.rotation.x = -Math.PI / 2;
-    m.position.set(x, 0.1, z);
+    m.position.set(x, y, z);
     this.g.world.group.add(m);
     L.rings.push({ m, t: 0 });
   }
