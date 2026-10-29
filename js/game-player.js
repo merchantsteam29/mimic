@@ -68,7 +68,7 @@ export const PlayerPart = {
     const surface = this.level.surfaceAt(p.x, p.z);
     this.sfx.footstep(null, { vol: p.crouch ? 0.3 : run ? 1.1 : 0.65, surface });
     const wet = this.marks.splash(p.x, p.z); // wading: every step splashes
-    this.noise((p.crouch ? 1 : run ? this.ab.sprintNoise : 3) * this.inc.stepScale * this.fair.stepScale * (wet ? 1.6 : STEP_CARRY[surface] || 1) * this.ab.stepMul, 'step');
+    this.noise((p.crouch ? 1 : run ? this.ab.sprintNoise : 3) * this.inc.stepScale * this.fair.stepScale * this.ship.stepScale(p.x, p.z) * (wet ? 1.6 : STEP_CARRY[surface] || 1) * this.ab.stepMul, 'step');
     if (this.ab.id === 'mechanic' && !p.crouch) this.sfx.clink(); // the tools on their belt
   },
 

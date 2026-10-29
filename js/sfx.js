@@ -10,7 +10,7 @@ const DISTANT = {
   facility: ['clank', 'vent', 'pipes', 'slam'], house: ['creak', 'creak', 'pipes', 'slam'], hospital: ['squeak', 'clank', 'vent', 'slam'],
   mall: ['cart', 'clank', 'slam'], school: ['locker', 'locker', 'bell', 'creak'], hotel: ['ding', 'creak', 'pipes', 'slam'],
   church: ['wings', 'creak', 'gust'], asylum: ['whimper', 'clank', 'pipes', 'slam'], forest: ['owl', 'gust', 'creak'],
-  subway: ['screech', 'vent', 'clank', 'pipes', 'screech'], fair: ['creak', 'gust', 'clank', 'creak'], mine: ['creak', 'clank', 'creak', 'pipes'], snow: ['gust', 'clank', 'creak', 'gust'],
+  subway: ['screech', 'vent', 'clank', 'pipes', 'screech'], fair: ['creak', 'gust', 'clank', 'creak'], mine: ['creak', 'clank', 'creak', 'pipes'], ship: ['creak', 'clank', 'slam', 'creak', 'pipes'], snow: ['gust', 'clank', 'creak', 'gust'],
 };
 
 function distortionCurve(k) {
@@ -595,6 +595,13 @@ export class Sfx {
     this._tone(d, { type: 'sine', freq: 1000, dur: seconds, peak: 0.04, attack: 0.01 });
   }
 
+  // The ship's engine (ship.js): a deep thump, and the hiss of steam after it.
+  engineThump(emitter) {
+    const d = emitter ? emitter.input : this.master, t = this.now;
+    this._tone(d, { type: 'sine', freq: 48, dur: 0.3, peak: 0.5, attack: 0.01 });
+    this._noise(d, { t: t + 0.08, dur: 0.25, type: 'highpass', freq: 3000, q: 0.5, peak: 0.05, attack: 0.03 });
+  }
+
   // The blizzard's wind (snow.js): a loop whose loudness follows how far outside you are. Returns { set(v), stop() }.
   wind() {
     const ctx = this.ctx, src = ctx.createBufferSource();
@@ -713,6 +720,14 @@ export class Sfx {
         const g = ctx.createGain(); g.gain.value = [0.012, 0.01, 0.008, 0.005][i];
         o.connect(lp).connect(g).connect(bus); g.connect(this.send); o.start(); nodes.push(o);
       });
+    } else if (theme === 'ship') {
+      // The sea against the hull, swelling and falling, and the timbers straining.
+      const src = ctx.createBufferSource(); src.buffer = this.brown; src.loop = true;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 260;
+      const wg = ctx.createGain(); wg.gain.value = 0.09;
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.11; const lg = ctx.createGain(); lg.gain.value = 0.07;
+      lfo.connect(lg).connect(wg.gain); lfo.start(); nodes.push(lfo);
+      src.connect(lp).connect(wg).connect(bus); src.start(); nodes.push(src);
     } else if (theme === 'mine') {
       // Deep underground: a low moan of air through the shafts, and water dripping, slow, echoing.
       const src = ctx.createBufferSource(); src.buffer = this.brown; src.loop = true;

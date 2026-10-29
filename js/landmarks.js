@@ -36,6 +36,14 @@ export class Landmarks {
       this[kind](L, r);
       this.list.push(L);
     }
+    // The ship: everything in the bottom third is flooded (no first-time moment: it's just how it is down there).
+    if (lv.theme.ship) for (const rm of lv.rooms) {
+      if (rm.id === 0 || rm.id === exitRoom || rm.cz < lv.N * 0.66 || this.list.some((L) => L.room === rm)) continue;
+      const L = { kind: 'flood', room: rm, seen: true, x0: rm.x * CELL, z0: rm.z * CELL, x1: (rm.x + rm.w) * CELL, z1: (rm.z + rm.h) * CELL };
+      L.mid = { x: (L.x0 + L.x1) / 2, z: (L.z0 + L.z1) / 2 };
+      this.flood(L);
+      this.list.push(L);
+    }
     this.em = g.sfx.emitter();
   }
 

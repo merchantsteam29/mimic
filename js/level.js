@@ -1,5 +1,5 @@
 // Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house, a hospital, a mall, a school, a hotel, a church, an asylum,
-// the woods, a subway station, an abandoned fairground, an old mine or a research station in the snow.
+// the woods, a subway station, an abandoned fairground, an old mine, a research station in the snow or a ship in a storm.
 // Also holds the collision, line-of-sight and path-finding the player and the mimic use.
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
@@ -141,6 +141,17 @@ export const THEMES = {
     fog: 0x030201, fogDensity: 0.1, reverb: [4.2, 0.65],
     props: ['minecart', 'crate', 'barrel', 'toolrack', 'rubble', 'minecart', 'tnt', 'crate'], hideProp: 'crawlspace', surface: 'stone',
   },
+  // A liner in a storm: cabins off long passages, the dining saloon, the lower decks flooded (landmarks.js), the engine
+  // room (the biggest room gets the engine: ship.js). Built like the house (hanging lamps, wooden doors, a key). The whole
+  // ship rolls, the storm never lets up. Hide in the cabin wardrobes, or under the bunks.
+  ship: {
+    id: 'ship', look: 'house', ship: true, kicker: 'Liner in a storm, North Atlantic',
+    names: ['SS Kestrel · B Deck', 'RMS Blackmoor (lost 1931)', 'MV Holloway Star', 'The Ashgrove Queen · Second Class'],
+    size: 30, roomSize: [3, 6], tries: 150, minRooms: 10,
+    light: 0xffc890, lightIntensity: 6, corridorLights: true, flicker: 0.6, broken: 0.4,
+    fog: 0x030304, fogDensity: 0.07, reverb: [1.4, 0.3],
+    props: ['deckchair', 'diningtable', 'bunk', 'lifebuoy', 'crate', 'rope', 'piano', 'bunk'], hideProp: 'wardrobe', surface: 'wood',
+  },
   // A research station in the snow: huts joined by tunnels, and between some of them open yards with no roof, where the
   // blizzard is (level.yards: snow.js makes you freeze out there). Built like the facility (tube lights, metal doors,
   // keycards). Hide in the lockers. One hut has the radio set, and it still picks things up.
@@ -167,6 +178,8 @@ const PROP_DEFS = {
   bunk: { w: 0.95, d: 1.95 }, restraint: { w: 0.8, d: 0.8 }, tub: { w: 0.9, d: 1.8 }, isolation: { w: 1.1, d: 1.0 },
   pew: { w: 1.9, d: 0.75 }, altar: { w: 1.6, d: 0.9 }, candelabra: { w: 0.6, d: 0.6 }, lectern: { w: 0.7, d: 0.6 }, statue: { w: 0.7, d: 0.7 },
   confessional: { w: 1.3, d: 1.0 },
+  deckchair: { w: 0.7, d: 1.5 }, diningtable: { w: 1.6, d: 1.0 }, lifebuoy: { w: 0.8, d: 0.2 }, rope: { w: 0.9, d: 0.9 }, piano: { w: 1.5, d: 0.7 },
+  engine: { w: 1.8, d: 1.2 },
   console: { w: 1.4, d: 0.7 }, radioset: { w: 1.4, d: 0.7 }, heater: { w: 0.6, d: 0.4 }, skis: { w: 1.2, d: 0.3 },
   snowmobile: { w: 1.0, d: 2.0 }, drift: { w: 1.6, d: 1.2 }, fuel: { w: 1.2, d: 0.8 }, antenna: { w: 0.8, d: 0.8 },
   minecart: { w: 1.0, d: 1.4 }, toolrack: { w: 1.4, d: 0.4 }, rubble: { w: 1.2, d: 1.0 }, tnt: { w: 0.8, d: 0.6 }, crawlspace: { w: 1.2, d: 0.5 },
@@ -528,6 +541,12 @@ export class Level {
   constructor(data) {
     Object.assign(this, data);
     this.yardSet = new Set(this.yards || []);
+    // The ship's engine: the first crate in the biggest room (not the first or the exit room) becomes the engine.
+    if (this.theme.ship) {
+      const big = this.rooms.filter((r) => r.id !== this.spawnRoom && r.id !== this.exitRoom).sort((a, b) => b.w * b.h - a.w * a.h);
+      const e = big.map((r) => this.props.find((p) => p.room === r.id && p.type === 'crate')).find(Boolean);
+      if (e) e.type = 'engine';
+    }
     // The snow station's radio: the first console in a hut becomes the radio set.
     if (this.theme.snow) { const r = this.props.find((p) => p.type === 'console'); if (r) r.type = 'radioset'; }
     this.exitOpen = false;
@@ -898,6 +917,33 @@ function buildProp(type, M) {
       for (let i = 0; i < 3; i++) if (r() < 0.75) g.add(box(0.5 + r() * 0.3, 0.3, 0.42, M.clothes[Math.floor(r() * M.clothes.length)], (r() - 0.5) * 0.3, 0.36 + i * 0.32, 0));
       for (const x of [-0.42, 0.42]) for (const z of [-0.22, 0.22]) g.add(cyl(0.05, 0.05, 0.04, M.black, x, 0.05, z, 8));
       break;
+    case 'deckchair': { // a wooden deck chair, folded half shut, a blanket left on it
+      const back = box(0.6, 0.05, 0.8, M.wood, 0, 0.55, -0.35); back.rotation.x = -0.9; g.add(back);
+      g.add(box(0.6, 0.05, 0.9, M.wood, 0, 0.35, 0.25), box(0.04, 0.35, 0.04, M.darkWood, -0.28, 0.17, 0.6), box(0.04, 0.35, 0.04, M.darkWood, 0.28, 0.17, 0.6));
+      if (r() < 0.5) g.add(box(0.55, 0.03, 0.6, M.fabric, 0.02, 0.39, 0.25));
+      break;
+    }
+    case 'diningtable': // a saloon table, the cloth slid half off, a plate smashed on the floor
+      g.add(box(1.6, 0.05, 1.0, M.darkWood, 0, 0.74, 0), cyl(0.07, 0.25, 0.72, M.darkWood, 0, 0.36, 0, 10));
+      { const cloth = box(1.3, 0.01, 1.1, M.sheet, 0.25, 0.77, 0); cloth.rotation.z = -0.04; g.add(cloth); }
+      for (let i = 0; i < 3; i++) g.add(cyl(0.1, 0.1, 0.01, M.white, (r() - 0.5) * 1.2, i === 2 ? 0.006 : 0.78, (r() - 0.5) * 0.6, 12));
+      break;
+    case 'lifebuoy': // a life ring on the wall, the ship's name half worn off
+      { const ring = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.08, 8, 20), M.buoy); ring.position.set(0, 1.4, -0.05); g.add(shadowed(ring)); }
+      break;
+    case 'rope': // a coil of rope
+      for (let i = 0; i < 4; i++) { const c = new THREE.Mesh(new THREE.TorusGeometry(0.35 - i * 0.02, 0.04, 6, 18), M.ropeMat); c.rotation.x = Math.PI / 2; c.position.y = 0.04 + i * 0.07; g.add(shadowed(c)); }
+      break;
+    case 'piano': // an upright piano, its lid up, keys yellow
+      g.add(box(1.5, 1.25, 0.6, M.darkWood, 0, 0.62, 0), box(1.4, 0.05, 0.25, M.white, 0, 0.78, 0.38), box(1.5, 0.08, 0.3, M.darkWood, 0, 0.74, 0.38));
+      break;
+    case 'engine': { // the ship's engine: a great iron block, pipes, and the pistons still going (ship.js moves them)
+      g.add(box(1.8, 1.4, 1.1, M.rust, 0, 0.7, 0), box(1.9, 0.12, 1.2, M.metal, 0, 1.46, 0));
+      for (const x of [-0.9, 0.9]) g.add(cyl(0.08, 0.08, 1.8, M.metal, x, 1.3, -0.4, 8));
+      const pistons = [-0.55, 0, 0.55].map((x) => { const p = cyl(0.14, 0.14, 0.7, M.metal, x, 1.8, 0, 10); p.userData.y0 = 1.8; g.add(p); return p; });
+      g.userData.pistons = pistons;
+      break;
+    }
     case 'console': // a bank of old instruments, dials and a dead screen
     case 'radioset': { // ...or the radio set: a big receiver, a microphone on a stand, headphones
       g.add(box(1.4, 0.8, 0.7, M.metal, 0, 0.4, 0), box(1.4, 0.5, 0.2, M.metal, 0, 1.05, -0.25));
@@ -1370,6 +1416,8 @@ export function buildLevelScene(level) {
     vend: new THREE.MeshStandardMaterial({ color: 0x5a1a16, roughness: 0.5, metalness: 0.3 }),
     tntRed: new THREE.MeshStandardMaterial({ color: 0x7a1a12, roughness: 0.7 }),
     radioBox: new THREE.MeshStandardMaterial({ color: 0x3a4a3a, roughness: 0.6, metalness: 0.3 }),
+    buoy: new THREE.MeshStandardMaterial({ color: 0xc8b8a0, roughness: 0.7 }),
+    ropeMat: new THREE.MeshStandardMaterial({ color: 0x7a6a4a, roughness: 1 }),
     heatGlow: new THREE.MeshStandardMaterial({ color: 0x401008, emissive: 0xff4010, emissiveIntensity: 0.8 }),
     snowDrift: new THREE.MeshStandardMaterial({ color: 0xdfe6ee, roughness: 0.95 }),
     awningHat: new THREE.MeshStandardMaterial({ color: 0x8a7a2a, roughness: 0.5 }),

@@ -107,8 +107,9 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'alpha1-2026-10-28k';
+export const RELEASE = 'alpha1-2026-10-28l';
 const NOTES = [
+  ['Ship’s log. The passengers went below at midnight. The water went below at one. We still hear them in the cabins.', 'A new place: a liner in a storm. The whole ship rolls, the big waves throw you off your feet, the lower decks are flooded, and down in the engine room the noise is so loud nothing can hear your steps. Hide in a cabin wardrobe, or under a bunk.'],
   ['We tidied up in here. It didn’t like that.', 'Simpler menus: three ways in on the title screen, the rest under More ways to play. Hosts can pick creatures as a preset (just the mimic, a few more, everything) or pick their own. Settings has a search, and the rarely used ones are under More settings, with two new ones: bigger text for captions and subtitles, and a colour-blind mode.'],
   ['The stairs only go down. We counted the floors on the way. We stopped counting.', 'Endless descent (title screen, or a lobby Mode): every way out is the way down to another floor, a new place every time, and every floor is worse than the last. There’s nothing to win. Just how deep you got.'],
   ['You hear them before you see them. Then you see them. Then it hears you.', 'The swarm: when it gets near you, rats pour down the corridor right past you, squealing, and it hears exactly where you are. They don’t bite. Step into a room or hide and let them go by. Always in the mine and the subway; online, the host can let them in anywhere.'],

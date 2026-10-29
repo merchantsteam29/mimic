@@ -453,6 +453,11 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - **Accessibility settings**: `capSize` (normal / large / huge: body `cap-large` / `cap-huge` scale #captions, #lore, #toast, #coach, #spec)
   and `cb` (colour-blind: body `cb` swaps `--red` for orange; `PLAYER_COLORS` is swapped in place to an Okabe-Ito set; versus end colours).
   No translations (the owner's choice: English is widely known).
+- **Ship** theme (`ship`, look `house`, `ship: true`): props deckchair / diningtable / bunk / lifebuoy / rope / piano, `wardrobe` to hide in;
+  `shipWall` (panelling with a porthole); the first crate in the biggest room becomes the `engine` (Level constructor). Landmarks floods every
+  room in the bottom third (`cz >= N * 0.66`, no first-time moment). The storm incident is skipped (the ship's rain never stops). Code `B`.
+- `ship.js`: the roll (`sway()` after `updateCamera`: roll +-0.035 rad, x0.4 with Fewer flashes), a big wave every 40-70 s (`lurch`, a shove
+  sideways, creaks), thunder and lightning (hemi), and the engine (pistons, `sfx.engineThump`; within 9 m `stepScale` 0.15 in the step noise).
 - **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
   on touch the objectives sit below the pause / jobs buttons.
 

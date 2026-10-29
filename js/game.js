@@ -45,6 +45,7 @@ import { Imposter } from './imposter.js';
 import { Patient } from './patient.js';
 import { Snow } from './snow.js';
 import { Swarm } from './swarm.js';
+import { Ship } from './ship.js';
 import { Escort } from './escort.js';
 import { HideSeek, hideLevel } from './hideseek.js';
 import { Escape } from './escape.js';
@@ -185,6 +186,7 @@ export class Game {
     this.tr = new Subway(this);                        // the subway: trains that don't stop
     this.fair = new Fair(this);                        // the fairground: the wheel, the ghost train, the music
     this.snow = new Snow(this);                        // the snow station: the blizzard, the cold, the radio
+    this.ship = new Ship(this);                        // the ship: the roll, the storm, the engine
     // The rats: online a lobby toggle; alone, they live in the mine and the subway.
     this.swarm = new Swarm(this, !hunter && !room && (mp ? swarm : ['mine', 'subway'].includes(themeId) && !story && !tutorial));
     // The clown: online a lobby toggle; alone, it lives in the fairground.
@@ -401,6 +403,7 @@ export class Game {
     this.tr.dispose();
     this.fair.dispose();
     this.snow.dispose();
+    this.ship.dispose();
     this.swarm.dispose();
     this.kc.dispose();
     this.trailer.dispose();
@@ -509,6 +512,7 @@ export class Game {
     this.tr.update(dt);
     this.fair.update(dt);
     this.snow.update(dt);
+    this.ship.update(dt);
     this.swarm.update(dt);
     this.mc.update(dt);
     this.pt.update(dt);
@@ -539,6 +543,7 @@ export class Game {
   render(dt) {
     if (this.state !== 'paused') this.updateLights(dt);
     this.updateCamera();
+    this.ship.sway(); // (the ship rolls)
     this.kc.render(dt); // (a replay takes the camera)
     this.trailer.render(dt);
     this.updateFlash(dt);

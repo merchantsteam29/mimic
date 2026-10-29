@@ -28,8 +28,8 @@ it coming.
 - The dead can haunt the living: flicker lights, knock, whisper. You can't tell it from the real thing.
 
 **What's in there:**
-- 13 places, a new layout every time: a research facility, an old house, a hospital, a mall, a school at night, a
-  hotel, a church, an asylum, the woods, a subway station where the trains still run, an abandoned fairground, an old mine, and a research station in a blizzard.
+- 14 places, a new layout every time: a research facility, an old house, a hospital, a mall, a school at night, a
+  hotel, a church, an asylum, the woods, a subway station where the trains still run, an abandoned fairground, an old mine, a research station in a blizzard, and a liner in a storm.
 - More than the mimic: the skinwalker that wears a living friend, a blind listener, a stalker that only moves when
   nobody's looking, a shadow that dies in the light, your own double, a phone that rings with the voices of the taken,
   a huge singing Mother, a clown that looks just like the statues, a patient that gets up when you run, and the rats that give you away.

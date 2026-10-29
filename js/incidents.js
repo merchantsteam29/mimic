@@ -28,7 +28,7 @@ export class Incidents {
     this.nextT -= dt;
     if (this.nextT > 0) return;
     this.nextT = 150 + Math.random() * 110;
-    const kinds = KINDS.filter((k) => k !== this.last && (k !== 'lock' || g.level.idoors.length >= 2));
+    const kinds = KINDS.filter((k) => k !== this.last && (k !== 'lock' || g.level.idoors.length >= 2) && (k !== 'storm' || !g.level.theme.ship)); // (the ship's storm never stops)
     const k = kinds[Math.floor(Math.random() * kinds.length)];
     this.last = k;
     const lv = g.level, T = g.targets();
