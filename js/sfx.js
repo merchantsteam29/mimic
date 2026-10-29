@@ -10,7 +10,7 @@ const DISTANT = {
   facility: ['clank', 'vent', 'pipes', 'slam'], house: ['creak', 'creak', 'pipes', 'slam'], hospital: ['squeak', 'clank', 'vent', 'slam'],
   mall: ['cart', 'clank', 'slam'], school: ['locker', 'locker', 'bell', 'creak'], hotel: ['ding', 'creak', 'pipes', 'slam'],
   church: ['wings', 'creak', 'gust'], asylum: ['whimper', 'clank', 'pipes', 'slam'], forest: ['owl', 'gust', 'creak'],
-  subway: ['screech', 'vent', 'clank', 'pipes', 'screech'], fair: ['creak', 'gust', 'clank', 'creak'], mine: ['creak', 'clank', 'creak', 'pipes'],
+  subway: ['screech', 'vent', 'clank', 'pipes', 'screech'], fair: ['creak', 'gust', 'clank', 'creak'], mine: ['creak', 'clank', 'creak', 'pipes'], snow: ['gust', 'clank', 'creak', 'gust'],
 };
 
 function distortionCurve(k) {
@@ -170,6 +170,12 @@ export class Sfx {
       for (let i = 0; i < 5; i++) this._noise(dest, { t: t + i * 0.017 + Math.random() * 0.012, dur: 0.025, freq: 2200 + Math.random() * 3000, q: 2.5, peak: 0.1 * vol });
       if (!this.rec('stepWood', emitter, { vol: 0.28 * vol, rate: 0.7, lowpass: 500 })) this._noise(dest, { t, dur: 0.08, type: 'lowpass', freq: 260, peak: 0.3 * vol });
       if (Math.random() < 0.07) this._noise(dest, { t: t + 0.05, dur: 0.03, type: 'highpass', freq: 2500, q: 0.7, peak: 0.25 * vol }); // a twig
+      return;
+    }
+    if (!heavy && surface === 'snow') { // crunching through fresh snow
+      const t = this.now;
+      this._noise(dest, { t, dur: 0.16, type: 'lowpass', freq: 1400, q: 0.7, peak: 0.22 * vol, attack: 0.02 });
+      for (let i = 0; i < 4; i++) this._noise(dest, { t: t + 0.02 + i * 0.025, dur: 0.02, freq: 3000 + Math.random() * 2500, q: 2, peak: 0.08 * vol });
       return;
     }
     if (!heavy && surface === 'carpet') { // muffled
@@ -583,9 +589,33 @@ export class Sfx {
   cloth() { this.rec('cloth', null, { vol: 0.7 }); }
 
   // The camcorder losing its signal.
-  static(seconds = 1.2) {
-    this._noise(this.master, { dur: seconds, type: 'highpass', freq: 800, q: 0.3, peak: 0.35, attack: 0.005 });
-    this._tone(this.master, { type: 'sine', freq: 1000, dur: seconds, peak: 0.04, attack: 0.01 });
+  static(seconds = 1.2, emitter = null) {
+    const d = emitter ? emitter.input : this.master;
+    this._noise(d, { dur: seconds, type: 'highpass', freq: 800, q: 0.3, peak: 0.35, attack: 0.005 });
+    this._tone(d, { type: 'sine', freq: 1000, dur: seconds, peak: 0.04, attack: 0.01 });
+  }
+
+  // The blizzard's wind (snow.js): a loop whose loudness follows how far outside you are. Returns { set(v), stop() }.
+  wind() {
+    const ctx = this.ctx, src = ctx.createBufferSource();
+    src.buffer = this.brown; src.loop = true;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 500; bp.Q.value = 0.8;
+    const howl = ctx.createOscillator(); howl.frequency.value = 0.13;
+    const hg = ctx.createGain(); hg.gain.value = 260;
+    howl.connect(hg).connect(bp.frequency);
+    const g = ctx.createGain(); g.gain.value = 0;
+    src.connect(bp).connect(g).connect(this.master);
+    src.start(); howl.start();
+    return {
+      set: (v) => g.gain.setTargetAtTime(0.11 * v, this.now, 0.4),
+      stop: () => { try { src.stop(); howl.stop(); g.disconnect(); } catch { /* ignore */ } },
+    };
+  }
+
+  // Your teeth chattering (snow.js): quick dry clicks.
+  chatter() {
+    const t = this.now;
+    for (let i = 0; i < 7; i++) this._noise(this.master, { t: t + i * 0.055 + Math.random() * 0.015, dur: 0.018, freq: 2600 + Math.random() * 900, q: 3, peak: 0.12 });
   }
 
   // Tension: 0 = nothing near, 1 = it's right there / chasing you.

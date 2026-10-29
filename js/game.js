@@ -43,6 +43,7 @@ import { Trailer } from './trailer.js';
 import { Gait } from './gait.js';
 import { Imposter } from './imposter.js';
 import { Patient } from './patient.js';
+import { Snow } from './snow.js';
 import { Escort } from './escort.js';
 import { HideSeek, hideLevel } from './hideseek.js';
 import { Escape } from './escape.js';
@@ -82,6 +83,11 @@ export class Game {
     this.hemiBase = 0.12; // (lightning flashes it brighter: incidents.js)
     this.hemi = new THREE.HemisphereLight(th.look === 'house' ? 0x6a5a48 : 0x56687a, 0x0a0806, this.hemiBase);
     scene.add(this.hemi);
+    if (th.snow) { // the station: white snow out in the yards throws back a little cold light
+      this.hemiBase = 0.2;
+      this.hemi.color.setHex(0x8a9ab0);
+      this.hemi.intensity = this.hemiBase;
+    }
     if (th.outdoor) { // the woods: no ceiling, so a little cold moonlight gets through
       this.hemiBase = 0.42;
       this.hemi.color.setHex(0x6a7a9a);
@@ -176,6 +182,7 @@ export class Game {
     this.mo = new Mother(this, mother && !hunter);     // online: the huge thing that sings in your voices
     this.tr = new Subway(this);                        // the subway: trains that don't stop
     this.fair = new Fair(this);                        // the fairground: the wheel, the ghost train, the music
+    this.snow = new Snow(this);                        // the snow station: the blizzard, the cold, the radio
     // The clown: online a lobby toggle; alone, it lives in the fairground.
     this.mc = new Mascot(this, !hunter && (mp ? mascot : themeId === 'fair' && !story && !tutorial && !room));
     // The patient: online a lobby toggle; alone, it lives in the hospital and the asylum.
@@ -384,6 +391,7 @@ export class Game {
     this.mo.dispose();
     this.tr.dispose();
     this.fair.dispose();
+    this.snow.dispose();
     this.kc.dispose();
     this.trailer.dispose();
     this.mc.dispose();
@@ -490,6 +498,7 @@ export class Game {
     this.mo.update(dt);
     this.tr.update(dt);
     this.fair.update(dt);
+    this.snow.update(dt);
     this.mc.update(dt);
     this.pt.update(dt);
     this.lan.update(dt);

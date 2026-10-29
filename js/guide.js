@@ -104,8 +104,9 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'alpha1-2026-10-28g';
+export const RELEASE = 'alpha1-2026-10-28h';
 const NOTES = [
+  ['Day 41. The radio picked something up again last night. It was my voice. I was asleep.', 'A new place: a research station in the snow. Huts joined by tunnels, and between them open yards in a blizzard: stay out there too long and you freeze, slow down, and your teeth chatter loud enough for it to hear. One hut has the radio set. Don\u2019t listen to it.'],
   ['There were four of us when we went down the shaft. There are still four of us. One of them has been very quiet.', 'A new place: an old mine, pitch black, timber holding up the roof, crawl spaces to hide in, and every voice coming back off the rock from somewhere else. A new creature: the patient, a body on a bed that sits up when you pass and gets up if you run (always in the hospital and the asylum; online, the host can let it in anywhere). And a new mode, Imposter voices: there\'s one more of you than there should be. Look at who you think it is, accuse, and vote.'],
   ["Those weren't its footsteps. They were mine. It walks like me now. It stops where I stop.", 'It watches how you move. After a while it walks like you when it isn\'t chasing: your pace, your stops, your footsteps, and if you creep, it creeps without a sound. And it practises: its first tries at your voice come out wrong, lower and catching like old tape. The longer the night goes, the better it gets.'],
   ['We found the tape from the camera that fell. It kept recording. You can see it coming up behind him the whole way.', 'When it gets you, you now see how: a replay from behind you, the last few seconds before it reached you, with the last second slowed down. Space skips it. Online, when a friend is taken while you\'re dead or out, press K to watch theirs.'],

@@ -387,7 +387,7 @@ export class Mimic {
 
   wander(P) {
     this.state = 'wander';
-    this.ceiling = !this.wearId && this.form === 1 && !this.level.theme.outdoor && Math.random() < 0.3;
+    this.ceiling = !this.wearId && this.form === 1 && !this.level.theme.outdoor && !this.level.yardSet.size && Math.random() < 0.3;
     const lv = this.level;
     // Usually drift toward the player's part of the map, sometimes anywhere.
     const near = lv.rooms.filter((r) => Math.hypot(lv.roomCenter(r.id).x - P.x, lv.roomCenter(r.id).z - P.z) < 22);
@@ -416,7 +416,7 @@ export class Mimic {
     const path = lv.findPath(this.x, this.z, best.x, best.z);
     if (!path.length) { this.stalkCd = 6; return; }
     this.state = 'stalk';
-    this.ceiling = !this.wearId && this.form === 1 && !this.level.theme.outdoor && Math.random() < 0.35;
+    this.ceiling = !this.wearId && this.form === 1 && !this.level.theme.outdoor && !this.level.yardSet.size && Math.random() < 0.35;
     this.path = path;
     this.lures = 0;
     this.wait = 0;

@@ -110,6 +110,8 @@ Guess wrong, and it gets hungrier.
 - **The fairground:** outdoors, lots between the striped canvas of the stalls, a ticket office to start in, photo booths to hide in.
   The Ferris wheel turns over everything, the ghost train still goes round (and the mimic goes to see), there's a hall of mirrors,
   and when the music comes back on it covers your footsteps.
+- **The snow station:** huts joined by tunnels, and open yards in a blizzard between them. Out there you get colder: slower, frost at
+  the edges, and past halfway your teeth chatter loud enough for it to hear. Inside you warm up. The radio set picks up voices. Yours.
 - **The mine:** pitch-black tunnels propped up with timber, rails, chambers cut out of the rock, crawl spaces to hide in (it can't
   follow you in), and every voice echoes back from somewhere else.
 - **The patient** (always in the hospital and the asylum; online, Normal mode, a lobby switch, anywhere): a body on a bed. Walk past

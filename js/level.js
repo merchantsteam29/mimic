@@ -1,5 +1,5 @@
 // Random map: a grid of 2m cells carved into rooms and corridors, themed as a facility, a house, a hospital, a mall, a school, a hotel, a church, an asylum,
-// the woods, a subway station, an abandoned fairground or an old mine.
+// the woods, a subway station, an abandoned fairground, an old mine or a research station in the snow.
 // Also holds the collision, line-of-sight and path-finding the player and the mimic use.
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
@@ -141,6 +141,17 @@ export const THEMES = {
     fog: 0x030201, fogDensity: 0.1, reverb: [4.2, 0.65],
     props: ['minecart', 'crate', 'barrel', 'toolrack', 'rubble', 'minecart', 'tnt', 'crate'], hideProp: 'crawlspace', surface: 'stone',
   },
+  // A research station in the snow: huts joined by tunnels, and between some of them open yards with no roof, where the
+  // blizzard is (level.yards: snow.js makes you freeze out there). Built like the facility (tube lights, metal doors,
+  // keycards). Hide in the lockers. One hut has the radio set, and it still picks things up.
+  snow: {
+    id: 'snow', look: 'facility', snow: true, kicker: 'Polar research station',
+    names: ['Station Kestrel · Ice Shelf 4', 'Blackmoor Polar Station', 'Outpost Holloway (no contact since March)', 'Ashgrove Ice Core Camp'],
+    size: 30, roomSize: [4, 7], tries: 150, minRooms: 9,
+    light: 0xdcecff, lightIntensity: 7, corridorLights: true, flicker: 0.5, broken: 0.4,
+    fog: 0x070a0e, fogDensity: 0.075, reverb: [1.6, 0.3],
+    props: ['console', 'shelf', 'crate', 'heater', 'bunk', 'skis', 'crate', 'barrel'], yardProps: ['snowmobile', 'drift', 'fuel', 'drift', 'antenna'], hideProp: 'locker', surface: 'hard',
+  },
 };
 
 // Footprint (w across the front, d front-to-back) of each prop, in metres. Front faces +z.
@@ -156,6 +167,8 @@ const PROP_DEFS = {
   bunk: { w: 0.95, d: 1.95 }, restraint: { w: 0.8, d: 0.8 }, tub: { w: 0.9, d: 1.8 }, isolation: { w: 1.1, d: 1.0 },
   pew: { w: 1.9, d: 0.75 }, altar: { w: 1.6, d: 0.9 }, candelabra: { w: 0.6, d: 0.6 }, lectern: { w: 0.7, d: 0.6 }, statue: { w: 0.7, d: 0.7 },
   confessional: { w: 1.3, d: 1.0 },
+  console: { w: 1.4, d: 0.7 }, radioset: { w: 1.4, d: 0.7 }, heater: { w: 0.6, d: 0.4 }, skis: { w: 1.2, d: 0.3 },
+  snowmobile: { w: 1.0, d: 2.0 }, drift: { w: 1.6, d: 1.2 }, fuel: { w: 1.2, d: 0.8 }, antenna: { w: 0.8, d: 0.8 },
   minecart: { w: 1.0, d: 1.4 }, toolrack: { w: 1.4, d: 0.4 }, rubble: { w: 1.2, d: 1.0 }, tnt: { w: 0.8, d: 0.6 }, crawlspace: { w: 1.2, d: 0.5 },
   gamestall: { w: 1.8, d: 0.9 }, popcorn: { w: 0.9, d: 0.7 }, mascot: { w: 0.8, d: 0.6 }, balloons: { w: 0.8, d: 0.8 }, teacup: { w: 1.5, d: 1.5 },
   strongman: { w: 0.8, d: 0.6 }, photobooth: { w: 1.2, d: 1.1 },
@@ -294,6 +307,8 @@ function tryGenerate(seed, th, opts = {}) {
   // The fairground: one lot is the ghost train's (no stalls in it: the car goes round), another the hall of mirrors.
   const ghostLots = th.fair ? rooms.filter((r) => r !== spawnRoom && r !== exitRoom && r.w >= 4 && r.h >= 4) : [];
   const ghostRoom = ghostLots.length ? pick(ghostLots) : null;
+  // The snow station: some of the rooms are open yards in the blizzard (never the first room or the exit room).
+  const yards = new Set(th.snow ? rooms.filter((r) => r !== spawnRoom && r !== exitRoom && rand() < 0.4).map((r) => r.id) : []);
   // Cells against a wall of the room, away from its doorways.
   const wallCells = (room) => {
     const cands = [];
@@ -334,7 +349,9 @@ function tryGenerate(seed, th, opts = {}) {
     let wantHide = room === spawnRoom || rand() < 0.45 || hides < rooms.length / 3;
     for (const c of wallCells(room)) {
       if (want <= 0) break;
-      const p = placeAt(c, room, wantHide ? th.hideProp : pick(th.props), wantHide);
+      const yard = yards.has(room.id);
+      if (yard && wantHide) wantHide = false; // (nowhere to hide out in the snow)
+      const p = placeAt(c, room, wantHide ? th.hideProp : pick(yard ? th.yardProps : th.props), wantHide);
       if (!p) continue;
       if (wantHide) hides++;
       wantHide = false;
@@ -491,6 +508,7 @@ function tryGenerate(seed, th, opts = {}) {
     exit, fuseBox: box, spawnRoom: spawnRoom.id, exitRoom: exitRoom.id,
     tasks, gens, tapes, doors, keycard, idoors, fakeHide, decoy, mirrors, lore, tunnel,
     fair: th.fair ? { ghost: ghostRoom ? ghostRoom.id : -1, hall: hall ? hall.id : -1 } : null,
+    yards: [...yards],
   };
 }
 
@@ -509,6 +527,9 @@ export const STEP_CARRY = { carpet: 0.7, wood: 1, hard: 1, stone: 1.1, dirt: 1 }
 export class Level {
   constructor(data) {
     Object.assign(this, data);
+    this.yardSet = new Set(this.yards || []);
+    // The snow station's radio: the first console in a hut becomes the radio set.
+    if (this.theme.snow) { const r = this.props.find((p) => p.type === 'console'); if (r) r.type = 'radioset'; }
     this.exitOpen = false;
     // Vents (facility-built places): a few low grates in room walls, from the seed. Added after the layout, so maps don't change.
     if (this.theme.look === 'facility' && !this.theme.mine) { // (the mine has crawl spaces instead)
@@ -573,9 +594,13 @@ export class Level {
   // Mostly the place's own floor; in the woods the cabin has boards and outside it's leaves and dirt.
   surfaceAt(x, z) {
     const th = this.theme;
+    if (th.snow) return this.outside(x, z) ? 'snow' : th.surface;
     if (th.outdoor) return this.roomId[this.cellOf(z) * this.N + this.cellOf(x)] === this.spawnRoom ? 'wood' : 'dirt';
     return th.surface;
   }
+  // Out in the open (a snow station's yard): no roof, the blizzard, the cold.
+  outside(x, z) { return this.yardSet.size > 0 && this.yardSet.has(this.roomId[this.cellOf(z) * this.N + this.cellOf(x)]); }
+
   // The subway's track (the middle two rows of the tunnel): where a train will hit you.
   onTrack(x, z) {
     const t = this.tunnel, cz = this.cellOf(z);
@@ -872,6 +897,44 @@ function buildProp(type, M) {
       g.add(box(1.0, 0.03, 0.03, M.brass, 0, 1.78, 0));
       for (let i = 0; i < 3; i++) if (r() < 0.75) g.add(box(0.5 + r() * 0.3, 0.3, 0.42, M.clothes[Math.floor(r() * M.clothes.length)], (r() - 0.5) * 0.3, 0.36 + i * 0.32, 0));
       for (const x of [-0.42, 0.42]) for (const z of [-0.22, 0.22]) g.add(cyl(0.05, 0.05, 0.04, M.black, x, 0.05, z, 8));
+      break;
+    case 'console': // a bank of old instruments, dials and a dead screen
+    case 'radioset': { // ...or the radio set: a big receiver, a microphone on a stand, headphones
+      g.add(box(1.4, 0.8, 0.7, M.metal, 0, 0.4, 0), box(1.4, 0.5, 0.2, M.metal, 0, 1.05, -0.25));
+      g.add(box(1.2, 0.3, 0.02, M.black, 0, 1.08, -0.14));
+      for (let i = 0; i < 5; i++) g.add(cyl(0.035, 0.035, 0.03, M.white, -0.5 + i * 0.25, 1.08, -0.13, 10));
+      if (type === 'radioset') {
+        g.add(box(0.5, 0.25, 0.35, M.radioBox, 0.35, 0.93, 0.05), cyl(0.012, 0.012, 0.3, M.black, -0.3, 0.95, 0.15, 6), cyl(0.04, 0.03, 0.08, M.black, -0.3, 1.12, 0.15, 8));
+        const led = new THREE.Mesh(new THREE.SphereGeometry(0.012, 6, 4), new THREE.MeshBasicMaterial({ color: 0xff3020 }));
+        led.position.set(0.5, 1.0, 0.23); g.add(led);
+      }
+      break;
+    }
+    case 'heater': // an oil heater, its bars still glowing a little
+      g.add(box(0.6, 0.6, 0.3, M.metal, 0, 0.32, 0));
+      for (let i = 0; i < 4; i++) g.add(box(0.48, 0.03, 0.02, M.heatGlow, 0, 0.18 + i * 0.1, 0.16));
+      break;
+    case 'skis': // skis and poles in a rack on the wall
+      g.add(box(1.2, 0.08, 0.08, M.darkWood, 0, 1.5, -0.1), box(1.2, 0.08, 0.08, M.darkWood, 0, 0.5, -0.1));
+      for (let i = 0; i < 4; i++) g.add(box(0.07, 1.7, 0.02, M.prizes?.[i] || M.metal, -0.45 + i * 0.3, 0.95, -0.03));
+      break;
+    case 'snowmobile': { // a snowmobile half buried in a drift
+      g.add(box(0.8, 0.45, 1.6, M.vend, 0, 0.45, 0), box(0.7, 0.3, 0.6, M.black, 0, 0.75, 0.2), box(0.6, 0.25, 0.3, M.glass, 0, 0.85, -0.5));
+      for (const x of [-0.45, 0.45]) g.add(box(0.12, 0.06, 1.9, M.metal, x, 0.08, 0));
+      const d = new THREE.Mesh(new THREE.SphereGeometry(0.9, 10, 6), M.snowDrift); d.scale.set(1.1, 0.45, 1.3); d.position.set(0.3, 0.05, 0.4); g.add(shadowed(d));
+      break;
+    }
+    case 'drift': { // a drift of snow against the wall, something dark sticking out of it
+      const d = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), M.snowDrift); d.scale.set(0.85, 0.6, 0.6); d.position.y = 0.05; g.add(shadowed(d));
+      if (r() < 0.5) { const s = box(0.08, 0.6, 0.08, M.darkWood, 0.3, 0.6, 0.2); s.rotation.z = 0.4; g.add(s); }
+      break;
+    }
+    case 'fuel': // fuel drums, rimed with ice
+      for (const [x, z] of [[-0.3, 0], [0.3, 0.05], [0, -0.25]]) g.add(cyl(0.28, 0.28, 0.9, M.rust, x, 0.45, z, 12), cyl(0.29, 0.29, 0.05, M.snowDrift, x, 0.92, z, 12));
+      break;
+    case 'antenna': // a radio mast, guy wires into the snow
+      g.add(cyl(0.05, 0.08, 4.2, M.metal, 0, 2.1, 0, 6));
+      for (let i = 0; i < 3; i++) { const w = cyl(0.006, 0.006, 3.2, M.black, Math.cos(i * 2.1) * 0.6, 1.6, Math.sin(i * 2.1) * 0.6, 3); w.rotation.set(Math.sin(i * 2.1) * 0.35, 0, -Math.cos(i * 2.1) * 0.35); g.add(w); }
       break;
     case 'minecart': { // an ore cart on a short length of rail, half full of rock
       g.add(box(0.8, 0.5, 1.2, M.rust, 0, 0.5, 0), box(0.7, 0.12, 1.1, M.stone, 0, 0.72, 0));
@@ -1306,6 +1369,9 @@ export function buildLevelScene(level) {
     books: [0x4a1c1c, 0x1c2f4a, 0x2f3a1c, 0x4a3b1c, 0x2a2a2a, 0x5a4a3a].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.9 })),
     vend: new THREE.MeshStandardMaterial({ color: 0x5a1a16, roughness: 0.5, metalness: 0.3 }),
     tntRed: new THREE.MeshStandardMaterial({ color: 0x7a1a12, roughness: 0.7 }),
+    radioBox: new THREE.MeshStandardMaterial({ color: 0x3a4a3a, roughness: 0.6, metalness: 0.3 }),
+    heatGlow: new THREE.MeshStandardMaterial({ color: 0x401008, emissive: 0xff4010, emissiveIntensity: 0.8 }),
+    snowDrift: new THREE.MeshStandardMaterial({ color: 0xdfe6ee, roughness: 0.95 }),
     awningHat: new THREE.MeshStandardMaterial({ color: 0x8a7a2a, roughness: 0.5 }),
     awning: new THREE.MeshStandardMaterial({ map: tex.stripes || tex.wall, roughness: 0.95, side: THREE.DoubleSide }),
     stallWood: new THREE.MeshStandardMaterial({ color: 0x5a4030, roughness: 0.9 }),
@@ -1325,7 +1391,26 @@ export function buildLevelScene(level) {
   floor.rotation.x = -Math.PI / 2; floor.position.set(S / 2, 0, S / 2); floor.receiveShadow = true;
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(S, S), mat(tex.ceiling, { normalMap: tex.ceilingN, color: 0x9a968e }));
   ceil.rotation.x = Math.PI / 2; ceil.position.set(S / 2, WALL_H, S / 2); ceil.receiveShadow = true;
-  if (!th.outdoor) group.add(floor, ceil);
+  if (th.snow) { // the station: a roof over the huts and tunnels, snow and sky over the yards
+    group.add(floor);
+    const roofs = [], drifts = [];
+    for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) {
+      if (level.get(x, z) === WALL) continue;
+      (level.yardSet.has(level.roomId[z * N + x]) ? drifts : roofs).push([x, z]);
+    }
+    const quad = new THREE.PlaneGeometry(CELL, CELL), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1), p = new THREE.Vector3();
+    const roof = new THREE.InstancedMesh(quad, mat(tex.ceiling, { normalMap: tex.ceilingN, color: 0x9a968e }), Math.max(1, roofs.length));
+    q.setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+    roofs.forEach(([x, z], i) => roof.setMatrixAt(i, m4.compose(p.set(center(x), WALL_H, center(z)), q, one)));
+    roof.count = roofs.length;
+    const snowMat = new THREE.MeshStandardMaterial({ map: tex.snow, color: 0xdfe6ee, roughness: 0.95 });
+    const ground = new THREE.InstancedMesh(quad, snowMat, Math.max(1, drifts.length));
+    q.setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+    drifts.forEach(([x, z], i) => ground.setMatrixAt(i, m4.compose(p.set(center(x), 0.01, center(z)), q, one)));
+    ground.count = drifts.length;
+    roof.receiveShadow = ground.receiveShadow = true;
+    group.add(roof, ground);
+  } else if (!th.outdoor) group.add(floor, ceil);
   else { // the woods: the sky, and a roof over the cabin (the room you start in)
     group.add(floor);
     const cab = level.rooms[0], cw = cab.w * CELL, cd = cab.h * CELL;
@@ -1364,7 +1449,8 @@ export function buildLevelScene(level) {
     const fm = new THREE.MeshStandardMaterial({ color: 0x222222, emissive: th.light, emissiveIntensity: 1, roughness: 0.5 });
     const x = l.cx * CELL, z = l.cz * CELL;
     const g = new THREE.Group();
-    if (th.outdoor) { // a lantern on a post
+    const post = th.outdoor || (th.snow && level.outside(x, z)); // (out in a snow station's yard too)
+    if (post) { // a lantern on a post
       g.add(box(0.1, 1.9, 0.1, M.darkWood, 0, 0.95, 0), box(0.5, 0.06, 0.06, M.darkWood, 0.2, 1.88, 0));
       const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.2, 0.14), fm);
       lamp.position.set(0.4, 1.72, 0);
@@ -1391,7 +1477,7 @@ export function buildLevelScene(level) {
     g.position.set(x, 0, z);
     g.traverse((o) => { o.castShadow = false; });
     group.add(g);
-    return { ...l, x, z, y: th.outdoor ? 1.9 : th.look === 'facility' ? WALL_H - 0.35 : WALL_H - 0.9, mat: fm, burst: 0, seed: Math.random() * 100 };
+    return { ...l, x, z, y: post ? 1.9 : th.look === 'facility' ? WALL_H - 0.35 : WALL_H - 0.9, mat: fm, burst: 0, seed: Math.random() * 100 };
   });
 
   // Pickup spots come from the seed, so every player's copy of the level has them in the same place.

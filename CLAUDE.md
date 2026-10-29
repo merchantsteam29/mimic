@@ -429,6 +429,14 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - **Mine** theme (`mine`, look `facility` but `mine: true`: no vents): rock walls and roof (`mineWall`), `mineFloor`, `buildMine` (timber frames
   every third corridor cell, rails along the straight runs), caged bulbs, props minecart / toolrack / rubble / tnt, `crawlspace` to hide in
   (`HIDE_KIND` vent). `game.echoVoice` plays every lure again 0.2-0.45 s later from a random spot 8-18 m away. Code letter `N`.
+- **Snow station** theme (`snow`, look `facility`, `snow: true`): `tryGenerate` (snow only) makes ~40% of rooms (not the first or exit room) open
+  **yards** (`level.yards`, `yardSet`, `outside(x, z)`), which get `yardProps` (snowmobile / drift / fuel / antenna) and no hiding spots. The
+  scene has an instanced roof over every non-yard cell and snow quads over the yards; yard lights are lamp posts; `surfaceAt` gives `snow`
+  (a crunch in `sfx.footstep`); the mimic never takes to the ceiling here. Hut props console / heater / skis / bunk; the first console
+  becomes the `radioset`. Code letter `I`.
+- `snow.js`: the blizzard (Points around the camera, fog x1.7 and `sfx.wind()` louder as you go outside), the **cold** (0..1: +1/25 s outside,
+  warms inside; `slow` (to 0.7x) and `numb` (no sprint) in game-player, `#frost` overlay; over 0.5, `sfx.chatter()` + `noise` 5-10), and the
+  radio set (within 7 m, every 35-70 s: static, then a clip as `playVoice(..., 'radio')`).
 - **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
   on touch the objectives sit below the pause / jobs buttons.
 

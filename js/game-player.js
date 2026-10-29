@@ -22,7 +22,7 @@ export const PlayerPart = {
     if (this.stick) { f = clamp(f - this.stick.y, -1, 1); s = clamp(s + this.stick.x, -1, 1); }
     const push = Math.min(1, Math.hypot(f, s)); // a half-pushed stick walks slower
     p.crouch = k.has('KeyC');
-    const sprint = (k.has('ShiftLeft') || k.has('ShiftRight')) && (f || s) && f >= 0 && !p.crouch && !p.tired;
+    const sprint = (k.has('ShiftLeft') || k.has('ShiftRight')) && (f || s) && f >= 0 && !p.crouch && !p.tired && !this.snow.numb;
 
     if (sprint) {
       p.stamina -= dt / this.ab.staminaTime;
@@ -32,7 +32,7 @@ export const PlayerPart = {
       if (p.tired && p.stamina > 0.25) p.tired = false;
     }
 
-    const speed = (p.crouch ? 1.4 : sprint ? this.ab.sprint : 2.7 * (this.ab.boostT > 0 ? 1.25 : 1)) * this.marks.slow(p.x, p.z) * this.ab.walk;
+    const speed = (p.crouch ? 1.4 : sprint ? this.ab.sprint : 2.7 * (this.ab.boostT > 0 ? 1.25 : 1)) * this.marks.slow(p.x, p.z) * this.ab.walk * this.snow.slow;
     const sin = Math.sin(p.yaw), cos = Math.cos(p.yaw);
     let wx = -sin * f + cos * s, wz = -cos * f - sin * s;
     const wl = Math.hypot(wx, wz);
