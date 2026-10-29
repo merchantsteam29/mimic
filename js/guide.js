@@ -111,8 +111,9 @@ export function renderGuide(root, tab = 'creatures') {
 
 // ---------- what's new ----------
 // Bump RELEASE when there's something worth telling players about, and rewrite NOTES.
-export const RELEASE = 'beta1-2026-10-28c';
+export const RELEASE = 'beta1-2026-10-28d';
 const NOTES = [
+  ['We fixed the old camera. It still shows you things you’d rather not see, just faster.', 'Smoother on older machines: a new Potato graphics setting (Settings > Graphics) for very old laptops and phones, and Auto now drops to it by itself when a game is really struggling. Mirrors were the heaviest thing in the game, so only the nearest few reflect at once now, on every setting. The hall of mirrors is a lot smoother.'],
   ['The keeper’s last log: the light keeps turning. I stopped turning it in March.', 'A new place: a lighthouse island. Outdoors among the rocks, the keeper’s cottage to start in, sea caves along the shore with the tide coming in. The beam sweeps over the whole island: while it’s on you, it can see you from a long way off. Hide under the upturned boats.'],
   ['The water down there is warm. It shouldn’t be warm. And it carries every sound you make.', 'A new place: the sewers. Every passage is a channel of black water up to your waist: you wade slowly, every step splashes, and it wades too. The chambers are dry. Hide in the culverts, where it can’t follow. The rats live down here.'],
   ['This is the last rough cut. After this one, the tape goes out to everybody. It’s been listening to all of you.', 'Mimic is in beta: nearly finished. Fourteen places, three stories, more things in the dark than we can count, and every mode we could think of. From here on it’s fixing and polishing, so if anything breaks, skips, or doesn’t feel right, press Report a bug and tell us.'],

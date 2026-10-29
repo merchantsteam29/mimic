@@ -472,6 +472,11 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - `island.js`: the lighthouse just off the north shore (a tower, a lamp that ignores fog, a wide additive cone and a SpotLight), turning once
   every 14 s from `g.t`. `lit(x, z)` (not roofed, within 0.11 rad of the beam): `mimic.hooks.beamOn` lets it see you from 35 m. The foghorn
   (every 60-100 s, `sfx.foghorn`) sets `stepScale` 0.3 for 4 s.
+- **Performance**: tiers potato / lowest / low / medium / high (`QUALITY` in game-shared.js: point lights, flashlight shadow, `mirrors` = how many
+  Reflectors may render at once, `far` = camera far plane; main.js `QUALITY`: VHS lines and pixel ratio). Potato is a Graphics setting and
+  Auto's floor (under 18 fps it steps down at once). `game.q` is the tier in use. Only the nearest `q.mirrors` mirrors in sight reflect
+  (`updateMirrors`): each Reflector redraws the whole scene (measured: 5 live mirrors ~150 ms a frame in SwiftShader, 3 ~17 ms, none ~0.5).
+  On potato the island's beam has no SpotLight.
 - **Short screens** (phones sideways, `max-height: 500px` in style.css): the title's buttons in two columns; a smaller camcorder overlay;
   on touch the objectives sit below the pause / jobs buttons.
 

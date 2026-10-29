@@ -253,9 +253,12 @@ export class Scares {
   // ---------- mirrors ----------
   updateMirrors(dt) {
     const g = this.g, c = g.camera.position, fwd = g.camera.getWorldDirection(new THREE.Vector3());
+    // Reflections are expensive (each one draws the whole scene again): only the nearest few in sight (g.q.mirrors).
+    const shown = g.world.mirrors.map((m) => ({ m, d: Math.hypot(m.x - c.x, m.z - c.z) }))
+      .filter(({ m, d }) => d < 9 && g.level.los(c.x, c.z, m.x - m.nx * 0.2, m.z - m.nz * 0.2)).sort((a, b) => a.d - b.d).slice(0, g.q?.mirrors ?? 3);
+    for (const m of g.world.mirrors) m.glass.visible = shown.some((s) => s.m === m);
     for (const [i, m] of g.world.mirrors.entries()) {
       const dx = m.x - c.x, dz = m.z - c.z, d = Math.hypot(dx, dz);
-      m.glass.visible = d < 9 && g.level.los(c.x, c.z, m.x - m.nx * 0.2, m.z - m.nz * 0.2); // reflections are expensive
       if (this.ghost || this.mirrorDone.has(i) || g.state !== 'playing' || g.p.hidden) continue;
       const facing = d < 3.4 && (fwd.x * dx + fwd.z * dz) / d > 0.85 && (m.nx * -dx + m.nz * -dz) / d > 0.5;
       if (!facing) continue;

@@ -75,9 +75,9 @@ addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); vh
 
 // Graphics quality: tape and screen resolution change now; game.js also uses fewer lights and softer
 // shadows from the next game.
-// 'lowest' is only reached by Auto, on a struggling phone.
-const QUALITY = { lowest: { lines: 200, ratio: 0.5 }, low: { lines: 240, ratio: 0.6 }, medium: { lines: 300, ratio: 0.8 }, high: { lines: 360, ratio: 1 } };
-const TIERS = ['lowest', 'low', 'medium', 'high'];
+// 'lowest' is only reached by Auto, on a struggling phone; 'potato' by Auto too, or picked by hand for very old machines.
+const QUALITY = { potato: { lines: 160, ratio: 0.45 }, lowest: { lines: 200, ratio: 0.5 }, low: { lines: 240, ratio: 0.6 }, medium: { lines: 300, ratio: 0.8 }, high: { lines: 360, ratio: 1 } };
+const TIERS = ['potato', 'lowest', 'low', 'medium', 'high'];
 if (settings.quality !== 'auto' && !QUALITY[settings.quality]) settings.quality = DEFAULTS.quality;
 if (!QUALITY[settings.tier]) settings.tier = DEFAULTS.tier;
 const tierNow = () => (settings.quality === 'auto' ? settings.tier : settings.quality);
@@ -102,7 +102,7 @@ function watchPerf(now) {
   if (perf.sum < 2000) return;
   const fps = (perf.n * 1000) / perf.sum;
   perf.n = perf.sum = 0;
-  perf.slow = fps < 27 ? perf.slow + 1 : 0;
+  perf.slow = fps < 18 ? perf.slow + 2 : fps < 27 ? perf.slow + 1 : 0; // (really slow: step down at once)
   perf.fast = fps > 57 ? perf.fast + 1 : 0;
   const i = TIERS.indexOf(settings.tier);
   let to = null;

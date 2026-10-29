@@ -19,7 +19,9 @@ export const ROOM = { theme: 'house', seed: 2604, gen: { size: 18, tasks: { fuse
 // What a player needs to catch up on after a drop: the messages that change the world for good.
 export const LOGGED = new Set(['took', 'drop', 'fuses', 'power', 'caught', 'out', 'left', 'doorSet', 'gen', 'smashed', 'unlocked', 'fakeItem', 'fakeGone', 'lifeTape', 'revived', 'lightOut', 'hour', 'hsPhase', 'coded', 'liftCalled', 'liftHere', 'lanternDrop', 'lanternHeld']);
 export const POOL = 6;              // real point lights, moved to the nearest fixtures (fewer on lower graphics settings)
-export const QUALITY = { lowest: { lights: 2, shadow: 0 }, low: { lights: 3, shadow: 512 }, medium: { lights: 4, shadow: 768 }, high: { lights: POOL, shadow: 1024 } };
+// lights: the point-light pool; shadow: the flashlight's shadow map (0 = none); mirrors: how many may reflect at once (each one draws
+// the whole scene again); far: how far the camera draws (potato: the fog hides the rest anyway).
+export const QUALITY = { potato: { lights: 1, shadow: 0, mirrors: 0, far: 40 }, lowest: { lights: 2, shadow: 0, mirrors: 1, far: 60 }, low: { lights: 3, shadow: 512, mirrors: 2, far: 80 }, medium: { lights: 4, shadow: 768, mirrors: 2, far: 80 }, high: { lights: POOL, shadow: 1024, mirrors: 3, far: 80 } };
 export const EYE = 1.62, EYE_CROUCH = 1.0;
 export const PLAYER_R = 0.3;
 export const BATTERY_LIFE = 300;    // seconds of flashlight on a full battery

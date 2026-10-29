@@ -107,7 +107,8 @@ export class Game {
 
     // Flashlight: the only shadow-casting light.
     this.flash = new THREE.SpotLight(0xfff1d8, 0, 24, 0.4, 0.55, 1.5);
-    const q = QUALITY[settings.quality === 'auto' ? settings.tier : settings.quality] || QUALITY.high;
+    const q = this.q = QUALITY[settings.quality === 'auto' ? settings.tier : settings.quality] || QUALITY.high;
+    this.camera.far = q.far; this.camera.updateProjectionMatrix();
     this.flash.castShadow = q.shadow > 0;
     this.flash.shadow.mapSize.set(q.shadow || 512, q.shadow || 512);
     this.flash.color.setHex(LIGHTS[cleanLook(settings.look).light]);
@@ -374,6 +375,8 @@ export class Game {
   setQuality(tier) {
     const q = QUALITY[tier];
     if (!q) return;
+    this.q = q;
+    this.camera.far = q.far; this.camera.updateProjectionMatrix();
     while (this.pool.length > q.lights) this.scene.remove(this.pool.pop());
     this.flash.shadow.map?.dispose();
     this.flash.shadow.map = null;

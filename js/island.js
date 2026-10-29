@@ -34,7 +34,7 @@ export class Island {
     g.scene.add(this.beam);
     this.light = new THREE.SpotLight(0xfff0d0, 900, 100, HALF * 1.6, 0.4, 1.2);
     this.light.position.set(this.x, this.y, this.z);
-    g.scene.add(this.light, this.light.target);
+    if ((g.q?.lights ?? 2) > 1) g.scene.add(this.light, this.light.target); // (potato: the cone only, no light)
     this.hornEm = g.sfx.emitter();
     this.hornEm.setPos(this.x, 3, this.z - 20);
     this.hornT = 40 + Math.random() * 30;
