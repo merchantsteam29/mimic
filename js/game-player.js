@@ -125,6 +125,10 @@ export const PlayerPart = {
       else if (since < 2.6 && Math.random() < 0.5) I *= 0.2;
     }
     if (on && p.battery < 15 && this.state === 'playing' && Math.random() < 0.06) I *= 0.15; // dying battery
+    if (this.tellT > 0) { // a stolen voice nearby: two clean dips (stolenTell)
+      this.tellT -= dt;
+      if ((this.tellT > 0.47 && this.tellT < 0.55) || (this.tellT > 0.22 && this.tellT < 0.31)) I *= 0.1;
+    }
     this.flash.intensity = I;
     const c = this.camera;
     const fwd = c.getWorldDirection(new THREE.Vector3());

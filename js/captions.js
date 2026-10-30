@@ -62,7 +62,7 @@ export class Captions {
     const make = sfx.emitter.bind(sfx);
     sfx.emitter = (...a) => {
       const e = make(...a), set = e.setPos;
-      e.setPos = (x, y, z) => { e.x = x; e.z = z; set(x, y, z); };
+      e.setPos = (x, y, z) => { e.x = x; e.z = z; set.call(e, x, y, z); };
       return e;
     };
     for (const [name, [at, text]] of Object.entries(SOUNDS)) {

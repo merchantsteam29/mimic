@@ -5,8 +5,8 @@
 const SECTIONS = [
   ['creatures', 'What\'s in there', [
     { name: 'The mimic', file: 'Subject 01', what: 'Tall, grey, starved-looking. It records everything you say and plays it back to bring you to it.',
-      tells: 'A friend calling from a room they couldn\'t be in. A sentence nobody would say. A voice that stutters on the first word, like a skipping tape. Lights stutter when it walks under them.',
-      survive: 'It sees your flashlight from 22 m, in the dark from 12. It\'s slow under working lights and fast in the dark. Break its line of sight, then hide. Stay quiet in there.' },
+      tells: 'Every voice it steals comes with two things a real person never does. Just before it speaks, something clicks wet in its throat, twice. And if it’s close (through a wall counts), your flashlight dips twice as the voice starts. Also: a friend calling from a room they couldn’t be in, a sentence nobody would say, a voice that stutters on the first word like a skipping tape. Lights stutter when it walks under them.',
+      survive: 'Heard a friend call? Ask them something only they’d know, out loud: it can only answer with things you’ve already said. It sees your flashlight from 22 m, in the dark from 12. It\'s slow under working lights and fast in the dark. Break its line of sight, then hide. Stay quiet in there.' },
     { name: 'The skinwalker', file: 'Subject 02', what: 'Online, if the host lets it in. It wears one of you who is still alive: their body, their light, their voice.',
       tells: 'When nobody\'s looking it goes on all fours. Its eyes shine in your flashlight. Up close, its head sits wrong. And your real friend\'s voice is coming from somewhere else.',
       survive: 'Don\'t walk up to a friend who\'s waiting at the edge of the light. Ask them something only they\'d answer.' },

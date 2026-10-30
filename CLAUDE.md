@@ -89,6 +89,11 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   sight within 40 m and `answerCd` (35-55 s) done: it picks a spot 8-15 m from the caller that nobody can see, toward the friend furthest
   out of their sight (or the bait), and `answer` 0.7-1.3 s later: `mimic.answerAt(spot, P, as)` (moves there, `stalk`, waits) + `speak(style,
   'answer', as)`. `scares.holdTalkBack()` stops the phantom reply doubling it. `mimic.speak(style, want, prefer)` -> `mimicSpeaks(..., prefer)`.
+- **Tells** (every stolen voice, alone and online): `sfx.playVoice` with `sfx.onStolen` set (a game is running) and a style other than
+  tape / echo / recorder plays `sfx.throatClick` (two wet clicks) 0.34 s before the voice (included in the returned length) and calls
+  `game.stolenTell(emitter)`: within 14 m of you (emitters remember `x` / `z` in `setPos`; no emitter = in your ear) `tellT` makes the
+  flashlight dip twice (`updateFlash`). The first time on a device (localStorage `mimic.tell`) a toast says what it was. The field guide's
+  mimic entry lists them. Real voice chat never goes through playVoice, so friends never trigger them.
 - `sfx.js`: all sound is synthesized. A 0.4 trim after the compressor sets the overall loudness. `setDread` (drone that
   rises as it gets close) and `setAmbient` (ducks to near-silence when it's near) are driven from `game.updateFear`. `emitter()` is a positional source (occlusion lowpass + HRTF panner).
   `playVoice(buffer, emitter, style)` plays the mimic's voice: `lure`, `scream` or `echo` (end screen).

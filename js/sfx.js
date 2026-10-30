@@ -110,6 +110,7 @@ export class Sfx {
     return {
       input,
       setPos(x, y, z) {
+        this.x = x; this.z = z; // (where it is: the tells in game-world want to know)
         if (panner.positionX) { panner.positionX.value = x; panner.positionY.value = y; panner.positionZ.value = z; }
         else panner.setPosition(x, y, z);
       },
@@ -199,6 +200,14 @@ export class Sfx {
       this._noise(dest, { dur: wood ? 0.14 : 0.1, freq: (wood ? 380 : 650) + Math.random() * 250, q: 1.3, peak: 0.22 * vol });
       if (wood && Math.random() < 0.15) this.creak(null, 0.15 * vol);
     }
+  }
+
+  // The tell before every stolen voice: something wet clicking in its throat, twice.
+  throatClick(emitter, t = this.now) {
+    const dest = emitter ? emitter.input : this.master;
+    this._noise(dest, { t, dur: 0.035, freq: 1300, q: 6, peak: 0.22 });
+    this._noise(dest, { t: t + 0.11, dur: 0.045, freq: 1050, q: 6, peak: 0.26 });
+    this._tone(dest, { t: t + 0.11, freq: 140, dur: 0.07, peak: 0.08, type: 'sine' });
   }
 
   click() { if (!this.rec('click', null, { vol: 0.5 })) this._noise(this.master, { dur: 0.04, freq: 3500, q: 3, peak: 0.25 }); }
@@ -322,8 +331,12 @@ export class Sfx {
   // style: 'lure' (almost right), 'scream' (fast, distorted, with a demonic octave below), 'echo' (slow, for the end screen),
   //        'whisper' (thin and close, as if breathed into your ear), 'distant' (muffled, from far off: multiplayer lures)
   // skill (0..1): how good it is at being you yet (game.mimicSkill). Early lures come out wrong: lower, rougher, the tape catching.
+  // onStolen(emitter): set by the game; every stolen voice (not tapes, the end screen or your own recorder) gets the
+  // throat click first and lets the game do the other tells (game-world `stolenTell`).
   playVoice(buffer, emitter, style = 'lure', skill = 1) {
-    const ctx = this.ctx, t0 = this.now + 0.03;
+    const tell = this.onStolen && !['tape', 'echo', 'recorder'].includes(style), pre = tell ? 0.34 : 0;
+    const ctx = this.ctx, t0 = this.now + 0.03 + pre;
+    if (tell) { this.throatClick(emitter, this.now + 0.03); this.onStolen(emitter); }
     const dest = emitter ? emitter.input : this.master;
     const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 140;
     const pk = ctx.createBiquadFilter(); pk.type = 'peaking'; pk.frequency.value = 2800; pk.gain.value = 5;
@@ -398,7 +411,7 @@ export class Sfx {
     } else play(at, 0, undefined, rate);
     if (style === 'scream') play(at, 0, undefined, rate * 0.5, 0.7); // the voice underneath
     if (style === 'sing') play(at + 0.05, 0, undefined, rate * 0.5, 0.5); // and an octave under it
-    const total = at - t0 + buffer.duration / (style === 'scream' || style === 'sing' ? rate * 0.5 : rate);
+    const total = pre + at - t0 + buffer.duration / (style === 'scream' || style === 'sing' ? rate * 0.5 : rate);
     setTimeout(() => { try { out.disconnect(); wet.disconnect(); vib?.stop(); } catch { /* ignore */ } }, (total + 4) * 1000);
     return total;
   }

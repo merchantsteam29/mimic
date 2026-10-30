@@ -110,6 +110,19 @@ export const WorldPart = {
     return d;
   },
 
+  // A stolen voice is about to play (sfx.playVoice). Within 14 m (or in your ear) your flashlight stutters twice:
+  // real friends never do that. The first time, it tells you so.
+  stolenTell(em) {
+    if (this.state !== 'playing' || this.room) return;
+    const p = this.p, x = em?.x ?? p.x, z = em?.z ?? p.z;
+    if (Math.hypot(x - p.x, z - p.z) > 14) return;
+    this.tellT = 0.6;
+    if (!p.flashOn || p.battery <= 0 || p.hidden) return;
+    let seen = true;
+    try { seen = !!localStorage.getItem('mimic.tell'); if (!seen) localStorage.setItem('mimic.tell', '1'); } catch { /* ignore */ }
+    if (!seen) setTimeout(() => { if (this.state === 'playing') this.toast('Your light stuttered when that voice spoke. Real people never do that.'); }, 1600);
+  },
+
   updateVoice(dt) {
     const v = this.voice, hud = this.hud, p = this.p;
     hud.mic.classList.toggle('off', !v.started);

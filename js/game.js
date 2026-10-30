@@ -247,6 +247,8 @@ export class Game {
     this.revival = new Revive(this);  // a taken friend's tape (online)
     this.hs = new HideSeek(this, hideSeek && !room); // hide and seek (online)
     this.lm = new LureMind(this); // smart lures: where, whose voice, answering calls (host)
+    this.tellT = 0;
+    sfx.onStolen = (em) => this.stolenTell(em); // the tells on every stolen voice (game-world)
     this.chaseGoneT = 0;
     this.doorEm = sfx.emitter();
     this.inc = new Incidents(this, !story && !tutorial && !room && !hideSeek && custom?.events !== false); // power cuts, storms, alarms, lockdowns
@@ -395,6 +397,7 @@ export class Game {
 
   dispose() {
     this.voice.context = null;
+    if (this.sfx.onStolen) this.sfx.onStolen = null;
     this.renderer.setAnimationLoop(null);
     this.worker?.terminate();
     removeEventListener('keydown', this.onKeyDown);
