@@ -17,6 +17,7 @@ const WANT = {
   scream:   { scream: 5, panic: 3, help: 2, call: 0.5 },
   whisper:  { whisper: 4, talk: 1.5, come: 1, laugh: 0.6 },
   chorus:   { laugh: 3, talk: 1, whisper: 1 },
+  answer:   { come: 4, call: 3, talk: 2, help: 0.5 },                         // "over here!" back at someone calling
   calm:     { talk: 4, come: 2, whisper: 1, call: 0.5, scream: 0.05, panic: 0.05 }, // "it's gone, come out"
 };
 

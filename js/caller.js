@@ -4,6 +4,7 @@
 // next thing you need is. But it heard you pick up: it knows where you are now.
 // The host runs it: broadcast 'ring' {i, x, z} -> intent 'answer' {i} -> broadcast 'answered' {i, by, key}, or 'ringEnd' {i}.
 import * as THREE from 'three';
+import { needed } from './lures.js';
 
 const RING_T = 12;
 
@@ -33,7 +34,6 @@ function marker() {
   return s;
 }
 
-const NEEDED = ['fuse', 'gen', 'tape', 'keycard', 'note', 'keypad', 'lore'];
 
 export class Caller {
   constructor(g, on) {
@@ -133,10 +133,7 @@ export class Caller {
     const g = this.g;
     if (g.state !== 'playing') return;
     const p = g.p;
-    const want = g.items.filter((it) => it?.active && !it.fake && NEEDED.includes(it.type) && !(it.type === 'gen' && g.obj.gen[it.i] >= 1)
-      && !(it.type === 'lore' && it.heard));
-    if (g.obj.allDone() && !g.power) want.push(g.items.find((it) => it?.type === 'fusebox'));
-    const it = want.filter(Boolean).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0];
+    const it = needed(g).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0];
     if (!it) return;
     this.mark?.removeFromParent();
     this.mark = marker();

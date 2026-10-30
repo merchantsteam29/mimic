@@ -62,6 +62,7 @@ import { CUSTOM, customLevel, ROOM, LOGGED, QUALITY, EYE, PLAYER_R, NET_HZ, clam
 import { RoomPart } from './game-room.js';
 import { NetPart } from './game-net.js';
 import { PlayerPart } from './game-player.js';
+import { LureMind } from './lures.js';
 import { WorldPart } from './game-world.js';
 import { DeathPart } from './game-death.js';
 
@@ -165,7 +166,8 @@ export class Game {
     this.order.forEach((id, i) => { if (id !== this.me) this.remotes.set(id, new RemotePlayer(scene, sfx, i, this.lookOf(id))); });
 
     this.mimic = new Mimic(level, scene, sfx, {
-      speak: (style, emitter, want) => this.mimicSpeaks(style, emitter, want),
+      speak: (style, emitter, want, prefer) => this.mimicSpeaks(style, emitter, want, prefer),
+      lurePlan: (P) => this.lm?.plan(P), // where to call from and in whose voice (lures.js)
       gait: () => this.gait.profile(), // walking like one of you
       onCatch: (id) => this.hostCatch(id),
       onSpotted: (id) => this.sendTo(id, { t: 'sting' }),
@@ -244,6 +246,7 @@ export class Game {
     this.sig = new Signals(this);     // hand signals (online)
     this.revival = new Revive(this);  // a taken friend's tape (online)
     this.hs = new HideSeek(this, hideSeek && !room); // hide and seek (online)
+    this.lm = new LureMind(this); // smart lures: where, whose voice, answering calls (host)
     this.chaseGoneT = 0;
     this.doorEm = sfx.emitter();
     this.inc = new Incidents(this, !story && !tutorial && !room && !hideSeek && custom?.events !== false); // power cuts, storms, alarms, lockdowns
@@ -508,7 +511,7 @@ export class Game {
     if (!this.isHost) this.mimic.puppet(dt, this.t);
     else if (this.hunt.on) this.hunt.driveMimic(dt);
     else if (this.tut.holds) this.tut.driveMimic(dt);
-    else if (this.mp || this.state === 'playing') this.mimic.update(dt, this.targets(), this.t);
+    else if (this.mp || this.state === 'playing') { this.mimic.update(dt, this.targets(), this.t); this.lm.update(dt); }
     if (this.hunt.me) this.mimic.model.root.visible = false; // you're inside it
     this.sw.update(dt);
     this.ls.update(dt);

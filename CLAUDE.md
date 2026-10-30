@@ -81,6 +81,14 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   in `updateVoice`). The voice-check lines are `SEED_KINDS` (main.js sets them). `want(style, kind)` weights `voice.pick(style)` and
   `mp.pickKey(isDead, prefer, style)`; `mimic.speak(style, want)` asks for a kind apart from how it's played (`calm` at a hiding spot).
   Online the kind travels with each `clip` part. The pause menu says what it has kept (`heldKinds`).
+- `lures.js`: **smart lures** (host, `game.lm`; off in the waiting room, tutorial, Hunt, hide and seek). `plan(P)` (the mimic's
+  `hooks.lurePlan`, read in `stalk`) = { bait: the nearest thing P still needs within 25 m (`needed(g)`, also used by the Caller's reveal;
+  victims' tapes only in a story), want, prefer }: online a friend taken in the last 60 s (`help`, their voice) or, when no living friend
+  is within 12 m, the nearest friend (`come`, their voice). `stalk` scores spots by distance to the bait and away from working lights.
+  **Answering**: a new clip (`mp.added` / `lastAdded`, or the last solo clip) of kind call / help / come, with the mimic out of everyone's
+  sight within 40 m and `answerCd` (35-55 s) done: it picks a spot 8-15 m from the caller that nobody can see, toward the friend furthest
+  out of their sight (or the bait), and `answer` 0.7-1.3 s later: `mimic.answerAt(spot, P, as)` (moves there, `stalk`, waits) + `speak(style,
+  'answer', as)`. `scares.holdTalkBack()` stops the phantom reply doubling it. `mimic.speak(style, want, prefer)` -> `mimicSpeaks(..., prefer)`.
 - `sfx.js`: all sound is synthesized. A 0.4 trim after the compressor sets the overall loudness. `setDread` (drone that
   rises as it gets close) and `setAmbient` (ducks to near-silence when it's near) are driven from `game.updateFear`. `emitter()` is a positional source (occlusion lowpass + HRTF panner).
   `playVoice(buffer, emitter, style)` plays the mimic's voice: `lure`, `scream` or `echo` (end screen).

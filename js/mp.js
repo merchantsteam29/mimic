@@ -185,6 +185,8 @@ export class Session {
 
   addClip(key, c) {
     this.clips.set(key, c);
+    this.added = (this.added || 0) + 1; // (lures.js notices new clips by this)
+    this.lastAdded = key;
     const mine = [...this.clips.keys()].filter((k) => this.clips.get(k).owner === c.owner);
     for (const k of mine.slice(0, Math.max(0, mine.length - KEEP))) this.clips.delete(k);
   }

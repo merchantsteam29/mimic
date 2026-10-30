@@ -165,6 +165,9 @@ export class Scares {
   }
 
   // ---------- talking back ----------
+  // The real mimic is answering (lures.js): no phantom reply on top of it.
+  holdTalkBack() { this.replyT = 0; this.talkCd = Math.max(this.talkCd, 20); }
+
   updateTalkBack(dt) {
     const g = this.g, v = g.voice;
     this.talkCd -= dt;

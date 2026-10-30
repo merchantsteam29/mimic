@@ -21,7 +21,7 @@ export const WorldPart = {
   mimicSkill() { return clamp((this.time - 20) / 300 + this.lures * 0.025, 0, 1); },
 
   // The mimic (host) talks: everyone hears the same clip from it.
-  mimicSpeaks(style, emitter, want = null) {
+  mimicSpeaks(style, emitter, want = null, prefer = null) {
     const dead = (owner) => this.status.get(owner) === 'dead', c0 = (k) => k && this.mp?.clips.get(k);
     if (style === 'chorus') {
       if (!this.mp) {
@@ -36,7 +36,7 @@ export const WorldPart = {
     this.ls.hear(this.mimic.x, this.mimic.z, 16, 'voice'); // its lures draw the listener too
     if (!this.mp) return this.localSpeak(style, emitter, want);
     const wearing = this.mimic.wearId;
-    const key = this.mp.pickKey(dead, wearing, want || (wearing && style !== 'scream' ? 'lure' : style));
+    const key = this.mp.pickKey(dead, wearing || prefer, want || (wearing && style !== 'scream' ? 'lure' : style));
     this.recap.voice(key);
     const q = +this.mimicSkill().toFixed(2);
     if (c0(key)) this.gait.follow(c0(key).owner); // it walks like whoever it's pretending to be

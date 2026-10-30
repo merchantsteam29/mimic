@@ -399,9 +399,10 @@ export class Mimic {
     this.wait = 1 + Math.random() * 3;
   }
 
-  // Find a spot near the player, out of their sight, and go there to call out.
+  // Find a spot near the player, out of their sight, and go there to call out. Smart lures (lures.js) pull the
+  // spot toward what they still need and away from the light, and pick the voice.
   stalk(P) {
-    const lv = this.level;
+    const lv = this.level, plan = this.hooks.lurePlan?.(P) || null, bait = plan?.bait;
     let best = null;
     for (let i = 0; i < 70; i++) {
       const p = lv.randomFloor();
@@ -410,18 +411,37 @@ export class Mimic {
       const [lo, hi] = this.stalkRange;
       // Wearing someone, it wants to be seen: it walks right up like they would.
       if (d < lo || d > hi || (!this.wearId && lv.los(p.x, p.z, P.x, P.z))) continue;
-      const score = Math.abs(d - (lo + hi) / 2);
+      let score = Math.abs(d - (lo + hi) / 2);
+      if (bait) score += Math.hypot(p.x - bait.x, p.z - bait.z) * 0.35;
+      if (plan && !this.wearId && this.hooks.isLit?.(p.x, p.z)) score += 3; // it calls from the dark
       if (!best || score < best.score) best = { ...p, score };
     }
     if (!best) { this.stalkCd = 6; return; }
     const path = lv.findPath(this.x, this.z, best.x, best.z);
     if (!path.length) { this.stalkCd = 6; return; }
     this.state = 'stalk';
+    this.plan = plan;
     this.ceiling = !this.wearId && this.form === 1 && !this.level.theme.outdoor && !this.level.yardSet.size && Math.random() < 0.35;
     this.path = path;
     this.lures = 0;
     this.wait = 0;
     this.stalkCd = (24 + Math.random() * 22) * (1 - this.hunger * 0.1) * (this.mood?.stalk ?? 1);
+  }
+
+  // Answering someone who called out (lures.js): it's already out of sight, so it slips to (spot), out of sight
+  // too, faces them through the wall and waits there to see who comes.
+  answerAt(spot, P, as = null) {
+    this.x = spot.x; this.z = spot.z;
+    this.yaw = Math.atan2(P.x - spot.x, P.z - spot.z);
+    this.state = 'stalk';
+    this.plan = { want: 'answer', prefer: as };
+    this.ceiling = false;
+    this.targetId = P.id;
+    this.path = [];
+    this.lures = 1; // maybe once more, then it moves on
+    this.wait = 5 + Math.random() * 3;
+    this.stalkCd = Math.max(this.stalkCd, 20);
+    this.animAcc = 1;
   }
 
   // Appear at (spot) facing the player, and just stare.
@@ -477,8 +497,9 @@ export class Mimic {
   }
 
   // want: the kind of clip to look for, when it isn't simply the style's (kinds.js), e.g. 'calm' at a hiding spot.
-  speak(style, want = null) {
-    const d = this.hooks.speak(style, this.emitter, want);
+  // prefer: whose voice (online), e.g. a friend it just took.
+  speak(style, want = null, prefer = null) {
+    const d = this.hooks.speak(style, this.emitter, want, prefer);
     this.speaking = d;
     this.speakCd = (9 + Math.random() * 8) * (1 - this.hunger * 0.12) * this.diff.talk; // hungrier, chattier
   }
@@ -676,7 +697,7 @@ export class Mimic {
         this.wait -= dt;
         if (this.wait <= 0) {
           if (this.lures < (Math.random() < 0.45 ? 2 : 1)) {
-            this.speak(this.lureStyle, P.hidden ? 'calm' : null); // hiding? it talks like it's safe to come out
+            this.speak(this.lureStyle, P.hidden ? 'calm' : this.plan?.want, this.plan?.prefer); // hiding? it talks like it's safe to come out
             this.lures++;
             this.wait = this.speaking + 3 + Math.random() * 3;
           } else this.wander(P);
