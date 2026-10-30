@@ -35,6 +35,7 @@ export class Director {
     const options = p.hidden
       ? [['knock', 1]]
       : [['behind', md > 10 ? 3 : 0], ['peek', g.isHost && !g.hunt.on ? 4 : 0], ['blackout', 2], ['rush', 2], ['distant', md > 12 ? 1 : 0]];
+    if (g.arc?.listening) for (const o of options) if (o[0] === 'behind' || o[0] === 'distant') o[1] = 0; // it's only listening, so far
     const mood = m.mood?.dir || {}; // its mood tonight leans on some tricks
     for (const o of options) o[1] *= mood[o[0]] ?? 1;
     const pool = options.filter(([n, w]) => w > 0 && (n !== this.last || options.length === 1));

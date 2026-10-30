@@ -94,6 +94,13 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
   `game.stolenTell(emitter)`: within 14 m of you (emitters remember `x` / `z` in `setPos`; no emitter = in your ear) `tellT` makes the
   flashlight dip twice (`updateFlash`). The first time on a device (localStorage `mimic.tell`) a toast says what it was. The field guide's
   mimic entry lists them. Real voice chat never goes through playVoice, so friends never trigger them.
+- `arc.js`: **the round's arc** (`game.arc`; off in the waiting room, tutorial, Hunt, hide and seek). Host: `listen` (until 70 s x mood
+  pace, or someone is taken: no lures, answers, director `behind` / `distant` or talk-back (`arc.listening`); every 14-22 s it `practise`s,
+  one word of a clip said twice as a whisper, broadcast `practise` {key, steps}) -> `copy` (until 240 s x diff.hunger, 60% of the jobs
+  (`progress()`), power on or hunger 2) -> `hunt`. Phase changes are broadcast `arc` {ph} (logged); `unleash` on `hunt`: a short blackout,
+  distortion, rumble, the chorus, aggro x1.12. `mimic.arcPhase` (not `phase`: that's its walk cycle) = 'hunt' makes chase screams use the
+  target's own `panic` / `scream` clips. `taken(id)` (from `hostCatch`, the mimic's own catches, online): 3.5-6 s later it calls `help` in
+  their voice. `arc.lastLure` (set in `stolenTell`) is what the `stare` jumpscare whispers.
 - `sfx.js`: all sound is synthesized. A 0.4 trim after the compressor sets the overall loudness. `setDread` (drone that
   rises as it gets close) and `setAmbient` (ducks to near-silence when it's near) are driven from `game.updateFear`. `emitter()` is a positional source (occlusion lowpass + HRTF panner).
   `playVoice(buffer, emitter, style)` plays the mimic's voice: `lure`, `scream` or `echo` (end screen).

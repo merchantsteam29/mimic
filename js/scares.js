@@ -179,7 +179,7 @@ export class Scares {
       this.inUtt = false;
       const said = this.lastLoud - this.uttStart;
       const m = g.mimic;
-      if (said > 0.5 && this.talkCd <= 0 && Math.random() < 0.35 && !['chase', 'hunt', 'sniff'].includes(m.state)) {
+      if (said > 0.5 && this.talkCd <= 0 && !g.arc?.listening && Math.random() < 0.35 && !['chase', 'hunt', 'sniff'].includes(m.state)) {
         this.replyT = rand(0.8, 1.6);
         this.talkCd = rand(30, 50);
       }

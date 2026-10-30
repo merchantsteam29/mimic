@@ -336,7 +336,7 @@ export class Sfx {
   playVoice(buffer, emitter, style = 'lure', skill = 1) {
     const tell = this.onStolen && !['tape', 'echo', 'recorder'].includes(style), pre = tell ? 0.34 : 0;
     const ctx = this.ctx, t0 = this.now + 0.03 + pre;
-    if (tell) { this.throatClick(emitter, this.now + 0.03); this.onStolen(emitter); }
+    if (tell) { this.throatClick(emitter, this.now + 0.03); this.onStolen(emitter, buffer, style); }
     const dest = emitter ? emitter.input : this.master;
     const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 140;
     const pk = ctx.createBiquadFilter(); pk.type = 'peaking'; pk.frequency.value = 2800; pk.gain.value = 5;

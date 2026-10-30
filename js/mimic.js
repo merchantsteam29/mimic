@@ -617,7 +617,11 @@ export class Mimic {
         const lit = this.hooks.isLit?.(this.x, this.z);
         this.follow(dt, (this.enraged > 0 ? 4.4 : this.form === 2 ? 4.0 : 3.6) * this.aggro * (lit ? 0.62 : 1));
         if (sees && d < 1.35) this.hooks.onCatch(P.id); // long arms
-        if (sees && d > 4 && this.screamCd <= 0 && Math.random() < dt * 0.2) { this.speak('scream'); this.screamCd = 9; }
+        // Once it's hunting, it screams your own panic back at you.
+        if (sees && d > 4 && this.screamCd <= 0 && Math.random() < dt * (this.arcPhase === 'hunt' ? 0.35 : 0.2)) {
+          if (this.arcPhase === 'hunt') this.speak('scream', Math.random() < 0.6 ? 'panic' : 'scream', P.id); else this.speak('scream');
+          this.screamCd = this.arcPhase === 'hunt' ? 6 : 9;
+        }
         // All the voices it has, laughing at once.
         this.chorusCd -= dt;
         if (this.chorusCd <= 0 && Math.random() < dt * 0.15) { this.speak('chorus'); this.chorusCd = 16 + Math.random() * 10; this.screamCd = 6; }

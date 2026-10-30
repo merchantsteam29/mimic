@@ -63,6 +63,7 @@ import { RoomPart } from './game-room.js';
 import { NetPart } from './game-net.js';
 import { PlayerPart } from './game-player.js';
 import { LureMind } from './lures.js';
+import { Arc } from './arc.js';
 import { WorldPart } from './game-world.js';
 import { DeathPart } from './game-death.js';
 
@@ -247,8 +248,9 @@ export class Game {
     this.revival = new Revive(this);  // a taken friend's tape (online)
     this.hs = new HideSeek(this, hideSeek && !room); // hide and seek (online)
     this.lm = new LureMind(this); // smart lures: where, whose voice, answering calls (host)
+    this.arc = new Arc(this); // the round's arc: listen, copy, hunt (arc.js)
     this.tellT = 0;
-    sfx.onStolen = (em) => this.stolenTell(em); // the tells on every stolen voice (game-world)
+    sfx.onStolen = (em, buf, style) => this.stolenTell(em, buf, style); // the tells on every stolen voice (game-world)
     this.chaseGoneT = 0;
     this.doorEm = sfx.emitter();
     this.inc = new Incidents(this, !story && !tutorial && !room && !hideSeek && custom?.events !== false); // power cuts, storms, alarms, lockdowns
@@ -514,7 +516,7 @@ export class Game {
     if (!this.isHost) this.mimic.puppet(dt, this.t);
     else if (this.hunt.on) this.hunt.driveMimic(dt);
     else if (this.tut.holds) this.tut.driveMimic(dt);
-    else if (this.mp || this.state === 'playing') { this.mimic.update(dt, this.targets(), this.t); this.lm.update(dt); }
+    else if (this.mp || this.state === 'playing') { this.mimic.update(dt, this.targets(), this.t); this.lm.update(dt); this.arc.update(dt); }
     if (this.hunt.me) this.mimic.model.root.visible = false; // you're inside it
     this.sw.update(dt);
     this.ls.update(dt);

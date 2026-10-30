@@ -17,7 +17,7 @@ export const customLevel = (c) => {
 // The waiting room (online, before a game): a small house, the same for everyone, where you can walk around and talk.
 export const ROOM = { theme: 'house', seed: 2604, gen: { size: 18, tasks: { fuses: true }, lore: 0, broken: 0 } };
 // What a player needs to catch up on after a drop: the messages that change the world for good.
-export const LOGGED = new Set(['took', 'drop', 'fuses', 'power', 'caught', 'out', 'left', 'doorSet', 'gen', 'smashed', 'unlocked', 'fakeItem', 'fakeGone', 'lifeTape', 'revived', 'lightOut', 'hour', 'hsPhase', 'coded', 'liftCalled', 'liftHere', 'lanternDrop', 'lanternHeld']);
+export const LOGGED = new Set(['took', 'drop', 'fuses', 'power', 'caught', 'out', 'left', 'doorSet', 'gen', 'smashed', 'unlocked', 'fakeItem', 'fakeGone', 'lifeTape', 'revived', 'lightOut', 'hour', 'hsPhase', 'coded', 'liftCalled', 'liftHere', 'lanternDrop', 'lanternHeld', 'arc']);
 export const POOL = 6;              // real point lights, moved to the nearest fixtures (fewer on lower graphics settings)
 // lights: the point-light pool; shadow: the flashlight's shadow map (0 = none); mirrors: how many may reflect at once (each one draws
 // the whole scene again); far: how far the camera draws (potato: the fog hides the rest anyway).

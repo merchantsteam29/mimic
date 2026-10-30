@@ -36,7 +36,8 @@ export const DeathPart = {
     if (by?.tr) this.scare = 'front'; // the train: straight on, lights blazing
     this.lunge = { dark: 1.0, stare: 1.8 }[this.scare] || 0; // how long before it strikes
     if (this.scare === 'behind' || this.scare === 'dark') this.sfx.sniff(this.scareBy ? this.scareBy.emitter : m.emitter);
-    if (this.scare === 'stare') setTimeout(() => { if (this.state === 'caught') this.localSpeak('whisper', null); }, 250);
+    // Staring at you, it whispers the line that brought you here (if one did).
+    if (this.scare === 'stare') setTimeout(() => { if (this.state !== 'caught') return; const b = !this.scareBy && this.arc.lastLure; if (b) this.voice.suppress(this.sfx.playVoice(b, null, 'whisper') + 0.3); else this.localSpeak('whisper', null); }, 250);
     const strike = () => {
       if (this.state !== 'caught') return;
       this.hud.flash.classList.remove('hit');

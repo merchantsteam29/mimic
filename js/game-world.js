@@ -112,8 +112,9 @@ export const WorldPart = {
 
   // A stolen voice is about to play (sfx.playVoice). Within 14 m (or in your ear) your flashlight stutters twice:
   // real friends never do that. The first time, it tells you so.
-  stolenTell(em) {
+  stolenTell(em, buf, style) {
     if (this.state !== 'playing' || this.room) return;
+    if (['lure', 'distant', 'stranger', 'ellie', 'child', 'phone', 'radio'].includes(style)) this.arc.lastLure = buf; // (the stare jumpscare)
     const p = this.p, x = em?.x ?? p.x, z = em?.z ?? p.z;
     if (Math.hypot(x - p.x, z - p.z) > 14) return;
     this.tellT = 0.6;
