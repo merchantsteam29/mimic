@@ -165,7 +165,7 @@ export class Game {
     this.order.forEach((id, i) => { if (id !== this.me) this.remotes.set(id, new RemotePlayer(scene, sfx, i, this.lookOf(id))); });
 
     this.mimic = new Mimic(level, scene, sfx, {
-      speak: (style, emitter) => this.mimicSpeaks(style, emitter),
+      speak: (style, emitter, want) => this.mimicSpeaks(style, emitter, want),
       gait: () => this.gait.profile(), // walking like one of you
       onCatch: (id) => this.hostCatch(id),
       onSpotted: (id) => this.sendTo(id, { t: 'sting' }),
@@ -391,6 +391,7 @@ export class Game {
   }
 
   dispose() {
+    this.voice.context = null;
     this.renderer.setAnimationLoop(null);
     this.worker?.terminate();
     removeEventListener('keydown', this.onKeyDown);

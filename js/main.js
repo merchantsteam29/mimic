@@ -5,6 +5,7 @@ import { Sfx } from './sfx.js';
 import { Samples } from './samples.js';
 import { VHS } from './vhs.js';
 import { Voice } from './voice.js';
+import { SEED_KINDS } from './kinds.js';
 import { THEMES } from './level.js';
 import { grainDataUrl, preloadPhotos } from './textures.js';
 import { Session } from './mp.js';
@@ -471,8 +472,9 @@ async function voiceCheck(next) {
   }
   $('micStatus').textContent = 'Microphone on.';
   voice.tag = 'seed';
-  voice.onClip = () => {
+  voice.onClip = (clip) => {
     if (current() !== 'miccheck') return;
+    if (lineIndex < SEED_KINDS.length) clip.kind = SEED_KINDS[lineIndex]; // we know what these lines say
     lineIndex = Math.min(lines.length, lineIndex + 1);
     markLines();
     $('btnBegin').disabled = false;
@@ -633,13 +635,23 @@ document.addEventListener('fullscreenchange', () => {
   if (!document.fullscreenElement && game && (game.state === 'playing' || game.state === 'spectate') && document.pointerLockElement) document.exitPointerLock();
 });
 
+// What it has kept, by kind: ", including 2 screams and you calling for help".
+const KIND_WORDS = { scream: ['a scream', 'screams'], help: ['you calling for help', 'you calling for help'], call: ['you calling out', 'you calling out'], laugh: ['a laugh', 'laughs'], whisper: ['a whisper', 'whispers'], panic: ['you panicking', 'you panicking'] };
+function heldKinds() {
+  const n = {};
+  for (const c of voice.clips) if (KIND_WORDS[c.kind]) n[c.kind] = (n[c.kind] || 0) + 1;
+  const words = Object.entries(n).sort((a, b) => b[1] - a[1]).slice(0, 3)
+    .map(([k, c]) => (KIND_WORDS[k][0] === KIND_WORDS[k][1] ? KIND_WORDS[k][0] : c > 1 ? `${c} ${KIND_WORDS[k][1]}` : KIND_WORDS[k][0]));
+  return words.length ? `, including ${words.length > 1 ? `${words.slice(0, -1).join(', ')} and ${words.at(-1)}` : words[0]}` : '';
+}
+
 function openPause() {
   if (!game || game.paused || !(game.state === 'playing' || game.state === 'spectate')) return;
   if (game.room) { game.pause(); show('lobby'); renderLobby(); return; } // the waiting room: back to the lobby menu
   game.pause();
   $('pauseClips').textContent = session
     ? 'The game keeps going while this menu is open.'
-    : voice.clips.length ? `It has ${voice.clips.length} recording${voice.clips.length > 1 ? 's' : ''} of your voice.` : '';
+    : voice.clips.length ? `It has ${voice.clips.length} recording${voice.clips.length > 1 ? 's' : ''} of your voice${heldKinds()}.` : '';
   $('btnQuit').textContent = session ? 'Leave game' : 'Quit to menu';
   $('pauseCode').textContent = game.story || game.tut.on ? '' : `Building code: ${buildingCode(game.themeId, game.seed)}`;
   if (controls.mode === 'mouse') $('pauseClips').textContent += (($('pauseClips').textContent ? ' ' : '') + 'Resume returns to full screen.');

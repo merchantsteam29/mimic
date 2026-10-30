@@ -11,6 +11,8 @@ const MAX_CLIP = 7;        // seconds; longer speech is split
 const MIN_VOICED = 0.3;    // seconds of actual speech needed to keep a clip
 const MAX_CLIPS = 60;
 
+import { Kinds, want } from './kinds.js';
+
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
 export class Voice {
@@ -27,6 +29,8 @@ export class Voice {
     this.talking = false;
     this.suppressUntil = 0;    // while the mimic speaks, don't record its own voice from the speakers
     this.tag = null;           // label for new clips (e.g. 'seed' during the voice check)
+    this.context = null;       // what's happening while you talk ('chase' | 'hide' | null), set by the game
+    this.kinds = new Kinds();  // what kind of thing each clip is (kinds.js)
     this.onClip = null;
     this.pre = [];
     this.rec = null;
@@ -125,6 +129,7 @@ export class Voice {
       if (v > 0.01) { sum += y * y; n++; }
     }
     const rms = Math.sqrt(sum / (n || 1)) || 1e-4;
+    const rawDb = 20 * Math.log10(rms); // how loud you said it, before levelling
     const gain = Math.min(10, 0.14 / rms, 0.95 / (peak || 1));
     const fade = Math.floor(this.ctx.sampleRate * 0.008);
     for (let i = 0; i < len; i++) {
@@ -135,7 +140,8 @@ export class Voice {
     }
     const buffer = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
     buffer.copyToChannel(out, 0);
-    const clip = { buffer, duration: buffer.duration, plays: 0, at: performance.now(), tag: this.tag };
+    const kind = this.kinds.classify(buffer, rawDb, this.context);
+    const clip = { buffer, duration: buffer.duration, plays: 0, at: performance.now(), tag: this.tag, kind };
     this.clips.push(clip);
     if (this.clips.length > MAX_CLIPS) {
       // Forget the most-used clip from the older half, so fresh material keeps coming in.
@@ -146,14 +152,16 @@ export class Voice {
     this.onClip?.(clip);
   }
 
-  // Choose a clip for the mimic: favours fresh, rarely played clips and the voice-check lines.
-  pick() {
+  // Choose a clip for the mimic: favours fresh, rarely played clips, the voice-check lines, and the kind of
+  // clip that suits how it's speaking (style: lure, scream, whisper...; see kinds.js).
+  pick(style = null) {
     if (!this.clips.length) return null;
     const n = this.clips.length;
     const weights = this.clips.map((c, i) => {
       let w = 1 / (1 + c.plays * 1.5);
       w *= 1 + i / n;                    // newer clips are a bit more likely
       if (c.tag === 'seed') w *= 1.4;    // "Help me!" etc. make good lures
+      w *= want(style, c.kind);
       if (c === this.lastPicked && n > 1) w = 0;
       return w;
     });

@@ -78,7 +78,7 @@ export class Radio {
     if (g.hunt.on || g.power) return;
     if ((this.fakeT -= dt) > 0) return;
     this.fakeT = 90 + Math.random() * 90;
-    const key = g.mp.pickKey((owner) => g.status.get(owner) === 'dead');
+    const key = g.mp.pickKey((owner) => g.status.get(owner) === 'dead', null, 'distant');
     const c = key && g.mp.clips.get(key);
     if (!c || !g.targets().length) return;
     g.recap.voice(key);

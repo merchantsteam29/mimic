@@ -75,6 +75,12 @@ and `window.MIMIC_VERSION` in the page. When they differ (an old cached page wit
 - `voice.js`: mic capture through an AudioWorklet (`recorder-worklet.js`), voice detection with an adaptive
   noise floor, utterances become `AudioBuffer` clips (max 60). `hear` (0..1) drives the mimic's hearing.
   `suppress()` stops recording while the mimic talks, so it never records itself.
+- `kinds.js`: **what kind of clip** each one is (no speech-to-text): `Kinds.classify(buffer, rawDb, context)` in `voice.finish` labels it
+  call / come / help / scream / panic / laugh / whisper / talk from loudness and pitch against your usual voice (an average of your ordinary
+  `talk` clips; nothing counts as louder or quieter until it has 2), choppiness (`splice.pieces`) and `voice.context` ('chase' / 'hide', set
+  in `updateVoice`). The voice-check lines are `SEED_KINDS` (main.js sets them). `want(style, kind)` weights `voice.pick(style)` and
+  `mp.pickKey(isDead, prefer, style)`; `mimic.speak(style, want)` asks for a kind apart from how it's played (`calm` at a hiding spot).
+  Online the kind travels with each `clip` part. The pause menu says what it has kept (`heldKinds`).
 - `sfx.js`: all sound is synthesized. A 0.4 trim after the compressor sets the overall loudness. `setDread` (drone that
   rises as it gets close) and `setAmbient` (ducks to near-silence when it's near) are driven from `game.updateFear`. `emitter()` is a positional source (occlusion lowpass + HRTF panner).
   `playVoice(buffer, emitter, style)` plays the mimic's voice: `lure`, `scream` or `echo` (end screen).

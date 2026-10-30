@@ -21,22 +21,22 @@ export const WorldPart = {
   mimicSkill() { return clamp((this.time - 20) / 300 + this.lures * 0.025, 0, 1); },
 
   // The mimic (host) talks: everyone hears the same clip from it.
-  mimicSpeaks(style, emitter) {
+  mimicSpeaks(style, emitter, want = null) {
     const dead = (owner) => this.status.get(owner) === 'dead', c0 = (k) => k && this.mp?.clips.get(k);
     if (style === 'chorus') {
       if (!this.mp) {
-        const bufs = this.voice.clips.slice().sort(() => Math.random() - 0.5).slice(0, 3).map((c) => c.buffer);
+        const bufs = [...new Set([0, 1, 2].map(() => this.voice.pick('chorus')).filter(Boolean))].map((c) => c.buffer);
         return bufs.length ? this.sfx.chorus(bufs, emitter) : this.sfx.whisper(emitter);
       }
-      const keys = [...new Set([0, 1, 2].map(() => this.mp.pickKey(dead)).filter(Boolean))];
+      const keys = [...new Set([0, 1, 2].map(() => this.mp.pickKey(dead, null, 'chorus')).filter(Boolean))];
       keys.forEach((k) => this.recap.voice(k));
       this.broadcast({ t: 'say', keys, style });
       return 3;
     }
     this.ls.hear(this.mimic.x, this.mimic.z, 16, 'voice'); // its lures draw the listener too
-    if (!this.mp) return this.localSpeak(style, emitter);
+    if (!this.mp) return this.localSpeak(style, emitter, want);
     const wearing = this.mimic.wearId;
-    const key = this.mp.pickKey(dead, wearing);
+    const key = this.mp.pickKey(dead, wearing, want || (wearing && style !== 'scream' ? 'lure' : style));
     this.recap.voice(key);
     const q = +this.mimicSkill().toFixed(2);
     if (c0(key)) this.gait.follow(c0(key).owner); // it walks like whoever it's pretending to be
@@ -74,7 +74,8 @@ export const WorldPart = {
   },
 
   // A voice only I hear (the director's tricks, the jumpscare).
-  localSpeak(style, emitter) {
+  localSpeak(style, emitter, want = null) {
+    want ||= style;
     // Alone, your own voice is too obviously the mimic, so it disguises it: a stranger (pitched, over a
     // bad phone line), a sentence you never said (spliced from your recordings), or, in the story, Ellie.
     if (!this.mp && (style === 'lure' || style === 'distant') && this.voice.started && this.voice.clips.length) {
@@ -82,7 +83,7 @@ export const WorldPart = {
       if (this.story) { if (r < 0.7) style = this.story.voice || 'ellie'; }
       else if (r < 0.3) style = 'stranger';
       else if (r < 0.75 && this.voice.clips.length > 1) {
-        const bufs = [...new Set([0, 1, 2].map(() => this.voice.pick()?.buffer).filter(Boolean))];
+        const bufs = [...new Set([0, 1, 2].map(() => this.voice.pick(want)?.buffer).filter(Boolean))];
         const q = this.mimicSkill(), p = bufs.length > 1 && plan(bufs, Math.random, q);
         if (p) {
           const buf = build(this.sfx.ctx, p, bufs);
@@ -97,9 +98,9 @@ export const WorldPart = {
     }
     let buffer = null;
     if (this.mp) {
-      const key = this.mp.pickKey((owner) => this.status.get(owner) === 'dead');
+      const key = this.mp.pickKey((owner) => this.status.get(owner) === 'dead', null, want);
       buffer = key && this.mp.clips.get(key).buffer;
-    } else buffer = (this.voice.started ? this.voice.pick() : null)?.buffer;
+    } else buffer = (this.voice.started ? this.voice.pick(want) : null)?.buffer;
     if (!buffer) return this.sfx.whisper(emitter);
     const d = this.sfx.playVoice(buffer, emitter, style, this.mp ? 1 : this.mimicSkill());
     if (style === 'lure' || style === 'distant' || style === 'stranger') this.echoVoice(buffer, this.mp ? 1 : this.mimicSkill());
@@ -113,6 +114,9 @@ export const WorldPart = {
     const v = this.voice, hud = this.hud, p = this.p;
     hud.mic.classList.toggle('off', !v.started);
     if (!v.started) return;
+    // What's going on while you talk, so it knows a scream from a chase or a whisper from a hiding spot.
+    const m = this.mimic, md = Math.hypot(m.x - p.x, m.z - p.z);
+    v.context = p.hidden ? 'hide' : (md < 14 && ['chase', 'hunt', 'transform'].includes(m.state)) || this.fear > 0.75 ? 'chase' : null;
     hud.micBar.style.width = `${v.meter * 100}%`;
     hud.micLine.style.left = `${v.thresholdPos * 100}%`;
     let heard = false;

@@ -165,7 +165,7 @@ export class Skinwalker {
     if (!mp) return;
     const has = [...mp.clips.values()].some((c) => c.owner === w);
     if (!has) return;
-    const key = mp.pickKey(() => false, w);
+    const key = mp.pickKey(() => false, w, 'lure');
     if (mp.clips.get(key)?.owner === w) this.g.broadcast({ t: 'swSay', key });
   }
 

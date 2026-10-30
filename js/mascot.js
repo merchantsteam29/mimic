@@ -193,7 +193,7 @@ export class Mascot {
   laugh() {
     const g = this.g;
     if (g.mp) {
-      const key = g.mp.pickKey((owner) => g.status.get(owner) === 'dead');
+      const key = g.mp.pickKey((owner) => g.status.get(owner) === 'dead', null, 'chorus');
       const c = key && g.mp.clips.get(key);
       const p = c && pieces(c.buffer);
       if (!p?.length) return;
@@ -201,7 +201,7 @@ export class Mascot {
       g.broadcast({ t: 'mcLaugh', key, s: +s.toFixed(3), e: +e.toFixed(3) });
       return;
     }
-    const c = g.voice.started && g.voice.pick();
+    const c = g.voice.started && g.voice.pick('chorus');
     const p = c && pieces(c.buffer);
     if (!p?.length) { g.sfx.whisper(this.emitter); return; }
     const [s, e] = p[Math.floor(Math.random() * p.length)];

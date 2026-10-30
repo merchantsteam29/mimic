@@ -13,6 +13,7 @@ import { Net } from './net.js';
 import { VoiceChat } from './vc.js';
 import { CLASSES } from './classes.js';
 import { cleanLook } from './look.js';
+import { want, KINDS } from './kinds.js';
 
 const HOST_TYPES = new Set(['st', 'noise', 'take', 'insert', 'escaped', 'work', 'bang', 'smash', 'unlock', 'lever', 'flare', 'rescue', 'sniffRes', 'door', 'trapped', 'fakeDone', 'jam', 'sab', 'accuse', 'ballot', 'mst', 'bite', 'msay', 'mlight', 'chat', 'haunt', 'radio', 'recDrop', 'sig', 'revive', 'throw', 'camFlash', 'keypad', 'callLift', 'answer', 'lanternTake', 'spkPut', 'spkPlay', 'cross', 'mark', 'wedge', 'impAccuse', 'impBallot']);
 const CLIP_RATE = 16000;
@@ -151,14 +152,14 @@ export class Session {
     const key = `${this.id}:${this.myClips++}`;
     clip.key = key; // (the tape recorder sends it by this name)
     const data = encodeClip(clip.buffer);
-    this.addClip(key, { buffer: clip.buffer, owner: this.id, plays: 0, data });
-    this.queueClip(key, this.id, data, null, null);
+    this.addClip(key, { buffer: clip.buffer, owner: this.id, plays: 0, data, kind: clip.kind });
+    this.queueClip(key, this.id, data, null, null, clip.kind);
   }
 
   // Cut a clip into parts and queue them (to: one player, or null for everyone; except: not to them).
-  queueClip(key, owner, data, to, except) {
+  queueClip(key, owner, data, to, except, kind) {
     const of = Math.max(1, Math.ceil(data.length / PART));
-    for (let n = 0; n < of; n++) this.clipQ.push({ m: { t: 'clip', key, owner, n, of, pcm: data.slice(n * PART, (n + 1) * PART) }, to, except });
+    for (let n = 0; n < of; n++) this.clipQ.push({ m: { t: 'clip', key, owner, kind, n, of, pcm: data.slice(n * PART, (n + 1) * PART) }, to, except });
     if (this.clipQ.length > 600) this.clipQ.splice(0, this.clipQ.length - 600); // hopelessly behind: drop the oldest
   }
 
@@ -178,7 +179,7 @@ export class Session {
       this.known.add(r.id);
       const byOwner = new Map();
       for (const [key, c] of this.clips) if (c.owner !== r.id && c.data) (byOwner.get(c.owner) || byOwner.set(c.owner, []).get(c.owner)).push([key, c]);
-      for (const list of byOwner.values()) for (const [key, c] of list.slice(-CATCH_UP)) this.queueClip(key, c.owner, c.data, r.id, null);
+      for (const list of byOwner.values()) for (const [key, c] of list.slice(-CATCH_UP)) this.queueClip(key, c.owner, c.data, r.id, null, c.kind);
     }
   }
 
@@ -195,7 +196,7 @@ export class Session {
     let a = this.partial.get(key);
     if (!a) {
       if (this.partial.size > 40) this.partial.delete(this.partial.keys().next().value);
-      this.partial.set(key, a = { owner: String(m.owner), of, got: 0, parts: [] });
+      this.partial.set(key, a = { owner: String(m.owner), of, got: 0, parts: [], kind: KINDS.includes(m.kind) ? m.kind : 'talk' });
     }
     if (a.parts[n]) return;
     a.parts[n] = bytes.slice();
@@ -209,12 +210,12 @@ export class Session {
     const buffer = this.sfx.ctx.createBuffer(1, len, CLIP_RATE);
     const ch = buffer.getChannelData(0);
     for (let i = 0; i < len; i++) ch[i] = UNMU[data[i]];
-    this.addClip(key, { buffer, owner: a.owner, plays: 0, data });
+    this.addClip(key, { buffer, owner: a.owner, plays: 0, data, kind: a.kind });
   }
 
   // The mimic's choice of voice: mostly the dead (if anyone is), rarely-played clips first.
-  // prefer: a player whose voice it wants (the one it's wearing).
-  pickKey(isDead, prefer = null) {
+  // prefer: a player whose voice it wants (the one it's wearing). style: how it will say it (kinds.js).
+  pickKey(isDead, prefer = null, style = null) {
     const keys = [...this.clips.keys()];
     if (!keys.length) return null;
     const anyDead = keys.some((k) => isDead(this.clips.get(k).owner));
@@ -223,6 +224,7 @@ export class Session {
       let v = 1 / (1 + c.plays * 1.5);
       if (anyDead) v *= isDead(c.owner) ? 6 : 0.5;
       if (prefer && c.owner === prefer) v *= 20;
+      v *= want(style, c.kind);
       if (k === this.lastKey && keys.length > 1) v = 0;
       return v;
     });

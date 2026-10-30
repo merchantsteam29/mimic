@@ -135,7 +135,7 @@ export class Double {
   say() {
     const mp = this.g.mp, w = this.src;
     if (!mp || ![...mp.clips.values()].some((c) => c.owner === w)) return;
-    const key = mp.pickKey(() => false, w);
+    const key = mp.pickKey(() => false, w, 'lure');
     if (mp.clips.get(key)?.owner === w) this.g.broadcast({ t: 'dbSay', key });
   }
 

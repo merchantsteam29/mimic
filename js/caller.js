@@ -73,7 +73,7 @@ export class Caller {
     const at = from === g.me ? g.p : g.remotes.get(from);
     if (!ph || ph.done || !g.alive(from) || !at || Math.hypot(at.x - ph.x, at.z - ph.z) > 3) return true;
     ph.done = true;
-    const key = g.mp?.pickKey((id) => g.status.get(id) === 'dead') ?? null; // the dead, mostly
+    const key = g.mp?.pickKey((id) => g.status.get(id) === 'dead', null, 'distant') ?? null; // the dead, mostly
     g.broadcast({ t: 'answered', i: m.i | 0, by: from, key });
     // It heard the receiver come up. It knows where you are.
     g.mimic.investigate(ph.x, ph.z, 3.4);

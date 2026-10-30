@@ -476,8 +476,9 @@ export class Mimic {
     this.flee(P);
   }
 
-  speak(style) {
-    const d = this.hooks.speak(style, this.emitter);
+  // want: the kind of clip to look for, when it isn't simply the style's (kinds.js), e.g. 'calm' at a hiding spot.
+  speak(style, want = null) {
+    const d = this.hooks.speak(style, this.emitter, want);
     this.speaking = d;
     this.speakCd = (9 + Math.random() * 8) * (1 - this.hunger * 0.12) * this.diff.talk; // hungrier, chattier
   }
@@ -675,7 +676,7 @@ export class Mimic {
         this.wait -= dt;
         if (this.wait <= 0) {
           if (this.lures < (Math.random() < 0.45 ? 2 : 1)) {
-            this.speak(this.lureStyle);
+            this.speak(this.lureStyle, P.hidden ? 'calm' : null); // hiding? it talks like it's safe to come out
             this.lures++;
             this.wait = this.speaking + 3 + Math.random() * 3;
           } else this.wander(P);
