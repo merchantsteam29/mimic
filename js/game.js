@@ -328,6 +328,7 @@ export class Game {
 
     this.state = room ? 'playing' : 'intro';
     this.updateCamera();
+    this.warmShaders();
     this.renderer.setAnimationLoop((now) => this.frame(now));
   }
 
@@ -555,6 +556,15 @@ export class Game {
     if (this.state === 'playing' || this.state === 'spectate') this.gait.update(dt);
     if (this.mp) { this.netTick(dt); this.routeVoices(); this.updateTags(); }
     if (this.isHost && (this.state === 'playing' || this.state === 'spectate')) this.recap.update(dt);
+  }
+
+  // Compile every material in the level now (hidden ones too), during the intro, for the camcorder target the scene is
+  // really drawn into. Otherwise each new thing compiled its shader the first time it came into view: a freeze of up to
+  // seconds mid-run.
+  warmShaders() {
+    const r = this.renderer, prev = r.getRenderTarget();
+    try { r.setRenderTarget(this.vhs ? this.vhs.target : null); r.compile(this.scene, this.camera); } catch (e) {}
+    r.setRenderTarget(prev);
   }
 
   render(dt) {
