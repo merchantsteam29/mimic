@@ -1298,11 +1298,11 @@ if (!params.has('autostart') && !params.has('join')) {
 // For automated multiplayer tests.
 window.__mimic = { get game() { return game; }, get session() { return session; }, get title3d() { return title3d; } };
 
-// "Download for PC": the Game Library app for Windows (every game in one place). Hidden on phones
+// "Download for PC": opens the Game Library page that installs it as a PC app (every game in one place). Hidden on phones
 // and tablets, and inside the app itself.
 (() => {
   const b = document.getElementById('pcDownload'); if (!b) return;
   const ua = navigator.userAgent;
   if (/Electron|Android|iPhone|iPad|iPod|Mobile/i.test(ua) || (/Mac/.test(navigator.platform) && navigator.maxTouchPoints > 1)) { b.style.display = 'none'; return; }
-  b.addEventListener('click', (e) => { e.stopPropagation(); b.blur(); location.href = 'https://github.com/merchantsteam29/GameLibrary/releases/latest/download/GameLibrary.exe'; });
+  b.addEventListener('click', (e) => { e.stopPropagation(); b.blur(); window.open('https://merchantsteam29.github.io/GameLibrary/?install', '_blank', 'noopener'); });
 })();
