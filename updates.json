@@ -1,0 +1,64 @@
+[
+  {
+    "version": "Beta 1",
+    "date": "2026-10-29",
+    "title": "It listens first",
+    "notes": [
+      "The mimic sorts what it hears (screams, calls, help, laughs, whispers) and uses the right one at the right moment.",
+      "It calls from the dark near what you're looking for, sounds like the friend you split from, and answers when you shout for someone.",
+      "Each night it starts by listening, then copies, then hunts.",
+      "Learn its tells: a wet click in its throat before it speaks, and your flashlight dips twice when it's close."
+    ]
+  },
+  {
+    "version": "Beta",
+    "date": "2026-10-28",
+    "title": "Nearly finished",
+    "notes": [
+      "Mimic is in beta: fourteen places, three stories and every mode, so now it's fixing and polishing.",
+      "New places: a lighthouse island, the sewers, a liner in a storm, a snow research station and an old mine.",
+      "A third story, The Babysitter, in five chapters.",
+      "Endless descent: floor after floor, each worse than the last.",
+      "The patient, the rat swarm, and a new mode, Imposter voices.",
+      "It walks like you, and its copies of your voice get better as the night goes on.",
+      "Kill-cam replays, simpler menus, bigger-text and colour-blind settings, and a Potato graphics setting for old machines."
+    ]
+  },
+  {
+    "version": "Alpha",
+    "date": "2026-10-27",
+    "title": "Alpha",
+    "notes": [
+      "An abandoned fairground with a ghost train, a hall of mirrors and the clown.",
+      "Spliced sentences: it cuts your words up and makes you say things you never said.",
+      "A closed subway station, the Mother, and four new classes: Sound guy, Priest, Scout and Mechanic.",
+      "Quick Play shows open public rooms, and the voice that fooled you can be saved as a video.",
+      "Escort mode, map picking, a scarier-looking mimic and a sound pass for every place."
+    ]
+  },
+  {
+    "version": "",
+    "date": "2026-10-26",
+    "title": "The big expansion",
+    "notes": [
+      "New places: the church, the asylum, the mall, the school, the hotel and the woods.",
+      "New creatures: the Double, the Listener, the Stalker, the Shadow and the Caller.",
+      "New modes: Night Shift, Versus, Hide and seek, and a second story, The Operator.",
+      "Tape-recorder decoys, walkie-talkies, new hiding spots and things to throw.",
+      "A tutorial, sound captions, auto graphics, an end-of-round recap, and rejoining after a drop.",
+      "Moods and twists, so no two nights are the same."
+    ]
+  },
+  {
+    "version": "",
+    "date": "2026-10-25",
+    "title": "Release",
+    "notes": [
+      "A horror game that records your voice and uses it to lure you into the dark.",
+      "Up to 4 players online with proximity voice chat.",
+      "Story mode with Ellie, and an online story, The Signal, with a secret traitor.",
+      "Hunt mode (one player is the mimic), the hospital and the skinwalker.",
+      "Controller and touch support, and it can be installed as an app."
+    ]
+  }
+]
