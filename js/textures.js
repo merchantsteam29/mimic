@@ -803,7 +803,9 @@ function photo(name, color = true) {
   const t = p.tex.clone();
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.anisotropy = 4;
-  if (p.loaded) t.needsUpdate = true; else p.copies.push(t);
+  // clone() marks the copy for upload; before the image exists that only makes three.js warn
+  // ("Texture marked for update but no image data found"), so wait for the load to mark it.
+  if (p.loaded) t.needsUpdate = true; else { t.version = 0; p.copies.push(t); }
   return t;
 }
 
